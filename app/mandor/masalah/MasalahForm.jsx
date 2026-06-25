@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import BackButton from "@/components/BackButton";
 
 export default function MasalahForm({ proyek }) {
   const router = useRouter();
@@ -30,13 +31,14 @@ export default function MasalahForm({ proyek }) {
       created_by: uid,
     });
     setBusy(false);
-    router.push("/mandor");
+    router.push(`/mandor?proyek=${proyek.id}`);
   };
 
   if (!proyek) return <p className="p-6">Belum ada proyek aktif.</p>;
 
   return (
     <main className="p-4">
+      <BackButton href={`/mandor?proyek=${proyek.id}`} />
       <h1 className="mb-1 text-xl font-bold">Lapor Masalah</h1>
       <p className="mb-4 text-sm text-gray-500">{proyek.nama}</p>
       <form onSubmit={submit} className="space-y-4">

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/BackButton";
 
 export default function ReimburseForm({ proyek }) {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function ReimburseForm({ proyek }) {
     if (nota) fd.append("nota", nota);
     const res = await fetch("/api/keuangan", { method: "POST", body: fd });
     setBusy(false);
-    if (res.ok) router.push("/mandor");
+    if (res.ok) router.push(`/mandor?proyek=${proyek.id}`);
     else alert("Gagal mengirim. Coba lagi.");
   };
 
@@ -28,6 +29,7 @@ export default function ReimburseForm({ proyek }) {
 
   return (
     <main className="p-4">
+      <BackButton href={`/mandor?proyek=${proyek.id}`} />
       <h1 className="mb-1 text-xl font-bold">Reimburse / Klaim</h1>
       <p className="mb-4 text-sm text-gray-500">{proyek.nama}</p>
       <form onSubmit={submit} className="space-y-4">

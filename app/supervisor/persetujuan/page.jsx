@@ -1,6 +1,6 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import ApprovalList from "./ApprovalList";
-import Link from "next/link";
+import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -62,11 +62,9 @@ export default async function PersetujuanPage() {
 
   return (
     <main className="p-4 pb-8">
-      <header className="mb-4 flex items-center justify-between">
+      <BackButton href="/supervisor" />
+      <header className="mb-4">
         <h1 className="text-xl font-bold">Persetujuan</h1>
-        <Link href="/supervisor" className="text-sm text-gray-500">
-          ‹ Dashboard
-        </Link>
       </header>
       <p className="mb-4 text-sm text-gray-500">
         {items.length} pengajuan menunggu

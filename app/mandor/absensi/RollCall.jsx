@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import BackButton from "@/components/BackButton";
 
 export default function RollCall({ proyek, tukang, hadirAwal }) {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function RollCall({ proyek, tukang, hadirAwal }) {
     }
     setSaving(false);
     setOk(true);
-    setTimeout(() => router.push("/mandor"), 800);
+    setTimeout(() => router.push(`/mandor?proyek=${proyek.id}`), 800);
   };
 
   if (!proyek)
@@ -49,6 +50,7 @@ export default function RollCall({ proyek, tukang, hadirAwal }) {
 
   return (
     <main className="p-4 pb-28">
+      <BackButton href={`/mandor?proyek=${proyek.id}`} />
       <header className="mb-3">
         <h1 className="text-xl font-bold">Absensi Hari Ini</h1>
         <p className="text-sm text-gray-500">{proyek.nama}</p>

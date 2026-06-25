@@ -84,8 +84,11 @@ aplikasi-mandor/
     │   ├── masalah/               # lapor kendala
     │   └── gaji/                  # rekap biaya harian/mingguan
     └── supervisor/                # ── area SUPERVISOR ──
-        ├── page.jsx               # Dashboard Supervisor
-        └── persetujuan/           # daftar PENDING + approve/reject
+        ├── page.jsx               # Dashboard Supervisor + tombol "Proyek Baru"
+        ├── persetujuan/           # daftar PENDING + approve/reject
+        └── proyek/
+            ├── baru/              # form buat proyek baru
+            └── [id]/              # kelola proyek: tetapkan mandor, tambah tukang
 ```
 
 Pemisahan peran dilakukan lewat folder `app/mandor/*` dan `app/supervisor/*`. `middleware.js` mengecek role di setiap request: user tanpa login dilempar ke `/login`, mandor yang mencoba buka `/supervisor` dialihkan ke `/mandor`, dan sebaliknya. RLS di database menjadi lapis pertahanan kedua jika ada yang menembus rute.
@@ -173,5 +176,6 @@ npm run dev                         # buka http://localhost:3000
 
 **D. Catatan operasional**
 - Tukang **tidak** memakai aplikasi — mereka tidak punya akun. Mandor yang menginput semua data tukang.
-- Untuk menambah proyek/mandor/tukang awal, masukkan lewat Supabase Table Editor atau buatkan halaman admin sederhana untuk Supervisor.
+- **Supervisor membuat proyek langsung dari web**: Dashboard Supervisor → "+ Proyek Baru" → isi nama/lokasi & pilih mandor. Lalu buka proyek tersebut untuk menambah tukang dan mengganti mandor. RLS memastikan `supervisor_id` selalu = dirinya sendiri.
+- Yang masih perlu dibuat lewat Supabase hanyalah **akun login** (auth user) untuk Mandor baru, karena membuat akun + password butuh hak admin. Setelah akun mandor ada, semua pengelolaan proyek/tukang dilakukan dari web. (Bisa dibuatkan halaman "Undang Mandor" memakai service-role key bila diinginkan.)
 - Login mandor memakai pola `nomorHP@mandor.app` + sandi agar mudah diingat (lihat `app/login/page.jsx`).

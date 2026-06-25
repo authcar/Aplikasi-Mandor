@@ -3,14 +3,14 @@ import ReimburseForm from "./ReimburseForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function ReimbursePage() {
+export default async function ReimbursePage({ searchParams }) {
   const { profile, supabase } = await getSessionProfile();
-  const { data: proyek } = await supabase
+  let q = supabase
     .from("proyek")
     .select("id, nama")
     .eq("mandor_id", profile.id)
-    .eq("is_active", true)
-    .limit(1)
-    .single();
+    .eq("is_active", true);
+  q = searchParams?.proyek ? q.eq("id", searchParams.proyek) : q.order("nama").limit(1);
+  const { data: proyek } = await q.maybeSingle();
   return <ReimburseForm proyek={proyek} />;
 }

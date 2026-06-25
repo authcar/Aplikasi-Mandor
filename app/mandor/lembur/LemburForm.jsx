@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import BackButton from "@/components/BackButton";
 
 // Satu layar untuk dua kebutuhan: Lembur (jam) atau Kasbon (nominal).
 export default function LemburForm({ proyek, tukang }) {
@@ -38,13 +39,14 @@ export default function LemburForm({ proyek, tukang }) {
       });
     }
     setBusy(false);
-    router.push("/mandor");
+    router.push(`/mandor?proyek=${proyek.id}`);
   };
 
   if (!proyek) return <p className="p-6">Belum ada proyek aktif.</p>;
 
   return (
     <main className="p-4">
+      <BackButton href={`/mandor?proyek=${proyek.id}`} />
       <h1 className="mb-3 text-xl font-bold">Lembur / Kasbon</h1>
 
       <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-gray-200 p-1">

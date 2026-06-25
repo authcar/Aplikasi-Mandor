@@ -157,6 +157,9 @@ create policy profiles_self on profiles for select
                     where p.supervisor_id = auth.uid() and p.mandor_id = profiles.id));
 create policy profiles_update_self on profiles for update
   using (id = auth.uid());
+-- Supervisor boleh melihat semua MANDOR (untuk ditugaskan ke proyek)
+create policy profiles_list_mandor on profiles for select
+  using (my_role() = 'SUPERVISOR' and role = 'MANDOR');
 
 -- PROYEK: hanya proyek milik user (mandor/supervisor)
 create policy proyek_read on proyek for select
