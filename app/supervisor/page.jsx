@@ -37,7 +37,7 @@ export default async function DashboardSupervisor() {
       <header className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500">Supervisor</p>
-          <h1 className="text-xl font-bold">
+          <h1 className="text-xl font-semibold">
             {sapa}, {profile.name}!
           </h1>
         </div>
@@ -46,7 +46,7 @@ export default async function DashboardSupervisor() {
 
       <Link
         href="/supervisor/persetujuan"
-        className="mb-5 flex items-center justify-between rounded-2xl bg-brand p-5 text-white active:opacity-90"
+        className="mb-5 flex items-center justify-between rounded-2xl bg-gray-300 p-5 text-gray active:opacity-90"
       >
         <div>
           <p className="text-sm opacity-90">Menunggu Persetujuan</p>
@@ -55,14 +55,26 @@ export default async function DashboardSupervisor() {
         <span className="text-2xl">›</span>
       </Link>
 
+      <a
+        href="https://t.me/TaracoBot"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mb-5 flex items-center justify-between rounded-2xl bg-brand p-5 text-white active:opacity-90"
+      >
+        <div>
+          <p className="text-lg font-semibold">📋 Buat Laporan Harian</p>
+        </div>
+        <span className="text-2xl">↗</span>
+      </a>
+
       <div className="mb-5 grid grid-cols-2 gap-3">
         <Link
           href="/supervisor/masalah"
           className="flex items-center justify-between rounded-2xl border-2 border-gray-200 bg-white p-4 active:bg-gray-100"
         >
           <div>
-            <p className="text-xs text-gray-500">Masalah Aktif</p>
-            <p className="text-2xl font-bold">{masalahAktif}</p>
+            <p className="text-md font-semibold">Masalah Aktif</p>
+            <p className="text-2xl font-bold text-red-500">{masalahAktif}</p>
           </div>
           <span className="text-xl text-gray-400">›</span>
         </Link>
@@ -72,8 +84,7 @@ export default async function DashboardSupervisor() {
           className="flex items-center justify-between rounded-2xl border-2 border-gray-200 bg-white p-4 active:bg-gray-100"
         >
           <div>
-            <p className="text-xs text-gray-500">Rekap Gaji</p>
-            <p className="text-2xl font-bold">💰</p>
+            <p className="text-xl font-semibold">💰 Rekap Gaji</p>
           </div>
           <span className="text-xl text-gray-400">›</span>
         </Link>
