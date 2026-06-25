@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Target HP jadul: font besar, tombol besar, kontras tinggi, tanpa animasi berat */
+html { -webkit-text-size-adjust: 100%; }
+body { @apply bg-gray-100 text-gray-900 antialiased; }
+button { touch-action: manipulation; }

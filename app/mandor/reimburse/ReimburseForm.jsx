@@ -1,0 +1,81 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+export default function ReimburseForm({ proyek }) {
+  const router = useRouter();
+  const [nominal, setNominal] = useState("");
+  const [ket, setKet] = useState("");
+  const [nota, setNota] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    const fd = new FormData();
+    fd.append("proyek_id", proyek.id);
+    fd.append("jenis", "REIMBURSE");
+    fd.append("nominal", nominal);
+    fd.append("keterangan", ket);
+    if (nota) fd.append("nota", nota);
+    const res = await fetch("/api/keuangan", { method: "POST", body: fd });
+    setBusy(false);
+    if (res.ok) router.push("/mandor");
+    else alert("Gagal mengirim. Coba lagi.");
+  };
+
+  if (!proyek) return <p className="p-6">Belum ada proyek aktif.</p>;
+
+  return (
+    <main className="p-4">
+      <h1 className="mb-1 text-xl font-bold">Reimburse / Klaim</h1>
+      <p className="mb-4 text-sm text-gray-500">{proyek.nama}</p>
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="Nominal (Rp)">
+          <input
+            inputMode="numeric"
+            value={nominal}
+            onChange={(e) => setNominal(e.target.value.replace(/\D/g, ""))}
+            className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+            placeholder="50000"
+            required
+          />
+        </Field>
+        <Field label="Untuk apa?">
+          <input
+            value={ket}
+            onChange={(e) => setKet(e.target.value)}
+            className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+            placeholder="Uang makan tim"
+            required
+          />
+        </Field>
+        <label className="flex flex-col items-center rounded-xl border-2 border-dashed border-gray-300 bg-white p-5 text-gray-500">
+          📷 {nota ? nota.name : "Foto nota / kuitansi"}
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => setNota(e.target.files?.[0] || null)}
+          />
+        </label>
+        <button
+          disabled={busy}
+          className="w-full rounded-xl bg-brand p-4 text-xl font-bold text-white disabled:opacity-60"
+        >
+          {busy ? "Mengirim..." : "KIRIM KE SUPERVISOR"}
+        </button>
+      </form>
+    </main>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="mb-1 block text-lg font-medium">{label}</label>
+      {children}
+    </div>
+  );
+}
