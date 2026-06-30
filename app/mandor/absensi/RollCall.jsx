@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import BackButton from "@/components/BackButton";
+import Icon from "@/components/Icon";
 
 export default function RollCall({ proyek, tukang, hadirAwal }) {
   const router = useRouter();
@@ -51,14 +52,14 @@ export default function RollCall({ proyek, tukang, hadirAwal }) {
   return (
     <main className="p-4 pb-28">
       <BackButton href={`/mandor?proyek=${proyek.id}`} />
-      <header className="mb-3">
-        <h1 className="text-xl font-bold">Absensi Hari Ini</h1>
+      <header className="mb-4">
+        <h1 className="text-xl font-bold tracking-tight">Absensi Hari Ini</h1>
         <p className="text-sm text-gray-500">{proyek.nama}</p>
       </header>
 
       <div className="mb-3 flex items-center justify-between">
-        <p className="font-semibold text-brand">{hadir.size} hadir</p>
-        <button onClick={semua} className="text-sm font-medium text-brand underline">
+        <p className="badge bg-green-100 text-green-700">{hadir.size} hadir</p>
+        <button onClick={semua} className="text-sm font-semibold text-brand">
           Centang semua
         </button>
       </div>
@@ -71,8 +72,10 @@ export default function RollCall({ proyek, tukang, hadirAwal }) {
             <button
               key={t.id}
               onClick={() => toggle(t.id)}
-              className={`flex w-full items-center justify-between rounded-xl border-2 p-4 text-left ${
-                on ? "border-green-500 bg-green-50" : "border-gray-200 bg-white"
+              className={`flex w-full items-center justify-between rounded-2xl border p-4 text-left transition ${
+                on
+                  ? "border-green-500 bg-green-50 shadow-card"
+                  : "border-gray-200 bg-white"
               }`}
             >
               <div>
@@ -80,11 +83,11 @@ export default function RollCall({ proyek, tukang, hadirAwal }) {
                 <p className="text-sm text-gray-500">{t.jabatan}</p>
               </div>
               <span
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-white ${
-                  on ? "bg-green-500" : "bg-gray-300"
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-white transition ${
+                  on ? "bg-green-500" : "bg-gray-200 text-gray-400"
                 }`}
               >
-                ✓
+                <Icon name="check" className="h-5 w-5" strokeWidth={3} />
               </span>
             </button>
           );
@@ -92,8 +95,9 @@ export default function RollCall({ proyek, tukang, hadirAwal }) {
       </div>
 
       {/* Foto borongan suasana proyek */}
-      <label className="mt-4 flex flex-col items-center rounded-xl border-2 border-dashed border-gray-300 bg-white p-5 text-gray-500">
-        📷 {foto ? foto.name : "Ambil foto suasana proyek (opsional)"}
+      <label className="mt-4 flex flex-col items-center gap-1.5 rounded-2xl border-2 border-dashed border-gray-300 bg-white p-5 text-sm font-medium text-gray-500 active:bg-gray-50">
+        <Icon name="camera" className="h-7 w-7 text-gray-400" />
+        {foto ? foto.name : "Ambil foto suasana proyek (opsional)"}
         <input
           type="file"
           accept="image/*"
@@ -104,11 +108,11 @@ export default function RollCall({ proyek, tukang, hadirAwal }) {
       </label>
 
       {/* Tombol simpan menempel di bawah */}
-      <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t bg-white p-3">
+      <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-gray-200 bg-white/95 p-3 backdrop-blur">
         <button
           onClick={simpan}
           disabled={saving}
-          className="w-full rounded-xl bg-brand p-4 text-xl font-bold text-white disabled:opacity-60"
+          className={`btn-lg w-full ${ok ? "btn-success" : "btn-primary"}`}
         >
           {ok ? "✓ Tersimpan" : saving ? "Menyimpan..." : "SIMPAN ABSEN"}
         </button>

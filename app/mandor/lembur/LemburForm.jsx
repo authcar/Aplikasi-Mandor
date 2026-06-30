@@ -47,15 +47,15 @@ export default function LemburForm({ proyek, tukang }) {
   return (
     <main className="p-4">
       <BackButton href={`/mandor?proyek=${proyek.id}`} />
-      <h1 className="mb-3 text-xl font-bold">Lembur / Kasbon</h1>
+      <h1 className="mb-4 text-xl font-bold tracking-tight">Lembur / Kasbon</h1>
 
-      <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-gray-200 p-1">
+      <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-gray-200/70 p-1">
         {["lembur", "kasbon"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-lg p-2 text-base font-semibold capitalize ${
-              tab === t ? "bg-white text-brand" : "text-gray-600"
+            className={`rounded-lg py-2.5 text-base font-semibold capitalize transition ${
+              tab === t ? "bg-white text-brand shadow-card" : "text-gray-500"
             }`}
           >
             {t}
@@ -65,11 +65,11 @@ export default function LemburForm({ proyek, tukang }) {
 
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-lg font-medium">Tukang</label>
+          <label className="label">Tukang</label>
           <select
             value={tukangId}
             onChange={(e) => setTukangId(e.target.value)}
-            className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+            className="input text-lg"
             required
           >
             {tukang.map((t) => (
@@ -82,34 +82,31 @@ export default function LemburForm({ proyek, tukang }) {
 
         {tab === "lembur" ? (
           <div>
-            <label className="mb-1 block text-lg font-medium">Jumlah Jam</label>
+            <label className="label">Jumlah Jam</label>
             <input
               inputMode="decimal"
               value={jam}
               onChange={(e) => setJam(e.target.value)}
-              className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+              className="input text-lg"
               placeholder="2"
               required
             />
           </div>
         ) : (
           <div>
-            <label className="mb-1 block text-lg font-medium">Nominal Kasbon (Rp)</label>
+            <label className="label">Nominal Kasbon (Rp)</label>
             <input
               inputMode="numeric"
               value={nominal}
               onChange={(e) => setNominal(e.target.value.replace(/\D/g, ""))}
-              className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+              className="input text-lg"
               placeholder="100000"
               required
             />
           </div>
         )}
 
-        <button
-          disabled={busy}
-          className="w-full rounded-xl bg-brand p-4 text-xl font-bold text-white disabled:opacity-60"
-        >
+        <button disabled={busy} className="btn-primary btn-lg w-full">
           {busy ? "Mengirim..." : "AJUKAN KE SUPERVISOR"}
         </button>
       </form>

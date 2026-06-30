@@ -3,6 +3,68 @@
 @tailwind utilities;
 
 /* Target HP jadul: font besar, tombol besar, kontras tinggi, tanpa animasi berat */
-html { -webkit-text-size-adjust: 100%; }
-body { @apply bg-gray-100 text-gray-900 antialiased; }
-button { touch-action: manipulation; }
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  @apply text-gray-900 antialiased;
+  background-color: #f1f5f9;
+}
+button {
+  touch-action: manipulation;
+}
+
+/* ===== Design system ringan — dipakai ulang di seluruh halaman ===== */
+@layer components {
+  /* Kartu dasar */
+  .card {
+    @apply rounded-2xl border border-gray-200/80 bg-white shadow-card;
+  }
+  /* Kartu yang bisa ditekan (navigasi) */
+  .card-tap {
+    @apply card transition active:bg-gray-50;
+  }
+
+  /* Field form */
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-gray-700;
+  }
+  .input {
+    @apply w-full rounded-xl border border-gray-300 bg-white p-3.5 text-base text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15;
+  }
+
+  /* Tombol */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-base font-bold transition active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60;
+  }
+  .btn-lg {
+    @apply py-4 text-lg;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white shadow-brand active:bg-brand-800;
+  }
+  .btn-outline {
+    @apply btn border-2 border-gray-300 bg-white text-gray-700 active:bg-gray-100;
+  }
+  .btn-success {
+    @apply btn bg-green-600 text-white active:bg-green-700;
+  }
+  .btn-danger {
+    @apply btn border-2 border-red-500 bg-white text-red-600 active:bg-red-50;
+  }
+
+  /* Badge / label kecil */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold;
+  }
+
+  /* Tile ikon (emoji) */
+  .icon-tile {
+    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl;
+  }
+
+  /* Hero gradient brand */
+  .hero {
+    @apply rounded-2xl bg-gradient-to-br from-brand-600 to-brand-900 p-5 text-white shadow-soft;
+  }
+}

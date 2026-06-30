@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
+import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -34,67 +35,64 @@ export default async function DashboardSupervisor() {
 
   return (
     <main className="p-4 pb-8">
-      <header className="mb-4 flex items-center justify-between">
+      <header className="mb-5 flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-500">Supervisor</p>
-          <h1 className="text-xl font-semibold">
+          <p className="text-sm font-medium text-brand">Supervisor</p>
+          <h1 className="text-xl font-bold tracking-tight">
             {sapa}, {profile.name}!
           </h1>
         </div>
         <LogoutButton />
       </header>
 
-      <Link
-        href="/supervisor/persetujuan"
-        className="mb-5 flex items-center justify-between rounded-2xl bg-gray-300 p-5 text-gray active:opacity-90"
-      >
-        <div>
-          <p className="text-sm opacity-90">Menunggu Persetujuan</p>
-          <p className="text-3xl font-bold">{pending}</p>
+      {/* Kartu utama: pengajuan menunggu persetujuan */}
+      <Link href="/supervisor/persetujuan" className="hero mb-4 flex items-center gap-4">
+        <span className="icon-tile bg-white/15 text-white">
+          <Icon name="inbox" />
+        </span>
+        <div className="flex-1">
+          <p className="text-sm text-white/80">Menunggu Persetujuan</p>
+          <p className="text-3xl font-bold leading-tight">{pending}</p>
         </div>
-        <span className="text-2xl">›</span>
+        <Icon name="chevron-right" className="h-6 w-6 text-white/70" />
       </Link>
 
       <a
         href="https://t.me/TaracoBot"
         target="_blank"
         rel="noopener noreferrer"
-        className="mb-5 flex items-center justify-between rounded-2xl bg-brand p-5 text-white active:opacity-90"
+        className="card-tap mb-5 flex items-center gap-3 p-4"
       >
-        <div>
-          <p className="text-lg font-semibold">📋 Buat Laporan Harian</p>
-        </div>
-        <span className="text-2xl">↗</span>
+        <span className="icon-tile bg-sky-100 text-sky-600">
+          <Icon name="clipboard" />
+        </span>
+        <span className="flex-1 text-base font-semibold">Buat Laporan Harian</span>
+        <Icon name="arrow-up-right" className="h-5 w-5 text-gray-300" />
       </a>
 
-      <div className="mb-5 grid grid-cols-2 gap-3">
-        <Link
-          href="/supervisor/masalah"
-          className="flex items-center justify-between rounded-2xl border-2 border-gray-200 bg-white p-4 active:bg-gray-100"
-        >
-          <div>
-            <p className="text-md font-semibold">Masalah Aktif</p>
-            <p className="text-2xl font-bold text-red-500">{masalahAktif}</p>
-          </div>
-          <span className="text-xl text-gray-400">›</span>
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        <Link href="/supervisor/masalah" className="card-tap p-4">
+          <span className="icon-tile mb-3 bg-red-100 text-red-600">
+            <Icon name="alert-triangle" />
+          </span>
+          <p className="text-sm font-semibold text-gray-600">Masalah Aktif</p>
+          <p className="text-2xl font-bold text-red-500">{masalahAktif}</p>
         </Link>
 
-        <Link
-          href="/supervisor/gaji"
-          className="flex items-center justify-between rounded-2xl border-2 border-gray-200 bg-white p-4 active:bg-gray-100"
-        >
-          <div>
-            <p className="text-xl font-semibold">💰 Rekap Gaji</p>
-          </div>
-          <span className="text-xl text-gray-400">›</span>
+        <Link href="/supervisor/gaji" className="card-tap flex flex-col p-4">
+          <span className="icon-tile mb-3 bg-emerald-100 text-emerald-600">
+            <Icon name="wallet" />
+          </span>
+          <p className="text-sm font-semibold text-gray-600">Rekap Gaji</p>
+          <p className="mt-auto text-sm font-medium text-brand">Lihat rincian ›</p>
         </Link>
       </div>
 
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-600">Proyek Saya ({proyek?.length || 0})</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="font-bold text-gray-700">Proyek Saya ({proyek?.length || 0})</h2>
         <Link
           href="/supervisor/proyek/baru"
-          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white"
+          className="rounded-full bg-brand px-3.5 py-1.5 text-sm font-semibold text-white shadow-brand active:bg-brand-800"
         >
           + Proyek Baru
         </Link>
@@ -104,14 +102,25 @@ export default async function DashboardSupervisor() {
           <Link
             key={p.id}
             href={`/supervisor/proyek/${p.id}`}
-            className="block rounded-2xl border-2 border-gray-200 bg-white p-4 active:bg-gray-100"
+            className="card-tap flex items-center gap-3 p-4"
           >
-            <p className="font-semibold">{p.nama}</p>
-            <p className="text-sm text-gray-500">
-              {p.lokasi} · Mandor: {p.mandor?.name || "-"}
-            </p>
+            <span className="icon-tile bg-brand-50 text-brand-600">
+              <Icon name="building" />
+            </span>
+            <div className="flex-1">
+              <p className="font-semibold">{p.nama}</p>
+              <p className="text-sm text-gray-500">
+                {p.lokasi} · Mandor: {p.mandor?.name || "-"}
+              </p>
+            </div>
+            <Icon name="chevron-right" className="h-5 w-5 text-gray-300" />
           </Link>
         ))}
+        {(proyek || []).length === 0 && (
+          <div className="card p-6 text-center text-sm text-gray-400">
+            Belum ada proyek. Ketuk <span className="font-semibold">+ Proyek Baru</span>.
+          </div>
+        )}
       </div>
     </main>
   );

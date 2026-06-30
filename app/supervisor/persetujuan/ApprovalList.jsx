@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { rupiah } from "@/lib/format";
+import Icon from "@/components/Icon";
 
 const NOMINAL_CLS = {
   lembur: "text-indigo-600",
@@ -60,17 +61,18 @@ export default function ApprovalList({ items }) {
   return (
     <>
       {list.length === 0 ? (
-        <div className="rounded-xl bg-green-100 p-6 text-center text-green-800">
-          🎉 Tidak ada pengajuan menunggu.
+        <div className="card flex flex-col items-center gap-2 border-green-200 bg-green-50 p-8 text-center text-green-700">
+          <Icon name="check-circle" className="h-9 w-9" />
+          <p className="font-semibold">Tidak ada pengajuan menunggu.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {list.map((it) => (
-            <div key={it.id} className="rounded-2xl border-2 border-gray-200 bg-white p-4">
-              <div className="mb-2 flex items-start justify-between">
+            <div key={it.id} className="card p-4">
+              <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                    className={`badge ${
                       it._tipe === "lembur"
                         ? "bg-blue-100 text-blue-700"
                         : "bg-purple-100 text-purple-700"
@@ -78,13 +80,13 @@ export default function ApprovalList({ items }) {
                   >
                     {it._label}
                   </span>
-                  <p className="mt-1 font-semibold">{it._judul}</p>
+                  <p className="mt-1.5 font-semibold">{it._judul}</p>
                   <p className="text-sm text-gray-500">
                     {it._proyek} · {it._mandor}
                   </p>
                 </div>
                 <p
-                  className={`text-lg font-bold ${
+                  className={`shrink-0 text-lg font-bold ${
                     NOMINAL_CLS[it._tipe === "lembur" ? "lembur" : it._label] || ""
                   }`}
                 >
@@ -95,8 +97,9 @@ export default function ApprovalList({ items }) {
               {it._nota && (
                 <button
                   onClick={() => setNota({ url: it._nota, judul: it._judul })}
-                  className="mb-2 inline-block text-sm font-semibold text-brand underline"
+                  className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand"
                 >
+                  <Icon name="receipt" className="h-4 w-4" />
                   Lihat nota
                 </button>
               )}
@@ -105,14 +108,14 @@ export default function ApprovalList({ items }) {
                 <button
                   disabled={busy === it.id}
                   onClick={() => review(it._tipe, it.id, "REJECTED")}
-                  className="rounded-xl border-2 border-red-500 p-3 font-bold text-red-600 disabled:opacity-50"
+                  className="btn-danger"
                 >
                   Tolak
                 </button>
                 <button
                   disabled={busy === it.id}
                   onClick={() => review(it._tipe, it.id, "APPROVED")}
-                  className="rounded-xl bg-green-600 p-3 font-bold text-white disabled:opacity-50"
+                  className="btn-success"
                 >
                   Setujui
                 </button>
@@ -129,7 +132,7 @@ export default function ApprovalList({ items }) {
           onClick={() => setNota(null)}
         >
           <div
-            className="flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white p-3"
+            className="flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white p-3 shadow-soft"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between">
@@ -155,17 +158,10 @@ export default function ApprovalList({ items }) {
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setNota(null)}
-                className="rounded-xl border-2 border-gray-300 p-3 font-bold text-gray-700"
-              >
+              <button onClick={() => setNota(null)} className="btn-outline">
                 Tutup
               </button>
-              <button
-                onClick={unduhNota}
-                disabled={unduh}
-                className="rounded-xl bg-brand p-3 font-bold text-white disabled:opacity-60"
-              >
+              <button onClick={unduhNota} disabled={unduh} className="btn-primary">
                 {unduh ? "Mengunduh..." : "Unduh"}
               </button>
             </div>

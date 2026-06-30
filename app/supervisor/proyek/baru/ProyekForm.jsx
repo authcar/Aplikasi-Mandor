@@ -34,35 +34,35 @@ export default function ProyekForm({ mandors }) {
     <main className="p-4">
       <BackButton href="/supervisor" label="BATAL" />
       <header className="mb-4">
-        <h1 className="text-xl font-bold">Proyek Baru</h1>
+        <h1 className="text-xl font-bold tracking-tight">Proyek Baru</h1>
       </header>
 
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-lg font-medium">Nama Proyek</label>
+          <label className="label">Nama Proyek</label>
           <input
             value={nama}
             onChange={(e) => setNama(e.target.value)}
             placeholder="Perumahan Griya Asri"
-            className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+            className="input text-lg"
             required
           />
         </div>
         <div>
-          <label className="mb-1 block text-lg font-medium">Lokasi</label>
+          <label className="label">Lokasi</label>
           <input
             value={lokasi}
             onChange={(e) => setLokasi(e.target.value)}
             placeholder="Blok C, Bekasi"
-            className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+            className="input text-lg"
           />
         </div>
         <div>
-          <label className="mb-1 block text-lg font-medium">Mandor (opsional)</label>
+          <label className="label">Mandor (opsional)</label>
           <select
             value={mandorId}
             onChange={(e) => setMandorId(e.target.value)}
-            className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+            className="input text-lg"
           >
             <option value="">— Tetapkan nanti —</option>
             {mandors.map((m) => (
@@ -71,11 +71,12 @@ export default function ProyekForm({ mandors }) {
           </select>
         </div>
 
-        {err && <p className="text-red-600">{err}</p>}
-        <button
-          disabled={busy}
-          className="w-full rounded-xl bg-brand p-4 text-xl font-bold text-white disabled:opacity-60"
-        >
+        {err && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
+            {err}
+          </p>
+        )}
+        <button disabled={busy} className="btn-primary btn-lg w-full">
           {busy ? "Menyimpan..." : "SIMPAN PROYEK"}
         </button>
       </form>

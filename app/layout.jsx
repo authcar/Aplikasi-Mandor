@@ -16,7 +16,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="id">
       <body>
-        <div className="mx-auto max-w-md min-h-screen bg-gray-100">{children}</div>
+        <div className="mx-auto min-h-screen max-w-md bg-slate-50 shadow-soft sm:my-0">
+          {children}
+        </div>
       </body>
     </html>
   );

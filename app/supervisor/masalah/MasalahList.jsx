@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { tglID } from "@/lib/format";
+import Icon from "@/components/Icon";
 
 const BADGE = {
   OPEN: { label: "BARU", cls: "bg-red-100 text-red-700" },
@@ -32,8 +33,9 @@ export default function MasalahList({ items }) {
 
   if (list.length === 0)
     return (
-      <div className="rounded-xl bg-green-100 p-6 text-center text-green-800">
-        🎉 Belum ada laporan masalah.
+      <div className="card flex flex-col items-center gap-2 border-green-200 bg-green-50 p-8 text-center text-green-700">
+        <Icon name="check-circle" className="h-9 w-9" />
+        <p className="font-semibold">Belum ada laporan masalah.</p>
       </div>
     );
 
@@ -42,13 +44,11 @@ export default function MasalahList({ items }) {
       {list.map((it) => {
         const b = BADGE[it.status] || BADGE.OPEN;
         return (
-          <div key={it.id} className="rounded-2xl border-2 border-gray-200 bg-white p-4">
+          <div key={it.id} className="card p-4">
             <div className="mb-2 flex items-start justify-between gap-3">
               <div>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${b.cls}`}>
-                  {b.label}
-                </span>
-                <p className="mt-1 font-semibold">{it.judul}</p>
+                <span className={`badge ${b.cls}`}>{b.label}</span>
+                <p className="mt-1.5 font-semibold">{it.judul}</p>
                 <p className="text-sm text-gray-500">
                   {it.proyek} · {it.mandor}
                 </p>
@@ -57,7 +57,7 @@ export default function MasalahList({ items }) {
             </div>
 
             {it.deskripsi && (
-              <p className="mb-2 text-sm text-gray-700">{it.deskripsi}</p>
+              <p className="mb-3 text-sm text-gray-700">{it.deskripsi}</p>
             )}
 
             {it.foto && (
@@ -65,7 +65,7 @@ export default function MasalahList({ items }) {
                 <img
                   src={it.foto}
                   alt="Foto masalah"
-                  className="max-h-56 w-full rounded-xl border object-cover"
+                  className="max-h-56 w-full rounded-xl border border-gray-200 object-cover"
                 />
               </a>
             )}
@@ -75,7 +75,7 @@ export default function MasalahList({ items }) {
                 <button
                   disabled={busy === it.id}
                   onClick={() => ubah(it.id, "IN_PROGRESS")}
-                  className="col-span-2 rounded-xl border-2 border-yellow-500 p-3 font-bold text-yellow-700 disabled:opacity-50"
+                  className="btn col-span-2 border-2 border-amber-500 bg-white text-amber-700 active:bg-amber-50"
                 >
                   Tandai Diproses
                 </button>
@@ -84,7 +84,7 @@ export default function MasalahList({ items }) {
                 <button
                   disabled={busy === it.id}
                   onClick={() => ubah(it.id, "DONE")}
-                  className="col-span-2 rounded-xl bg-green-600 p-3 font-bold text-white disabled:opacity-50"
+                  className="btn-success col-span-2"
                 >
                   Tandai Selesai
                 </button>
@@ -93,7 +93,7 @@ export default function MasalahList({ items }) {
                 <button
                   disabled={busy === it.id}
                   onClick={() => ubah(it.id, "OPEN")}
-                  className="col-span-2 rounded-xl border-2 border-gray-300 p-3 font-bold text-gray-500 disabled:opacity-50"
+                  className="btn-outline col-span-2 text-gray-500"
                 >
                   Buka Lagi
                 </button>

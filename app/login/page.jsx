@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Icon from "@/components/Icon";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,35 +26,44 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col justify-center p-6">
-      <h1 className="mb-1 text-3xl font-bold text-brand">Aplikasi Mandor</h1>
-      <p className="mb-8 text-gray-500">Masuk untuk mulai bekerja</p>
-      <form onSubmit={onSubmit} className="space-y-4">
+      <div className="mb-8">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-900 text-white shadow-brand">
+          <Icon name="hard-hat" className="h-8 w-8" />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          Aplikasi Mandor
+        </h1>
+        <p className="mt-1 text-gray-500">Masuk untuk mulai bekerja</p>
+      </div>
+
+      <form onSubmit={onSubmit} className="card space-y-4 p-5">
         <div>
-          <label className="mb-1 block text-lg font-medium">Nomor HP</label>
+          <label className="label">Nomor HP</label>
           <input
             inputMode="numeric"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="0812xxxx"
-            className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+            className="input text-lg"
             required
           />
         </div>
         <div>
-          <label className="mb-1 block text-lg font-medium">Sandi</label>
+          <label className="label">Sandi</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border-2 border-gray-300 p-4 text-lg"
+            className="input text-lg"
             required
           />
         </div>
-        {err && <p className="text-red-600">{err}</p>}
-        <button
-          disabled={loading}
-          className="w-full rounded-xl bg-brand p-4 text-xl font-bold text-white disabled:opacity-60"
-        >
+        {err && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
+            {err}
+          </p>
+        )}
+        <button disabled={loading} className="btn-primary btn-lg w-full">
           {loading ? "Memproses..." : "MASUK"}
         </button>
       </form>

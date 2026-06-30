@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { rupiah, tglID } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
+import ProyekSwitcher from "./ProyekSwitcher";
+import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -52,60 +54,41 @@ export default async function DashboardMandor({ searchParams }) {
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
   const actions = [
-    { href: `/mandor/absensi${q}`, label: "Absensi", icon: "✅" },
-    { href: `/mandor/lembur${q}`, label: "Lembur / Kasbon", icon: "🕒" },
-    { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "🧾" },
-    { href: `/mandor/masalah${q}`, label: "Lapor Masalah", icon: "⚠️" },
+    { href: `/mandor/absensi${q}`, label: "Absensi", icon: "check-circle", tile: "bg-green-100 text-green-600" },
+    { href: `/mandor/lembur${q}`, label: "Lembur / Kasbon", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
+    { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600" },
+    { href: `/mandor/masalah${q}`, label: "Lapor Masalah", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
   ];
 
   return (
     <main className="p-4 pb-8">
-      <header className="mb-4 flex items-center justify-between">
+      <header className="mb-5 flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500">Halo Mandor,</p>
-          <h1 className="text-xl font-bold">{profile.name}</h1>
+          <h1 className="text-xl font-bold tracking-tight">{profile.name}</h1>
+          <p className="mt-0.5 text-sm capitalize text-gray-400">{tglID(today)}</p>
         </div>
         <LogoutButton />
       </header>
 
-      <p className="mb-4 text-sm text-gray-500">{tglID(today)}</p>
-
       {!proyek ? (
-        <div className="rounded-xl bg-yellow-100 p-4 text-yellow-800">
-          Belum ada proyek aktif. Hubungi Supervisor Anda.
+        <div className="card flex items-start gap-3 border-amber-200 bg-amber-50 p-4 text-amber-800">
+          <Icon name="alert-triangle" className="mt-0.5 h-5 w-5 shrink-0" />
+          <p className="text-sm font-medium">
+            Belum ada proyek aktif. Hubungi Supervisor Anda.
+          </p>
         </div>
       ) : (
         <>
-          {/* Pemilih proyek — tampil bila mandor memegang lebih dari satu */}
-          {list.length > 1 && (
-            <div className="mb-4">
-              <p className="mb-2 text-sm font-medium text-gray-600">
-                Pilih Proyek ({list.length})
-              </p>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {list.map((p) => {
-                  const aktif = p.id === proyek.id;
-                  return (
-                    <Link
-                      key={p.id}
-                      href={`/mandor?proyek=${p.id}`}
-                      className={`shrink-0 rounded-full border-2 px-4 py-2 text-sm font-semibold ${
-                        aktif
-                          ? "border-brand bg-brand text-white"
-                          : "border-gray-300 bg-white text-gray-600"
-                      }`}
-                    >
-                      {p.nama}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {/* Pemilih proyek (dropdown) — tampil bila mandor memegang lebih dari satu */}
+          {list.length > 1 && <ProyekSwitcher list={list} current={proyek.id} />}
 
-          <div className="mb-5 rounded-2xl bg-brand p-5 text-white">
-            <p className="text-sm opacity-90">{proyek.nama}</p>
-            <p className="mb-3 text-xs opacity-75">{proyek.lokasi}</p>
+          <div className="hero mb-5">
+            <p className="text-base font-semibold">{proyek.nama}</p>
+            <p className="mb-4 flex items-center gap-1 text-xs text-white/70">
+              <Icon name="map-pin" className="h-3.5 w-3.5" />
+              {proyek.lokasi}
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <Stat big={`${hadir} org`} label="Hadir hari ini" />
               <Stat big={rupiah(upah)} label="Upah hari ini" />
@@ -118,10 +101,12 @@ export default async function DashboardMandor({ searchParams }) {
               <Link
                 key={a.href}
                 href={a.href}
-                className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-200 bg-white p-5 active:bg-gray-100"
+                className="card-tap flex flex-col items-start gap-3 p-4"
               >
-                <span className="text-3xl">{a.icon}</span>
-                <span className="mt-2 text-center text-base font-semibold">
+                <span className={`icon-tile ${a.tile}`}>
+                  <Icon name={a.icon} />
+                </span>
+                <span className="text-base font-semibold leading-tight">
                   {a.label}
                 </span>
               </Link>
@@ -130,10 +115,13 @@ export default async function DashboardMandor({ searchParams }) {
 
           <Link
             href={`/mandor/gaji${q}`}
-            className="mt-3 flex items-center justify-between rounded-2xl border-2 border-gray-200 bg-white p-5 active:bg-gray-100"
+            className="card-tap mt-3 flex items-center gap-3 p-4"
           >
-            <span className="text-base font-semibold">💰 Rekap Gaji Proyek</span>
-            <span className="text-gray-400">›</span>
+            <span className="icon-tile bg-emerald-100 text-emerald-600">
+              <Icon name="wallet" />
+            </span>
+            <span className="flex-1 text-base font-semibold">Rekap Gaji Proyek</span>
+            <Icon name="chevron-right" className="h-5 w-5 text-gray-300" />
           </Link>
 
           {pendingApr > 0 && (
@@ -149,9 +137,9 @@ export default async function DashboardMandor({ searchParams }) {
 
 function Stat({ big, label }) {
   return (
-    <div className="rounded-xl bg-white/15 p-3">
+    <div className="rounded-xl bg-white/10 p-3 ring-1 ring-inset ring-white/15">
       <p className="text-lg font-bold">{big}</p>
-      <p className="text-xs opacity-80">{label}</p>
+      <p className="text-xs text-white/75">{label}</p>
     </div>
   );
 }

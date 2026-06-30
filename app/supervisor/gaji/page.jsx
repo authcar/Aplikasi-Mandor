@@ -2,6 +2,8 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { rupiah } from "@/lib/format";
 import BackButton from "@/components/BackButton";
 import GajiList from "@/components/GajiList";
+import PotonganCard from "@/components/PotonganCard";
+import CalendarPotongan from "@/components/CalendarPotongan";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +20,17 @@ export default async function GajiSupervisorPage() {
 
   const today = new Date();
   const iso = (d) => d.toISOString().slice(0, 10);
+  const bulanIni = new Date(today.getFullYear(), today.getMonth(), 1);
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7)); // Senin minggu ini
   const sum = (rows, f) => (rows || []).reduce((s, r) => s + Number(f(r)), 0);
+
+  const { data: potongan } = await supabase
+    .from("potongan_gaji")
+    .select("id, tanggal, persentase")
+    .eq("nama", profile.name)
+    .gte("tanggal", iso(bulanIni))
+    .order("tanggal");
 
   // Hitung rekap tiap proyek secara paralel.
   const rekap = await Promise.all(
@@ -64,15 +74,21 @@ export default async function GajiSupervisorPage() {
   return (
     <main className="p-4 pb-8">
       <BackButton href="/supervisor" />
-      <h1 className="mb-1 text-xl font-bold">Rekap Gaji</h1>
+      <h1 className="text-xl font-bold tracking-tight">Rekap Gaji</h1>
       <p className="mb-4 text-sm text-gray-500">Biaya minggu ini · semua proyek</p>
 
-      <div className="mb-5 rounded-2xl bg-brand p-5 text-white">
-        <p className="text-sm opacity-90">Total Biaya Semua Proyek</p>
+      <div className="hero mb-5">
+        <p className="text-sm text-white/80">Total Biaya Semua Proyek</p>
         <p className="text-3xl font-bold">{rupiah(totalSemua)}</p>
       </div>
 
       <GajiList rekap={rekap} />
+
+      <h2 className="mt-6 mb-3 font-bold text-gray-700">Kalender Laporan Harian</h2>
+      <CalendarPotongan nama={profile.name} initialRows={potongan || []} />
+
+      <h2 className="mt-5 mb-3 font-bold text-gray-700">Potongan Gaji Saya — Bulan Ini</h2>
+      <PotonganCard rows={potongan || []} gajiPokok={profile.gaji_pokok || 0} />
 
       <p className="mt-4 text-xs text-gray-400">
         *Ketuk proyek untuk lihat rincian. Hanya lembur, kasbon & reimburse berstatus

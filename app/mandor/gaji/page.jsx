@@ -59,11 +59,11 @@ export default async function GajiPage({ searchParams }) {
   return (
     <main className="p-4 pb-8">
       <BackButton href={proyek ? `/mandor?proyek=${proyek.id}` : "/mandor"} />
-      <h1 className="mb-1 text-xl font-bold">Rekap Gaji</h1>
+      <h1 className="text-xl font-bold tracking-tight">Rekap Gaji</h1>
       <p className="mb-4 text-sm text-gray-500">Biaya minggu ini</p>
 
-      <div className="mb-5 rounded-2xl bg-brand p-5 text-white">
-        <p className="text-sm opacity-90">Total Biaya Minggu Ini</p>
+      <div className="hero mb-5">
+        <p className="text-sm text-white/80">Total Biaya Minggu Ini</p>
         <p className="text-3xl font-bold">{rupiah(total)}</p>
       </div>
 

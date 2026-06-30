@@ -42,8 +42,8 @@ export default async function MasalahSupervisorPage() {
   return (
     <main className="p-4 pb-8">
       <BackButton href="/supervisor" />
-      <header className="mb-4">
-        <h1 className="text-xl font-bold">Laporan Masalah</h1>
+      <header className="mb-1">
+        <h1 className="text-xl font-bold tracking-tight">Laporan Masalah</h1>
       </header>
       <p className="mb-4 text-sm text-gray-500">{aktif} masalah belum selesai</p>
       <MasalahList items={items} />
