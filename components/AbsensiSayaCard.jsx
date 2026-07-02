@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const TARGET = { lat: -6.18472, lng: 106.73167 };
+const TARGET = { lat: -6.215008633327863, lng: 106.73600688186137 };
 const RADIUS_METER = 500;
 const JAM_MASUK = 8;   // 08:00 WIB
 const JAM_PULANG = 17; // 17:00 WIB
