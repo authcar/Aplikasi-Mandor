@@ -1,0 +1,66 @@
+{
+  "_readme": "Add these 2 nodes to your 'Daily Report v2 - DEV' workflow, then connect them as described.",
+
+  "_connections_to_add": {
+    "Save Drive File ID": {
+      "add_these_outputs": [
+        "Save Supervisor Registry  (connect as a 2nd output from Save Drive File ID)",
+        "Save Daily Checkin        (connect after Save Supervisor Registry)"
+      ]
+    }
+  },
+
+  "nodes": [
+    {
+      "_comment": "NODE 1 — UPSERT supervisor name+chat_id into registry (runs once per submitted report)",
+      "parameters": {
+        "method": "POST",
+        "url": "https://rmkocokczeiixcgayzfr.supabase.co/rest/v1/supervisor_registry",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates,return=minimal" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE" },
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\":    \"{{ $json.chat_id }}\",\n  \"nama\":       \"{{ $('Project Context').first().json.kontraktor || $json.chat_id }}\",\n  \"updated_at\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [3130, 500],
+      "id": "bb000001-0000-0000-0000-000000000001",
+      "name": "Save Supervisor Registry"
+    },
+
+    {
+      "_comment": "NODE 2 — UPSERT today's checkin for this supervisor (marks report as submitted)",
+      "parameters": {
+        "method": "POST",
+        "url": "https://rmkocokczeiixcgayzfr.supabase.co/rest/v1/checkin_harian",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates,return=minimal" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE" },
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $json.chat_id }}\",\n  \"tanggal\": \"{{ new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [3330, 500],
+      "id": "bb000001-0000-0000-0000-000000000002",
+      "name": "Save Daily Checkin"
+    }
+  ]
+}

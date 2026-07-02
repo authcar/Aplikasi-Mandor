@@ -57,7 +57,7 @@ export default async function DashboardMandor({ searchParams }) {
     { href: `/mandor/absensi${q}`, label: "Absensi", icon: "check-circle", tile: "bg-green-100 text-green-600" },
     { href: `/mandor/lembur${q}`, label: "Lembur / Kasbon", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600" },
-    { href: `/mandor/masalah${q}`, label: "Lapor Masalah", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
+    { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
   ];
 
   return (

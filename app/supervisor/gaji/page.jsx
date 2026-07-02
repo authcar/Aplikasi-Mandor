@@ -1,17 +1,16 @@
 import { getSessionProfile } from "@/lib/supabase/server";
-import { rupiah } from "@/lib/format";
 import BackButton from "@/components/BackButton";
-import GajiList from "@/components/GajiList";
 import PotonganCard from "@/components/PotonganCard";
 import CalendarPotongan from "@/components/CalendarPotongan";
+import GajiSupervisorHero from "@/components/GajiSupervisorHero";
 
 export const dynamic = "force-dynamic";
 
 // Rekap gaji gabungan: semua proyek supervisor, biaya minggu ini.
 export default async function GajiSupervisorPage() {
-  const { profile, supabase } = await getSessionProfile();
+  const { user, profile, supabase } = await getSessionProfile();
 
-  const { data: proyek } = await supabase
+const { data: proyek } = await supabase
     .from("proyek")
     .select("id, nama, lokasi")
     .eq("supervisor_id", profile.id)
@@ -25,12 +24,21 @@ export default async function GajiSupervisorPage() {
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7)); // Senin minggu ini
   const sum = (rows, f) => (rows || []).reduce((s, r) => s + Number(f(r)), 0);
 
-  const { data: potongan } = await supabase
-    .from("potongan_gaji")
-    .select("id, tanggal, persentase")
-    .eq("nama", profile.name)
-    .gte("tanggal", iso(bulanIni))
-    .order("tanggal");
+  const chatId = String(profile.telegram_chat_id ?? "");
+
+  const [{ data: potongan }, { data: checkin }] = await Promise.all([
+    supabase
+      .from("potongan_gaji")
+      .select("id, tanggal, persentase")
+      .eq("chat_id", chatId)
+      .gte("tanggal", iso(bulanIni))
+      .order("tanggal"),
+    supabase
+      .from("checkin_harian")
+      .select("tanggal")
+      .eq("chat_id", chatId)
+      .gte("tanggal", iso(bulanIni)),
+  ]);
 
   // Hitung rekap tiap proyek secara paralel.
   const rekap = await Promise.all(
@@ -77,17 +85,19 @@ export default async function GajiSupervisorPage() {
       <h1 className="text-xl font-bold tracking-tight">Rekap Gaji</h1>
       <p className="mb-4 text-sm text-gray-500">Biaya minggu ini · semua proyek</p>
 
-      <div className="hero mb-5">
-        <p className="text-sm text-white/80">Total Biaya Semua Proyek</p>
-        <p className="text-3xl font-bold">{rupiah(totalSemua)}</p>
-      </div>
-
-      <GajiList rekap={rekap} />
+      <GajiSupervisorHero
+        gajiPokok={profile.gaji_pokok || 0}
+        potongan={potongan || []}
+      />
 
       <h2 className="mt-6 mb-3 font-bold text-gray-700">Kalender Laporan Harian</h2>
-      <CalendarPotongan nama={profile.name} initialRows={potongan || []} />
+      <CalendarPotongan
+        chatId={profile.telegram_chat_id}
+        initialPotongan={potongan || []}
+        initialCheckin={checkin || []}
+      />
 
-      <h2 className="mt-5 mb-3 font-bold text-gray-700">Potongan Gaji Saya — Bulan Ini</h2>
+      <h2 className="mt-5 mb-3 font-bold text-gray-700">Performa {profile.name}</h2>
       <PotonganCard rows={potongan || []} gajiPokok={profile.gaji_pokok || 0} />
 
       <p className="mt-4 text-xs text-gray-400">

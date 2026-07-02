@@ -12,7 +12,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  // Login pakai email sederhana (phone@mandor.app) agar mandor cukup ingat no HP.
   const onSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -38,12 +37,12 @@ export default function LoginPage() {
 
       <form onSubmit={onSubmit} className="card space-y-4 p-5">
         <div>
-          <label className="label">Nomor HP</label>
+          <label className="label">Email</label>
           <input
-            inputMode="numeric"
+            type="email"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="0812xxxx"
+            placeholder="nama@gmail.com"
             className="input text-lg"
             required
           />

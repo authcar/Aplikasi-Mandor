@@ -3,6 +3,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import BackButton from "@/components/BackButton";
+import Icon from "@/components/Icon";
+
+const ICON_OPTIONS = [
+  { key: "building", label: "Bangunan" },
+  { key: "house",    label: "Rumah" },
+  { key: "bed",      label: "Kamar" },
+  { key: "utensils", label: "Restoran" },
+];
 
 export default function ProyekForm({ mandors }) {
   const router = useRouter();
@@ -10,6 +18,7 @@ export default function ProyekForm({ mandors }) {
   const [nama, setNama] = useState("");
   const [lokasi, setLokasi] = useState("");
   const [mandorId, setMandorId] = useState("");
+  const [icon, setIcon] = useState("building");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -21,7 +30,8 @@ export default function ProyekForm({ mandors }) {
     const { error } = await supabase.from("proyek").insert({
       nama,
       lokasi,
-      supervisor_id: uid, // wajib = diri sendiri (sesuai RLS)
+      icon,
+      supervisor_id: uid,
       mandor_id: mandorId || null,
     });
     setBusy(false);
@@ -38,6 +48,28 @@ export default function ProyekForm({ mandors }) {
       </header>
 
       <form onSubmit={submit} className="space-y-4">
+        {/* Icon picker */}
+        <div>
+          <label className="label">Ikon Proyek</label>
+          <div className="grid grid-cols-4 gap-2">
+            {ICON_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setIcon(opt.key)}
+                className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-3 transition-colors ${
+                  icon === opt.key
+                    ? "border-brand bg-brand-50 text-brand"
+                    : "border-gray-200 bg-white text-gray-400"
+                }`}
+              >
+                <Icon name={opt.key} className="h-6 w-6" />
+                <span className="text-[11px] font-medium">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
           <label className="label">Nama Proyek</label>
           <input
@@ -72,9 +104,7 @@ export default function ProyekForm({ mandors }) {
         </div>
 
         {err && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
-            {err}
-          </p>
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{err}</p>
         )}
         <button disabled={busy} className="btn-primary btn-lg w-full">
           {busy ? "Menyimpan..." : "SIMPAN PROYEK"}

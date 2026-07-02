@@ -1,0 +1,149 @@
+{
+  "name": "Salary Deduction - Daily Check",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{}]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0],
+      "id": "9725dbab-4b07-4823-b824-c4ab2e7c9a3d",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });\nreturn [{ json: { today } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Get Today"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://rmkocokczeiixcgayzfr.supabase.co/rest/v1/supervisor_registry?select=chat_id,nama",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE"
+            },
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [440, 0],
+      "id": "a1b2c3d4-0001-0001-0001-000000000002",
+      "name": "Get All Supervisors"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://rmkocokczeiixcgayzfr.supabase.co/rest/v1/checkin_harian?tanggal=eq.{{ $('Get Today').first().json.today }}&select=chat_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE"
+            },
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [660, 0],
+      "id": "a1b2c3d4-0001-0001-0001-000000000003",
+      "name": "Get Today Checkins"
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = $('Get Today').first().json.today;\n\nconst rawSupervisors = $('Get All Supervisors').first().json;\nconst rawCheckins    = $('Get Today Checkins').first().json;\n\nconst supervisors = Array.isArray(rawSupervisors) ? rawSupervisors : [];\nconst checkedIn   = new Set(\n  (Array.isArray(rawCheckins) ? rawCheckins : []).map(c => String(c.chat_id))\n);\n\nconst missing = supervisors.filter(s => !checkedIn.has(String(s.chat_id)));\n\nif (missing.length === 0) return [];\n\nreturn missing.map(s => ({ json: {\n  chat_id:    String(s.chat_id),\n  nama:       s.nama || 'Unknown',\n  tanggal:    today,\n  persentase: 5\n}}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0],
+      "id": "a1b2c3d4-0001-0001-0001-000000000004",
+      "name": "Find Missing Supervisors"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rmkocokczeiixcgayzfr.supabase.co/rest/v1/potongan_gaji",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE"
+            },
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJta29jb2tjemVpaXhjZ2F5emZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjQ3NjMsImV4cCI6MjA5Nzk0MDc2M30.n99Ywbeg0aFGYBZQTOE3R7zYDTUI3aqxLrNTaERMTVE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $json.chat_id }}\",\n  \"nama\": \"{{ $json.nama }}\",\n  \"tanggal\": \"{{ $json.tanggal }}\",\n  \"persentase\": {{ $json.persentase }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1100, 0],
+      "id": "a1b2c3d4-0001-0001-0001-000000000005",
+      "name": "Insert Deduction"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Get Today", "type": "main", "index": 0 }]]
+    },
+    "Get Today": {
+      "main": [[{ "node": "Get All Supervisors", "type": "main", "index": 0 }]]
+    },
+    "Get All Supervisors": {
+      "main": [[{ "node": "Get Today Checkins", "type": "main", "index": 0 }]]
+    },
+    "Get Today Checkins": {
+      "main": [[{ "node": "Find Missing Supervisors", "type": "main", "index": 0 }]]
+    },
+    "Find Missing Supervisors": {
+      "main": [[{ "node": "Insert Deduction", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "6230834d6c368d9e2c97d8bceecd86ffee1a8cb4356e0982d10ff50ec9834901"
+  },
+  "tags": []
+}

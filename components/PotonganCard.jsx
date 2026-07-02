@@ -3,6 +3,10 @@ import { useState } from "react";
 import { rupiah } from "@/lib/format";
 
 export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
+  const bulanIni = new Date().toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+  });
   const [open, setOpen] = useState(false);
 
   const totalHari = rows.length;
@@ -15,7 +19,9 @@ export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
         <span className="text-2xl">✅</span>
         <div>
           <p className="font-bold text-green-700">Tidak Ada Potongan</p>
-          <p className="text-sm text-gray-500">Semua laporan bulan ini sudah diisi.</p>
+          <p className="text-sm text-gray-500">
+            Semua laporan bulan ini sudah diisi.
+          </p>
         </div>
       </div>
     );
@@ -28,15 +34,23 @@ export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
         className="flex w-full items-center justify-between p-4 text-left active:bg-gray-50"
       >
         <div>
-          <p className="font-bold text-red-700">Potongan Gaji</p>
-          <p className="text-sm text-gray-500">{totalHari} hari tidak laporan bulan ini</p>
+          <p className="font-bold text-red-700">{bulanIni}</p>
+          <p className="text-sm text-gray-500">
+            {totalHari} hari tidak laporan bulan ini
+          </p>
           {gajiPokok > 0 && (
-            <p className="text-sm font-bold text-red-600 mt-0.5">−{rupiah(nominalPotongan)}</p>
+            <p className="text-sm font-bold text-red-600 mt-0.5">
+              −{rupiah(nominalPotongan)}
+            </p>
           )}
         </div>
         <div className="flex items-center gap-3">
           <p className="text-lg font-bold text-red-600">−{totalPersen}%</p>
-          <span className={`text-xl text-gray-300 transition-transform ${open ? "rotate-90" : ""}`}>›</span>
+          <span
+            className={`text-xl text-gray-300 transition-transform ${open ? "rotate-90" : ""}`}
+          >
+            ›
+          </span>
         </div>
       </button>
 
@@ -45,16 +59,25 @@ export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
           {rows.map((r) => {
             const nom = gajiPokok * (Number(r.persentase) / 100);
             return (
-              <div key={r.id} className="flex items-center justify-between text-sm">
+              <div
+                key={r.id}
+                className="flex items-center justify-between text-sm"
+              >
                 <span className="text-gray-600">
                   {new Date(r.tanggal).toLocaleDateString("id-ID", {
-                    weekday: "short", day: "numeric", month: "short",
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
                   })}
                 </span>
                 <div className="text-right">
-                  <span className="font-bold text-red-600">−{r.persentase}%</span>
+                  <span className="font-bold text-red-600">
+                    −{r.persentase}%
+                  </span>
                   {gajiPokok > 0 && (
-                    <span className="block text-xs text-red-400">−{rupiah(nom)}</span>
+                    <span className="block text-xs text-red-400">
+                      −{rupiah(nom)}
+                    </span>
                   )}
                 </div>
               </div>
@@ -65,14 +88,18 @@ export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
             <div className="text-right">
               <span className="text-red-700">−{totalPersen}%</span>
               {gajiPokok > 0 && (
-                <span className="block text-sm text-red-500">−{rupiah(nominalPotongan)}</span>
+                <span className="block text-sm text-red-500">
+                  −{rupiah(nominalPotongan)}
+                </span>
               )}
             </div>
           </div>
           {gajiPokok > 0 && (
             <div className="flex justify-between text-sm text-gray-500 pt-1">
               <span>Estimasi gaji bersih</span>
-              <span className="font-bold text-gray-700">{rupiah(gajiPokok - nominalPotongan)}</span>
+              <span className="font-bold text-gray-700">
+                {rupiah(gajiPokok - nominalPotongan)}
+              </span>
             </div>
           )}
         </div>

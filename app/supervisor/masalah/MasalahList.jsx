@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { tglID } from "@/lib/format";
 import Icon from "@/components/Icon";
 
-const BADGE = {
-  OPEN: { label: "BARU", cls: "bg-red-100 text-red-700" },
-  IN_PROGRESS: { label: "DIPROSES", cls: "bg-yellow-100 text-yellow-700" },
-  DONE: { label: "SELESAI", cls: "bg-green-100 text-green-700" },
+const URGENSI_BADGE = {
+  Mendesak: "bg-red-100 text-red-700",
+  Sedang: "bg-amber-100 text-amber-700",
+  Rendah: "bg-blue-100 text-blue-700",
 };
 
 export default function MasalahList({ items }) {
@@ -35,73 +35,76 @@ export default function MasalahList({ items }) {
     return (
       <div className="card flex flex-col items-center gap-2 border-green-200 bg-green-50 p-8 text-center text-green-700">
         <Icon name="check-circle" className="h-9 w-9" />
-        <p className="font-semibold">Belum ada laporan masalah.</p>
+        <p className="font-semibold">Belum ada laporan kurang material.</p>
       </div>
     );
 
   return (
     <div className="space-y-3">
-      {list.map((it) => {
-        const b = BADGE[it.status] || BADGE.OPEN;
-        return (
-          <div key={it.id} className="card p-4">
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <div>
-                <span className={`badge ${b.cls}`}>{b.label}</span>
-                <p className="mt-1.5 font-semibold">{it.judul}</p>
-                <p className="text-sm text-gray-500">
-                  {it.proyek} · {it.mandor}
-                </p>
-              </div>
-              <p className="shrink-0 text-xs text-gray-400">{tglID(it.created_at)}</p>
-            </div>
-
-            {it.deskripsi && (
-              <p className="mb-3 text-sm text-gray-700">{it.deskripsi}</p>
-            )}
-
-            {it.foto && (
-              <a href={it.foto} target="_blank" className="mb-3 block">
-                <img
-                  src={it.foto}
-                  alt="Foto masalah"
-                  className="max-h-56 w-full rounded-xl border border-gray-200 object-cover"
-                />
-              </a>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              {it.status === "OPEN" && (
-                <button
-                  disabled={busy === it.id}
-                  onClick={() => ubah(it.id, "IN_PROGRESS")}
-                  className="btn col-span-2 border-2 border-amber-500 bg-white text-amber-700 active:bg-amber-50"
-                >
-                  Tandai Diproses
-                </button>
+      {list.map((it) => (
+        <div key={it.id} className="card p-4">
+          {/* Header */}
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`badge ${URGENSI_BADGE[it.urgensi] || "bg-gray-100 text-gray-600"}`}>
+                {it.urgensi || "Sedang"}
+              </span>
+              {it.status === "DONE" && (
+                <span className="flex items-center gap-1 text-xs font-semibold text-green-500">
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Sudah Datang
+                </span>
               )}
               {it.status === "IN_PROGRESS" && (
-                <button
-                  disabled={busy === it.id}
-                  onClick={() => ubah(it.id, "DONE")}
-                  className="btn-success col-span-2"
-                >
-                  Tandai Selesai
-                </button>
-              )}
-              {it.status === "DONE" && (
-                <button
-                  disabled={busy === it.id}
-                  onClick={() => ubah(it.id, "OPEN")}
-                  className="btn-outline col-span-2 text-gray-500"
-                >
-                  Buka Lagi
-                </button>
+                <span className="text-xs font-semibold text-amber-500">Diproses</span>
               )}
             </div>
+            <p className="shrink-0 text-xs text-gray-400">{tglID(it.created_at)}</p>
           </div>
-        );
-      })}
+
+          <p className="font-semibold">{it.material || it.judul}</p>
+          <p className="text-sm text-gray-500 mb-1">
+            {it.jumlah} {it.satuan} · {it.proyek} · {it.mandor}
+          </p>
+
+          {it.catatan && (
+            <p className="mb-3 text-sm text-gray-600">{it.catatan}</p>
+          )}
+
+          {/* Aksi */}
+          <div className="mt-3">
+            {it.status === "OPEN" && (
+              <button
+                disabled={busy === it.id}
+                onClick={() => ubah(it.id, "IN_PROGRESS")}
+                className="btn w-full border-2 border-amber-500 bg-white text-amber-700 active:bg-amber-50"
+              >
+                Tandai Diproses
+              </button>
+            )}
+            {it.status === "IN_PROGRESS" && (
+              <button
+                disabled={busy === it.id}
+                onClick={() => ubah(it.id, "DONE")}
+                className="btn-success w-full"
+              >
+                Tandai Sudah Datang
+              </button>
+            )}
+            {it.status === "DONE" && (
+              <button
+                disabled={busy === it.id}
+                onClick={() => ubah(it.id, "OPEN")}
+                className="btn-outline w-full text-gray-500"
+              >
+                Buka Lagi
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

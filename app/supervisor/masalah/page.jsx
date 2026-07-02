@@ -11,7 +11,7 @@ export default async function MasalahSupervisorPage() {
   const { data: rows } = await supabase
     .from("masalah")
     .select(
-      "id, judul, deskripsi, foto_url, status, created_at, proyek(nama), creator:created_by(name)"
+      "id, judul, material, jumlah, satuan, urgensi, deskripsi, status, created_at, proyek(nama), creator:created_by(name)"
     )
     .order("created_at", { ascending: false });
 
@@ -28,7 +28,11 @@ export default async function MasalahSupervisorPage() {
     items.push({
       id: m.id,
       judul: m.judul,
-      deskripsi: m.deskripsi,
+      material: m.material || m.judul,
+      jumlah: m.jumlah,
+      satuan: m.satuan,
+      urgensi: m.urgensi,
+      catatan: m.deskripsi,
       status: m.status,
       created_at: m.created_at,
       proyek: m.proyek?.nama || "-",
@@ -43,7 +47,7 @@ export default async function MasalahSupervisorPage() {
     <main className="p-4 pb-8">
       <BackButton href="/supervisor" />
       <header className="mb-1">
-        <h1 className="text-xl font-bold tracking-tight">Laporan Masalah</h1>
+        <h1 className="text-xl font-bold tracking-tight">Kurang Material</h1>
       </header>
       <p className="mb-4 text-sm text-gray-500">{aktif} masalah belum selesai</p>
       <MasalahList items={items} />

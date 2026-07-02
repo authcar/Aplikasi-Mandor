@@ -48,12 +48,17 @@ export default function ProyekDetail({ proyek, tukangAwal, mandors }) {
   return (
     <main className="p-4 pb-8">
       <BackButton href="/supervisor" />
-      <header className="mb-5">
-        <h1 className="text-xl font-bold tracking-tight">{proyek.nama}</h1>
-        <p className="flex items-center gap-1 text-sm text-gray-500">
-          <Icon name="map-pin" className="h-4 w-4" />
-          {proyek.lokasi}
-        </p>
+      <header className="mb-5 flex items-center gap-3">
+        <span className="icon-tile bg-brand-50 text-brand-600">
+          <Icon name={proyek.icon || "building"} />
+        </span>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">{proyek.nama}</h1>
+          <p className="flex items-center gap-1 text-sm text-gray-500">
+            <Icon name="map-pin" className="h-4 w-4" />
+            {proyek.lokasi}
+          </p>
+        </div>
       </header>
 
       <div className="mb-6">
