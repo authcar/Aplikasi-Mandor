@@ -65,6 +65,13 @@ export default function LoginPage() {
         <button disabled={loading} className="btn-primary btn-lg w-full">
           {loading ? "Memproses..." : "MASUK"}
         </button>
+
+        <a
+          href="/tukang-harian-login"
+          className="block text-center text-sm text-amber-600 hover:text-amber-800 font-medium pt-1"
+        >
+          Login sebagai Tukang Harian →
+        </a>
       </form>
     </div>
   );

@@ -1,0 +1,126 @@
+"use client";
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import Icon from "@/components/Icon";
+
+export default function TukangLoginPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [digits, setDigits] = useState(["", "", "", "", ""]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const inputs = useRef([]);
+
+  const handleChange = (i, val) => {
+    if (!/^\d?$/.test(val)) return;
+    const next = [...digits];
+    next[i] = val;
+    setDigits(next);
+    if (val && i < 4) inputs.current[i + 1]?.focus();
+  };
+
+  const handleKeyDown = (i, e) => {
+    if (e.key === "Backspace" && !digits[i] && i > 0) {
+      inputs.current[i - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 5);
+    if (paste.length === 5) {
+      setDigits(paste.split(""));
+      inputs.current[4]?.focus();
+    }
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    const code = digits.join("");
+    if (code.length !== 5) return setErr("Masukkan 5 digit nomor HP.");
+    setLoading(true);
+    setErr("");
+
+    const res = await fetch("/api/tukang-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ digits: code }),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      setLoading(false);
+      return setErr(json.error || "Terjadi kesalahan.");
+    }
+
+    // Gunakan magic link token untuk masuk tanpa password
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: json.token_hash,
+      type: "magiclink",
+    });
+
+    setLoading(false);
+    if (error) return setErr("Gagal masuk. Coba lagi.");
+    router.push("/");
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col justify-center p-6">
+      <div className="mb-8">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-700 text-white shadow-lg">
+          <Icon name="hammer" className="h-8 w-8" />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          Login Tukang Harian
+        </h1>
+        <p className="mt-1 text-gray-500">
+          Masukkan 5 digit pertama nomor HP kamu
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit} className="card space-y-6 p-5">
+        <div>
+          <label className="label mb-3 block">5 Digit Pertama Nomor HP</label>
+          <div className="flex gap-3 justify-center" onPaste={handlePaste}>
+            {digits.map((d, i) => (
+              <input
+                key={i}
+                ref={(el) => (inputs.current[i] = el)}
+                type="tel"
+                inputMode="numeric"
+                maxLength={1}
+                value={d}
+                onChange={(e) => handleChange(i, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(i, e)}
+                className="h-14 w-12 rounded-xl border-2 border-gray-200 text-center text-2xl font-bold focus:border-amber-500 focus:outline-none"
+              />
+            ))}
+          </div>
+          <p className="mt-2 text-center text-xs text-gray-400">
+            Contoh: nomor 08123-456-789 → masukkan <strong>08123</strong>
+          </p>
+        </div>
+
+        {err && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
+            {err}
+          </p>
+        )}
+
+        <button
+          disabled={loading || digits.join("").length !== 5}
+          className="btn-primary btn-lg w-full disabled:opacity-50"
+        >
+          {loading ? "Memproses..." : "MASUK"}
+        </button>
+
+        <a
+          href="/login"
+          className="block text-center text-sm text-gray-400 hover:text-gray-600"
+        >
+          Login sebagai Mandor / Supervisor
+        </a>
+      </form>
+    </div>
+  );
+}
