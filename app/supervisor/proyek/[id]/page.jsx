@@ -10,7 +10,7 @@ export default async function ProyekDetailPage({ params }) {
   const today = new Date().toISOString().slice(0, 10);
 
   const [{ data: proyek }, { data: mandors }, { data: absensi }] = await Promise.all([
-    supabase.from("proyek").select("id, nama, lokasi, icon, mandor_id, nilai_proyek").eq("id", id).single(),
+    supabase.from("proyek").select("id, nama, lokasi, icon, mandor_id").eq("id", id).single(),
     supabase.from("profiles").select("id, name").eq("role", "MANDOR").order("name"),
     supabase.from("absensi_ringkas").select("jumlah_hadir").eq("proyek_id", id).eq("tanggal", today).maybeSingle(),
   ]);

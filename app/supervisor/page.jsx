@@ -17,7 +17,6 @@ export default async function DashboardSupervisor() {
   const { data: proyek } = await supabase
     .from("proyek")
     .select("id, nama, lokasi, icon, mandor:mandor_id(name)")
-    .eq("supervisor_id", profile.id)
     .eq("is_active", true);
 
   const today = new Date();

@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { rupiah } from "@/lib/format";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 
@@ -10,8 +9,6 @@ export default function ProyekDetail({ proyek, mandors, jumlahHadir }) {
   const router = useRouter();
   const supabase = createClient();
   const [mandorId, setMandorId] = useState(proyek.mandor_id || "");
-  const [nilaiProyek, setNilaiProyek] = useState(proyek.nilai_proyek ? String(proyek.nilai_proyek) : "");
-  const [nilaiSaved, setNilaiSaved] = useState(!!proyek.nilai_proyek);
   const [nama, setNama] = useState(proyek.nama);
   const [lokasi, setLokasi] = useState(proyek.lokasi || "");
   const [infoDirty, setInfoDirty] = useState(false);
@@ -21,14 +18,6 @@ export default function ProyekDetail({ proyek, mandors, jumlahHadir }) {
     setMandorId(val);
     await supabase.from("proyek").update({ mandor_id: val || null }).eq("id", proyek.id);
     router.refresh();
-  };
-
-  const simpanNilai = async () => {
-    await supabase
-      .from("proyek")
-      .update({ nilai_proyek: nilaiProyek ? Number(nilaiProyek) : null })
-      .eq("id", proyek.id);
-    setNilaiSaved(true);
   };
 
   const simpanInfo = async () => {
@@ -96,33 +85,6 @@ export default function ProyekDetail({ proyek, mandors, jumlahHadir }) {
         <span className="icon-tile bg-green-100 text-green-600">
           <Icon name="check-circle" />
         </span>
-      </div>
-
-      <div className="mb-4">
-        <label className="label">Nilai Project</label>
-        <div className="flex gap-2">
-          <input
-            inputMode="numeric"
-            value={nilaiProyek}
-            onChange={(e) => { setNilaiProyek(e.target.value.replace(/\D/g, "")); setNilaiSaved(false); }}
-            placeholder="Contoh: 500000000"
-            className="input text-lg flex-1"
-          />
-          <button
-            onClick={simpanNilai}
-            disabled={nilaiSaved}
-            className={`rounded-xl px-4 text-sm font-bold transition-colors ${
-              nilaiSaved
-                ? "bg-green-100 text-green-600"
-                : "bg-brand text-white active:opacity-80"
-            }`}
-          >
-            {nilaiSaved ? "Tersimpan" : "Simpan"}
-          </button>
-        </div>
-        {nilaiProyek && (
-          <p className="mt-1 text-xs text-gray-400">{rupiah(Number(nilaiProyek))}</p>
-        )}
       </div>
 
       <div className="mb-6">
