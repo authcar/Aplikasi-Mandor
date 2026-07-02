@@ -3,7 +3,7 @@ import ApprovalList from "./ApprovalList";
 
 export const dynamic = "force-dynamic";
 
-export default async function PersetujuanPage() {
+export default async function PersetujuanMasterPage() {
   const { supabase } = await getSessionProfile();
 
   const [{ data: lembur }, { data: keuangan }] = await Promise.all([

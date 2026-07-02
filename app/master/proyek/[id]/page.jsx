@@ -3,7 +3,7 @@ import ProyekDetail from "./ProyekDetail";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProyekDetailPage({ params }) {
+export default async function ProyekDetailMasterPage({ params }) {
   const { supabase } = await getSessionProfile();
   const { id } = params;
 

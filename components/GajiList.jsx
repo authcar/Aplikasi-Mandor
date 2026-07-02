@@ -39,7 +39,6 @@ export default function GajiList({ rekap }) {
               <Baris label="Upah tukang" val={r.upah} plus />
               <Baris label="Lembur" val={r.lembur} plus />
               <Baris label="Reimburse" val={r.reimburse} />
-              <Baris label="Kasbon" val={r.kasbon} />
             </div>
           )}
         </div>

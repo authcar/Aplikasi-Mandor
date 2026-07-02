@@ -15,26 +15,19 @@ export default async function AbsensiPage({ searchParams }) {
   q = searchParams?.proyek ? q.eq("id", searchParams.proyek) : q.order("nama").limit(1);
   const { data: proyek } = await q.maybeSingle();
 
-  const { data: tukang } = await supabase
-    .from("tukang")
-    .select("id, nama, jabatan")
-    .eq("proyek_id", proyek?.id)
-    .eq("is_active", true)
-    .order("nama");
-
   const { data: sudah } = await supabase
-    .from("absensi")
-    .select("tukang_id, hadir")
+    .from("absensi_ringkas")
+    .select("jumlah_hadir")
     .eq("proyek_id", proyek?.id)
-    .eq("tanggal", today);
+    .eq("tanggal", today)
+    .maybeSingle();
 
-  const hadirAwal = (sudah || []).filter((s) => s.hadir).map((s) => s.tukang_id);
+  const jumlahHadirAwal = sudah ? sudah.jumlah_hadir : null;
 
   return (
     <RollCall
       proyek={proyek}
-      tukang={tukang || []}
-      hadirAwal={hadirAwal}
+      jumlahHadirAwal={jumlahHadirAwal}
     />
   );
 }

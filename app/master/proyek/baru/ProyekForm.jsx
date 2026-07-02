@@ -38,19 +38,18 @@ export default function ProyekForm({ mandors }) {
     });
     setBusy(false);
     if (error) return setErr("Gagal menyimpan: " + error.message);
-    router.push("/supervisor");
+    router.push("/master");
     router.refresh();
   };
 
   return (
     <main className="p-4">
-      <BackButton href="/supervisor" label="BATAL" />
+      <BackButton href="/master" label="BATAL" />
       <header className="mb-4">
         <h1 className="text-xl font-bold tracking-tight">Proyek Baru</h1>
       </header>
 
       <form onSubmit={submit} className="space-y-4">
-        {/* Icon picker */}
         <div>
           <label className="label">Ikon Proyek</label>
           <div className="grid grid-cols-4 gap-2">

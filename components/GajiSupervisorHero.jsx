@@ -3,7 +3,7 @@ import { useState } from "react";
 import { rupiah } from "@/lib/format";
 import Icon from "@/components/Icon";
 
-export default function GajiSupervisorHero({ gajiPokok = 0, potongan = [] }) {
+export default function GajiSupervisorHero({ gajiPokok = 0, potongan = [], label = "Gaji Supervisor" }) {
   const [visible, setVisible] = useState(false);
 
   const bulanIni = new Date().toLocaleDateString("id-ID", {
@@ -18,7 +18,7 @@ export default function GajiSupervisorHero({ gajiPokok = 0, potongan = [] }) {
   return (
     <div className="hero mb-5">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-sm text-white/80">Gaji Supervisor · {bulanIni}</p>
+        <p className="text-sm text-white/80">{label} · {bulanIni}</p>
         <button
           onClick={() => setVisible((v) => !v)}
           className="text-white/70 active:text-white/50"

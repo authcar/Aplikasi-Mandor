@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 
-// Lindungi rute /mandor dan /supervisor: wajib login + role sesuai.
+const ROLE_HOME = { MANDOR: "/mandor", SUPERVISOR: "/supervisor", MASTER: "/master" };
+
 export async function middleware(request) {
   let response = NextResponse.next({ request });
 
@@ -22,31 +23,38 @@ export async function middleware(request) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
 
-  if (!user && (path.startsWith("/mandor") || path.startsWith("/supervisor"))) {
+  const isProtected =
+    path.startsWith("/mandor") ||
+    path.startsWith("/supervisor") ||
+    path.startsWith("/master");
+
+  if (!user && isProtected) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && (path.startsWith("/mandor") || path.startsWith("/supervisor"))) {
+  if (user && isProtected) {
     const { data: p } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
     const role = p?.role;
+    const home = ROLE_HOME[role] || "/login";
+
     if (path.startsWith("/mandor") && role !== "MANDOR")
-      return NextResponse.redirect(new URL("/supervisor", request.url));
+      return NextResponse.redirect(new URL(home, request.url));
     if (path.startsWith("/supervisor") && role !== "SUPERVISOR")
-      return NextResponse.redirect(new URL("/mandor", request.url));
+      return NextResponse.redirect(new URL(home, request.url));
+    if (path.startsWith("/master") && role !== "MASTER")
+      return NextResponse.redirect(new URL(home, request.url));
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/mandor/:path*", "/supervisor/:path*"],
+  matcher: ["/mandor/:path*", "/supervisor/:path*", "/master/:path*"],
 };

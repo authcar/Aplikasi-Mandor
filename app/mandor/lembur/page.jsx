@@ -12,11 +12,5 @@ export default async function LemburPage({ searchParams }) {
     .eq("is_active", true);
   q = searchParams?.proyek ? q.eq("id", searchParams.proyek) : q.order("nama").limit(1);
   const { data: proyek } = await q.maybeSingle();
-  const { data: tukang } = await supabase
-    .from("tukang")
-    .select("id, nama, upah_harian")
-    .eq("proyek_id", proyek?.id)
-    .eq("is_active", true)
-    .order("nama");
-  return <LemburForm proyek={proyek} tukang={tukang || []} />;
+  return <LemburForm proyek={proyek} />;
 }

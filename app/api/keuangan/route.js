@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 
-// POST /api/keuangan — Input Pengeluaran (Kasbon/Reimburse) + Upload Nota.
+// POST /api/keuangan — Input Reimburse + Upload Nota.
 // Menerima multipart/form-data:
-//   proyek_id, jenis(KASBON|REIMBURSE), nominal, keterangan, tukang_id?, nota(File?)
+//   proyek_id, jenis(REIMBURSE), nominal, keterangan, tukang_id?, nota(File?)
 export async function POST(req) {
   const { profile, supabase } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,7 +16,7 @@ export async function POST(req) {
   const tukang_id = form.get("tukang_id") || null;
   const nota = form.get("nota"); // File | null
 
-  if (!proyek_id || !["KASBON", "REIMBURSE"].includes(jenis) || !nominal)
+  if (!proyek_id || jenis !== "REIMBURSE" || !nominal)
     return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
 
   let nota_url = null;

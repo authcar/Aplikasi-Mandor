@@ -42,7 +42,7 @@ export default function ProyekDetail({ proyek, mandors, jumlahHadir }) {
 
   return (
     <main className="p-4 pb-8">
-      <BackButton href="/supervisor" />
+      <BackButton href="/master" />
       <header className="mb-5 flex items-center gap-3">
         <span className="icon-tile bg-brand-50 text-brand-600">
           <Icon name={proyek.icon || "building"} />

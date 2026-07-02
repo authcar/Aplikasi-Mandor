@@ -4,6 +4,7 @@ import { rupiah, tglID } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import ProyekSwitcher from "./ProyekSwitcher";
 import Icon from "@/components/Icon";
+import AbsensiSayaCard from "@/components/AbsensiSayaCard";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function DashboardMandor({ searchParams }) {
   // Semua proyek aktif yang dipegang mandor (boleh lebih dari satu).
   const { data: proyekList } = await supabase
     .from("proyek")
-    .select("id, nama, lokasi")
+    .select("id, nama, lokasi, nilai_proyek")
     .eq("mandor_id", profile.id)
     .eq("is_active", true)
     .order("nama");
@@ -24,18 +25,28 @@ export default async function DashboardMandor({ searchParams }) {
   // Proyek terpilih: dari ?proyek=, jika tidak valid pakai yang pertama.
   const proyek = list.find((p) => p.id === searchParams?.proyek) || list[0] || null;
 
+  const chatId = String(profile.telegram_chat_id ?? profile.id ?? "");
+  const { data: checkinHari } = await supabase
+    .from("checkin_harian")
+    .select("tanggal, checkout_at")
+    .eq("chat_id", chatId)
+    .eq("tanggal", today)
+    .maybeSingle();
+  const sudahCheckin = !!checkinHari;
+  const sudahCheckout = !!checkinHari?.checkout_at;
+
   let hadir = 0,
     upah = 0,
     pendingApr = 0;
 
   if (proyek) {
-    const { data: abs } = await supabase
-      .from("absensi")
-      .select("hadir, upah_snap")
+    const { data: ringkas } = await supabase
+      .from("absensi_ringkas")
+      .select("jumlah_hadir")
       .eq("proyek_id", proyek.id)
-      .eq("tanggal", today);
-    hadir = (abs || []).filter((a) => a.hadir).length;
-    upah = (abs || []).reduce((s, a) => s + Number(a.upah_snap), 0);
+      .eq("tanggal", today)
+      .maybeSingle();
+    hadir = ringkas?.jumlah_hadir ?? 0;
 
     const [{ count: l }, { count: k }] = await Promise.all([
       supabase
@@ -54,8 +65,8 @@ export default async function DashboardMandor({ searchParams }) {
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
   const actions = [
-    { href: `/mandor/absensi${q}`, label: "Absensi", icon: "check-circle", tile: "bg-green-100 text-green-600" },
-    { href: `/mandor/lembur${q}`, label: "Lembur / Kasbon", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
+    { href: `/mandor/absensi${q}`, label: "Absensi Tukang", icon: "check-circle", tile: "bg-green-100 text-green-600" },
+    { href: `/mandor/lembur${q}`, label: "Lembur", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600" },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
   ];
@@ -70,6 +81,8 @@ export default async function DashboardMandor({ searchParams }) {
         </div>
         <LogoutButton />
       </header>
+
+      <AbsensiSayaCard sudahCheckin={sudahCheckin} sudahCheckout={sudahCheckout} />
 
       {!proyek ? (
         <div className="card flex items-start gap-3 border-amber-200 bg-amber-50 p-4 text-amber-800">
@@ -91,7 +104,7 @@ export default async function DashboardMandor({ searchParams }) {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <Stat big={`${hadir} org`} label="Hadir hari ini" />
-              <Stat big={rupiah(upah)} label="Upah hari ini" />
+              <Stat big={proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"} label="Nilai Project" />
             </div>
           </div>
 
@@ -120,7 +133,7 @@ export default async function DashboardMandor({ searchParams }) {
             <span className="icon-tile bg-emerald-100 text-emerald-600">
               <Icon name="wallet" />
             </span>
-            <span className="flex-1 text-base font-semibold">Rekap Gaji Proyek</span>
+            <span className="flex-1 text-base font-semibold">Dompet Saya</span>
             <Icon name="chevron-right" className="h-5 w-5 text-gray-300" />
           </Link>
 

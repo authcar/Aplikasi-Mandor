@@ -5,10 +5,10 @@ import { rupiah } from "@/lib/format";
 import Icon from "@/components/Icon";
 
 const TABS = [
-  { key: "SEMUA",   label: "Semua" },
-  { key: "PENDING", label: "Dikirim" },
-  { key: "APPROVED",label: "Disetujui" },
-  { key: "REJECTED",label: "Ditolak" },
+  { key: "SEMUA",    label: "Semua" },
+  { key: "PENDING",  label: "Dikirim" },
+  { key: "APPROVED", label: "Disetujui" },
+  { key: "REJECTED", label: "Ditolak" },
 ];
 
 const STATUS_STYLE = {
@@ -84,7 +84,6 @@ export default function ApprovalList({ items: initialItems }) {
 
   return (
     <>
-      {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 mb-4">
         {TABS.map((t) => {
           const count = t.key === "SEMUA" ? items.length : items.filter((i) => i._status === t.key).length;
@@ -108,7 +107,6 @@ export default function ApprovalList({ items: initialItems }) {
         })}
       </div>
 
-      {/* List */}
       {filtered.length === 0 ? (
         <div className="card flex flex-col items-center gap-2 border-green-200 bg-green-50 p-8 text-center text-green-700">
           <Icon name="check-circle" className="h-9 w-9" />
@@ -173,7 +171,6 @@ export default function ApprovalList({ items: initialItems }) {
         </div>
       )}
 
-      {/* Modal nota */}
       {nota && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"

@@ -69,11 +69,7 @@ const { data: proyek } = await supabase
         (keu || []).filter((k) => k.jenis === "REIMBURSE"),
         (k) => k.nominal
       );
-      const kasbon = sum(
-        (keu || []).filter((k) => k.jenis === "KASBON"),
-        (k) => k.nominal
-      );
-      return { ...p, upah, lembur, reimburse, kasbon, total: upah + lembur + reimburse + kasbon };
+      return { ...p, upah, lembur, reimburse, total: upah + lembur + reimburse };
     })
   );
 
@@ -101,8 +97,7 @@ const { data: proyek } = await supabase
       <PotonganCard rows={potongan || []} gajiPokok={profile.gaji_pokok || 0} />
 
       <p className="mt-4 text-xs text-gray-400">
-        *Ketuk proyek untuk lihat rincian. Hanya lembur, kasbon & reimburse berstatus
-        DISETUJUI yang dihitung.
+        *Ketuk proyek untuk lihat rincian. Hanya lembur & reimburse berstatus DISETUJUI yang dihitung.
       </p>
     </main>
   );
