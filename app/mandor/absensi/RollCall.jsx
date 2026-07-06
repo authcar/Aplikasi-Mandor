@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 
-export default function RollCall({ proyek, jumlahHadirAwal }) {
+export default function RollCall({ proyek, jumlahHadirAwal, fotoTerupload = [] }) {
   const router = useRouter();
   const supabase = createClient();
   const [jumlah, setJumlah] = useState(jumlahHadirAwal ?? 0);
@@ -14,6 +14,22 @@ export default function RollCall({ proyek, jumlahHadirAwal }) {
   const [preview, setPreview] = useState(null);
   const [kameraOpen, setKameraOpen] = useState(false);
   const [ok, setOk] = useState(false);
+  const [uploaded, setUploaded] = useState(fotoTerupload);
+
+  const hapusFoto = async (f) => {
+    if (!confirm("Hapus foto ini?")) return;
+    const { data, error } = await supabase
+      .from("progres_foto")
+      .delete()
+      .eq("id", f.id)
+      .select();
+    if (error || !data?.length) {
+      alert("Gagal menghapus foto. Foto hanya bisa dihapus di hari yang sama.");
+      return;
+    }
+    await supabase.storage.from("progres").remove([f.path]);
+    setUploaded((list) => list.filter((x) => x.id !== f.id));
+  };
 
   const kurang = () => setJumlah((n) => Math.max(0, n - 1));
   const tambah = () => setJumlah((n) => n + 1);
@@ -130,6 +146,32 @@ export default function RollCall({ proyek, jumlahHadirAwal }) {
           </div>
         )}
 
+        {uploaded.length > 0 && (
+          <>
+            <p className="label mt-4 mb-1">Foto Terupload Hari Ini</p>
+            <div className="grid grid-cols-3 gap-2">
+              {uploaded.map((f) => (
+                <div key={f.id} className="relative">
+                  <img
+                    src={f.url}
+                    alt="foto suasana proyek"
+                    className="aspect-square w-full rounded-xl border border-gray-200 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => hapusFoto(f)}
+                    className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-gray-200 bg-white/95 p-3 backdrop-blur">
           <button
             onClick={simpan}
@@ -192,15 +234,15 @@ function KameraModal({ onCapture, onClose }) {
         <span className="text-sm font-semibold text-white">Foto Suasana Proyek</span>
         <div className="w-6" />
       </div>
-      <div className="flex flex-1 items-center justify-center">
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         {error ? (
-          <p className="px-8 text-center text-sm text-red-400">{error}</p>
+          <p className="absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-red-400">{error}</p>
         ) : (
-          <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+          <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" />
         )}
       </div>
       {siap && (
-        <div className="flex justify-center pb-10 pt-6">
+        <div className="flex shrink-0 justify-center pb-10 pt-6">
           <button
             onClick={ambilFoto}
             className="h-16 w-16 rounded-full border-4 border-white bg-white/20 active:bg-white/40"

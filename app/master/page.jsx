@@ -57,11 +57,16 @@ export default async function DashboardMaster() {
         <Icon name="chevron-right" className="h-5 w-5 text-white/70" />
       </Link>
 
-      <div className="shrink-0 grid grid-cols-3 gap-2">
+      <div className="shrink-0 grid grid-cols-2 gap-2">
         <Link href="/master/absensi"
-          className="card-tap col-span-1 flex flex-col items-center justify-center gap-1 p-3">
+          className="card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-sky-100 text-sky-600 !w-8 !h-8"><Icon name="users" /></span>
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Lihat Absensi</p>
+          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
+        </Link>
+        <Link href="/master/progres" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+          <span className="icon-tile bg-indigo-100 text-indigo-600 !w-8 !h-8"><Icon name="camera" /></span>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Progres Harian</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
         <Link href="/master/masalah" className="card-tap flex flex-col items-center justify-center gap-0.5 p-3">

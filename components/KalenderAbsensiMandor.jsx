@@ -5,13 +5,13 @@ const HARI = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const POTONGAN_PER_HARI = 0.5; // % per hari absen
 
 function hariKerja(year, month, sampaiTanggal) {
-  // Senin–Sabtu dihitung hari kerja
+  // Senin–Jumat dihitung hari kerja
   const hasil = [];
   const batas = new Date(sampaiTanggal);
   for (let d = 1; d <= new Date(year, month + 1, 0).getDate(); d++) {
     const tgl = new Date(year, month, d);
     if (tgl > batas) break;
-    if (tgl.getDay() !== 0) { // bukan Minggu
+    if (tgl.getDay() !== 0 && tgl.getDay() !== 6) { // bukan Sabtu/Minggu
       hasil.push(`${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
     }
   }
@@ -110,11 +110,11 @@ export default function KalenderAbsensiMandor({ initialCheckin = [], gajiPokok =
             if (!d) return <div key={`e-${i}`} />;
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
             const dayOfWeek = (firstDay + d - 1) % 7;
-            const isSunday = dayOfWeek === 0;
+            const isLibur = dayOfWeek === 0 || dayOfWeek === 6; // Sabtu & Minggu
             const isPast = dateStr < todayStr;
             const isToday = dateStr === todayStr;
             const isHadir = hadirDates.has(dateStr);
-            const isAbsen = !isSunday && (isPast || isToday) && !isHadir;
+            const isAbsen = !isLibur && (isPast || isToday) && !isHadir;
 
             return (
               <div key={dateStr} className="flex flex-col items-center py-0.5">
@@ -122,10 +122,10 @@ export default function KalenderAbsensiMandor({ initialCheckin = [], gajiPokok =
                   w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium
                   ${isToday && isHadir  ? "bg-green-500 text-white font-bold ring-2 ring-green-300" : ""}
                   ${isToday && isAbsen  ? "bg-red-500 text-white font-bold ring-2 ring-red-300" : ""}
-                  ${isToday && isSunday ? "bg-gray-100 text-gray-300 font-bold" : ""}
+                  ${isToday && isLibur ? "bg-gray-100 text-gray-300 font-bold" : ""}
                   ${!isToday && isHadir ? "border-2 border-green-400 text-green-700 font-semibold" : ""}
                   ${!isToday && isAbsen ? "border-4 border-red-400 text-red-600 font-semibold" : ""}
-                  ${isSunday && !isToday ? "text-gray-200" : ""}
+                  ${isLibur && !isToday ? "text-gray-200" : ""}
                   ${!isPast && !isToday ? "text-gray-300" : ""}
                 `}>
                   {d}

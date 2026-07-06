@@ -24,7 +24,7 @@ function jamWIB() {
 }
 
 // mode: "idle" | "masuk" | "pulang"
-export default function AbsensiSayaCard({ sudahCheckin, sudahCheckout }) {
+export default function AbsensiSayaCard({ chatId, sudahCheckin, sudahCheckout }) {
   const supabase = createClient();
   const [mode, setMode] = useState(
     sudahCheckout ? "pulang" : sudahCheckin ? "masuk" : "idle"
@@ -66,10 +66,9 @@ export default function AbsensiSayaCard({ sudahCheckin, sudahCheckout }) {
       return;
     }
     cekLokasi(async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       const today = new Date().toISOString().slice(0, 10);
       await supabase.from("checkin_harian").upsert(
-        { chat_id: user.id, tanggal: today, checkout_at: null },
+        { chat_id: chatId, tanggal: today, checkout_at: null },
         { onConflict: "chat_id,tanggal" }
       );
       setMode("masuk");
@@ -85,12 +84,11 @@ export default function AbsensiSayaCard({ sudahCheckin, sudahCheckout }) {
       return;
     }
     cekLokasi(async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       const today = new Date().toISOString().slice(0, 10);
       await supabase
         .from("checkin_harian")
         .update({ checkout_at: new Date().toISOString() })
-        .eq("chat_id", user.id)
+        .eq("chat_id", chatId)
         .eq("tanggal", today);
       setMode("pulang");
       setPesan("Absen pulang tercatat ✓");

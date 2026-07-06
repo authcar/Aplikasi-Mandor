@@ -13,7 +13,7 @@ function hariKerja(year, month, sampaiTanggal) {
   for (let d = 1; d <= new Date(year, month + 1, 0).getDate(); d++) {
     const tgl = new Date(year, month, d);
     if (tgl > batas) break;
-    if (tgl.getDay() !== 0) {
+    if (tgl.getDay() !== 0 && tgl.getDay() !== 6) {
       hasil.push(`${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
     }
   }
@@ -37,10 +37,11 @@ export default async function DompetMandorPage({ searchParams }) {
   const { data: proyek } = await pq.maybeSingle();
 
   // Ambil checkin_harian mandor (absensi lokasi)
+  const chatId = String(profile.telegram_chat_id ?? profile.id ?? "");
   const { data: checkin } = await supabase
     .from("checkin_harian")
     .select("tanggal")
-    .eq("chat_id", user.id)
+    .eq("chat_id", chatId)
     .gte("tanggal", iso(bulanIni));
 
   // Hitung potongan dari hari absen (format sama dengan PotonganCard)

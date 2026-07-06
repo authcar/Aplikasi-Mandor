@@ -35,7 +35,7 @@ export default async function DashboardSupervisor() {
   const masalahAktif = m || 0;
   const todayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const sudahLaporan = (checkin || []).some((c) => c.tanggal === todayStr);
-  const isWeekend = today.getDay() === 0; // Minggu = libur, tidak wajib laporan
+  const isWeekend = today.getDay() === 0 || today.getDay() === 6; // Sabtu & Minggu = libur, tidak wajib laporan
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden p-4 gap-3">

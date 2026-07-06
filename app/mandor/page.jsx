@@ -82,7 +82,7 @@ export default async function DashboardMandor({ searchParams }) {
         <LogoutButton />
       </header>
 
-      <AbsensiSayaCard sudahCheckin={sudahCheckin} sudahCheckout={sudahCheckout} />
+      <AbsensiSayaCard chatId={chatId} sudahCheckin={sudahCheckin} sudahCheckout={sudahCheckout} />
 
       {!proyek ? (
         <div className="card flex items-start gap-3 border-amber-200 bg-amber-50 p-4 text-amber-800">

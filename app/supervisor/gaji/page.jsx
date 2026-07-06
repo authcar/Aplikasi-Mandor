@@ -24,21 +24,23 @@ const { data: proyek } = await supabase
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7)); // Senin minggu ini
   const sum = (rows, f) => (rows || []).reduce((s, r) => s + Number(f(r)), 0);
 
-  const chatId = String(profile.telegram_chat_id ?? "");
+  const chatId = profile.telegram_chat_id ? String(profile.telegram_chat_id) : null;
 
-  const [{ data: potongan }, { data: checkin }] = await Promise.all([
-    supabase
-      .from("potongan_gaji")
-      .select("id, tanggal, persentase")
-      .eq("chat_id", chatId)
-      .gte("tanggal", iso(bulanIni))
-      .order("tanggal"),
-    supabase
-      .from("checkin_harian")
-      .select("tanggal")
-      .eq("chat_id", chatId)
-      .gte("tanggal", iso(bulanIni)),
-  ]);
+  const [{ data: potongan }, { data: checkin }] = chatId
+    ? await Promise.all([
+        supabase
+          .from("potongan_gaji")
+          .select("id, tanggal, persentase")
+          .eq("chat_id", chatId)
+          .gte("tanggal", iso(bulanIni))
+          .order("tanggal"),
+        supabase
+          .from("checkin_harian")
+          .select("tanggal")
+          .eq("chat_id", chatId)
+          .gte("tanggal", iso(bulanIni)),
+      ])
+    : [{ data: [] }, { data: [] }];
 
   // Hitung rekap tiap proyek secara paralel.
   const rekap = await Promise.all(
@@ -86,15 +88,27 @@ const { data: proyek } = await supabase
         potongan={potongan || []}
       />
 
-      <h2 className="mt-6 mb-3 font-bold text-gray-700">Kalender Laporan Harian</h2>
-      <CalendarPotongan
-        chatId={profile.telegram_chat_id}
-        initialPotongan={potongan || []}
-        initialCheckin={checkin || []}
-      />
+      {chatId ? (
+        <>
+          <h2 className="mt-6 mb-3 font-bold text-gray-700">Kalender Laporan Harian</h2>
+          <CalendarPotongan
+            chatId={chatId}
+            initialPotongan={potongan || []}
+            initialCheckin={checkin || []}
+          />
 
-      <h2 className="mt-5 mb-3 font-bold text-gray-700">Performa {profile.name}</h2>
-      <PotonganCard rows={potongan || []} gajiPokok={profile.gaji_pokok || 0} />
+          <h2 className="mt-5 mb-3 font-bold text-gray-700">Performa {profile.name}</h2>
+          <PotonganCard rows={potongan || []} gajiPokok={profile.gaji_pokok || 0} />
+        </>
+      ) : (
+        <div className="card mt-6 border-amber-200 bg-amber-50 p-4 text-amber-800">
+          <p className="text-sm font-medium">
+            Akun Anda belum terhubung ke bot Telegram, sehingga kalender laporan
+            harian dan potongan belum bisa ditampilkan. Hubungi admin untuk
+            menghubungkan akun Telegram Anda.
+          </p>
+        </div>
+      )}
 
       <p className="mt-4 text-xs text-gray-400">
         *Ketuk proyek untuk lihat rincian. Hanya lembur & reimburse berstatus DISETUJUI yang dihitung.

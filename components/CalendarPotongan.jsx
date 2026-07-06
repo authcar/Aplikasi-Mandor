@@ -11,7 +11,7 @@ function hitungStreak(checkinSet) {
 
   for (let i = 0; i < 90; i++) {
     const dayOfWeek = d.getDay();
-    if (dayOfWeek === 0) {
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
       d.setDate(d.getDate() - 1);
       continue;
     }
@@ -131,11 +131,11 @@ export default function CalendarPotongan({
 
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
             const dayOfWeek = (firstDay + d - 1) % 7;
-            const isSunday = dayOfWeek === 0;
+            const isLibur = dayOfWeek === 0 || dayOfWeek === 6; // Sabtu & Minggu
             const isPast = dateStr < todayStr;
             const isToday = dateStr === todayStr;
             const isHadir = hadirDates.has(dateStr);
-            const isAbsen = !isSunday && (isPast || isToday) && !isHadir;
+            const isAbsen = !isLibur && (isPast || isToday) && !isHadir;
 
             return (
               <div key={dateStr} className="flex flex-col items-center py-0.5">
@@ -146,7 +146,7 @@ export default function CalendarPotongan({
                     ${isToday && isAbsen ? "bg-red-500 text-white font-bold ring-2 ring-red-300" : ""}
                     ${!isToday && isHadir ? "border-2 border-blue-400 text-blue-700 font-semibold" : ""}
                     ${!isToday && isAbsen ? "border-4 border-red-400 text-red-600 font-semibold" : ""}
-                    ${isSunday && !isToday ? "text-gray-200" : ""}
+                    ${isLibur && !isToday ? "text-gray-200" : ""}
                     ${!isPast && !isToday ? "text-gray-300" : ""}
                   `}
                 >

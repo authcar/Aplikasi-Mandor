@@ -15,7 +15,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });\nreturn [{ json: { today } }];"
+        "jsCode": "// Workflow jalan lewat tengah malam WIB, jadi yang dinilai adalah laporan HARI KEMARIN.\nconst wib = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));\nwib.setDate(wib.getDate() - 1);\nif (wib.getDay() === 0 || wib.getDay() === 6) return []; // Sabtu & Minggu libur, tidak ada potongan\nconst today = `${wib.getFullYear()}-${String(wib.getMonth() + 1).padStart(2, '0')}-${String(wib.getDate()).padStart(2, '0')}`;\nreturn [{ json: { today } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -75,7 +75,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const today = $('Get Today').first().json.today;\n\nconst rawSupervisors = $('Get All Supervisors').first().json;\nconst rawCheckins    = $('Get Today Checkins').first().json;\n\nconst supervisors = Array.isArray(rawSupervisors) ? rawSupervisors : [];\nconst checkedIn   = new Set(\n  (Array.isArray(rawCheckins) ? rawCheckins : []).map(c => String(c.chat_id))\n);\n\nconst missing = supervisors.filter(s => !checkedIn.has(String(s.chat_id)));\n\nif (missing.length === 0) return [];\n\nreturn missing.map(s => ({ json: {\n  chat_id:    String(s.chat_id),\n  nama:       s.nama || 'Unknown',\n  tanggal:    today,\n  persentase: 5\n}}));"
+        "jsCode": "const today = $('Get Today').first().json.today;\n\nconst rawSupervisors = $('Get All Supervisors').first().json;\nconst rawCheckins    = $('Get Today Checkins').first().json;\n\nconst supervisors = Array.isArray(rawSupervisors) ? rawSupervisors : [];\nconst checkedIn   = new Set(\n  (Array.isArray(rawCheckins) ? rawCheckins : []).map(c => String(c.chat_id))\n);\n\nconst missing = supervisors.filter(s => {\n  const id = String(s.chat_id ?? '').trim();\n  return id !== '' && !checkedIn.has(id);\n});\n\nif (missing.length === 0) return [];\n\nreturn missing.map(s => ({ json: {\n  chat_id:    String(s.chat_id).trim(),\n  nama:       s.nama || 'Unknown',\n  tanggal:    today,\n  persentase: 0.5\n}}));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -86,7 +86,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://rmkocokczeiixcgayzfr.supabase.co/rest/v1/potongan_gaji",
+        "url": "https://rmkocokczeiixcgayzfr.supabase.co/rest/v1/potongan_gaji?on_conflict=chat_id,tanggal",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -96,7 +96,7 @@
             },
             {
               "name": "Prefer",
-              "value": "return=minimal"
+              "value": "resolution=merge-duplicates,return=minimal"
             },
             {
               "name": "Authorization",

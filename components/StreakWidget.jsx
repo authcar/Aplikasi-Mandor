@@ -7,7 +7,7 @@ export default function StreakWidget({ potongan = [], checkin = [] }) {
   const d = new Date(today);
   d.setDate(d.getDate() - 1);
   for (let i = 0; i < 90; i++) {
-    if (d.getDay() === 0) { d.setDate(d.getDate() - 1); continue; }
+    if (d.getDay() === 0 || d.getDay() === 6) { d.setDate(d.getDate() - 1); continue; }
     const s = d.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
     if (!checkinSet.has(s)) break;
     streak++;
