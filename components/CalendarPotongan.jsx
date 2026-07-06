@@ -94,7 +94,7 @@ export default function CalendarPotongan({
         <div className="mb-4 rounded-xl bg-orange-50 border border-orange-200 px-4 py-3 flex items-center gap-3">
           <span className="text-3xl">🔥</span>
           <div>
-            <p className="font-bold text-orange-700">{streak} hari streak!</p>
+            <p className="font-bold text-orange-700">{streak} hari beruntun lapor!</p>
             <p className="text-sm text-orange-500">Pertahankan laporan harian Anda</p>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default function CalendarPotongan({
       {isCurrentMonth && streak === 0 && (
         <div className="mb-4 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 flex items-center gap-3">
           <span className="text-2xl">💪</span>
-          <p className="text-sm text-gray-500">Mulai streak dengan laporan hari ini!</p>
+          <p className="text-sm text-gray-500">Mulai dengan mengisi laporan hari ini!</p>
         </div>
       )}
 

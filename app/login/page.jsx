@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Icon from "@/components/Icon";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,13 +25,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col justify-center p-6">
       <div className="mb-8">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-900 text-white shadow-brand">
-          <Icon name="hard-hat" className="h-8 w-8" />
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Aplikasi Mandor
-        </h1>
-        <p className="mt-1 text-gray-500">Masuk untuk mulai bekerja</p>
+        <img src="/logo.png" alt="Taraco Interior" className="mb-4 h-12 w-auto" />
       </div>
 
       <form onSubmit={onSubmit} className="card space-y-4 p-5">

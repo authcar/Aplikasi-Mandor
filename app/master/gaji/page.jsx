@@ -22,7 +22,7 @@ export default async function DompetMasterPage() {
   return (
     <main className="p-4 pb-8">
       <BackButton href="/master" />
-      <h1 className="text-xl font-bold tracking-tight">Nilai Proyek</h1>
+      <h1 className="text-xl font-bold tracking-tight">Nilai Jasa Tukang</h1>
       <p className="mb-4 text-sm text-gray-500">{proyek?.length || 0} proyek aktif</p>
 
       {/* Total Budget Card */}
@@ -31,7 +31,7 @@ export default async function DompetMasterPage() {
           <Icon name="wallet" />
         </span>
         <div className="flex-1">
-          <p className="text-xs text-white/80">Total Budget Semua Proyek</p>
+          <p className="text-xs text-white/80">Total Nilai Jasa Semua Proyek</p>
           <p className="text-2xl font-bold leading-tight">
             {totalNilai > 0 ? rupiah(totalNilai) : "—"}
           </p>
@@ -44,7 +44,7 @@ export default async function DompetMasterPage() {
       {/* Per-Project Budget List */}
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
-          <h2 className="font-bold text-gray-700 text-sm">Nilai Per Proyek</h2>
+          <h2 className="font-bold text-gray-700 text-sm">Nilai Jasa per Proyek</h2>
         </div>
         <div className="divide-y divide-gray-100">
           {(proyek || []).map((p) => (

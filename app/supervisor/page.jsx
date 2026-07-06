@@ -3,6 +3,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
 import StreakWidget from "@/components/StreakWidget";
+import LaporanToast from "@/components/LaporanToast";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function DashboardSupervisor() {
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden p-4 gap-3">
+      <LaporanToast show={!sudahLaporan && !isWeekend} />
 
       {/* Header */}
       <header className="flex shrink-0 items-center justify-between">
@@ -80,7 +82,7 @@ export default async function DashboardSupervisor() {
       </Link>
 
       {/* Buat laporan + grid stats */}
-      <div className="shrink-0 grid grid-cols-3 gap-2">
+      <div className="shrink-0 grid grid-cols-2 gap-2">
         <a
           href="https://t.me/TaracoBot"
           target="_blank"
@@ -93,6 +95,14 @@ export default async function DashboardSupervisor() {
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Laporan Harian</p>
           <Icon name="arrow-up-right" className="h-3 w-3 text-gray-300" />
         </a>
+
+        <Link href="/supervisor/absensi" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+          <span className="icon-tile bg-green-100 text-green-600 !w-8 !h-8">
+            <Icon name="users" />
+          </span>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Absensi Tukang</p>
+          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
+        </Link>
 
         <Link href="/supervisor/masalah" className="card-tap flex flex-col items-center justify-center gap-0.5 p-3">
           <span className="icon-tile bg-red-100 text-red-600 !w-8 !h-8">

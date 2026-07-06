@@ -2,7 +2,6 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Icon from "@/components/Icon";
 
 export default function TukangLoginPage() {
   const router = useRouter();
@@ -67,9 +66,7 @@ export default function TukangLoginPage() {
   return (
     <div className="flex min-h-screen flex-col justify-center p-6">
       <div className="mb-8">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-700 text-white shadow-lg">
-          <Icon name="hammer" className="h-8 w-8" />
-        </div>
+        <img src="/logo.png" alt="Taraco Interior" className="mb-4 h-12 w-auto" />
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">
           Login Tukang Harian
         </h1>

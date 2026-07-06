@@ -1,29 +1,38 @@
 export default function StreakWidget({ potongan = [], checkin = [] }) {
-  const today = new Date();
-
-  // Streak: hitung mundur dari kemarin berdasarkan checkin_harian
-  const checkinSet = new Set(checkin.map((r) => r.tanggal));
-  let streak = 0;
-  const d = new Date(today);
-  d.setDate(d.getDate() - 1);
-  for (let i = 0; i < 90; i++) {
-    if (d.getDay() === 0 || d.getDay() === 6) { d.setDate(d.getDate() - 1); continue; }
-    const s = d.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
-    if (!checkinSet.has(s)) break;
-    streak++;
-    d.setDate(d.getDate() - 1);
+  // Hari kerja (Senin–Jumat) bulan ini sampai hari ini, zona WIB
+  const wibStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const [y, m, d] = wibStr.split("-").map(Number);
+  let hariKerja = 0;
+  for (let i = 1; i <= d; i++) {
+    const day = new Date(y, m - 1, i).getDay();
+    if (day !== 0 && day !== 6) hariKerja++;
   }
 
   const totalAbsen = potongan.length;
   const totalPersen = potongan.reduce((s, r) => s + Number(r.persentase), 0);
   const sudahLapor = checkin.length;
 
+  const persen = hariKerja ? Math.min(100, Math.round((sudahLapor / hariKerja) * 100)) : 100;
+  // Emot mood: makin rajin lapor, makin senang 😄
+  const level =
+    persen >= 100
+      ? { emoji: "🤩", bg: "bg-emerald-50", text: "text-emerald-600", sub: "text-emerald-400" }
+      : persen >= 80
+        ? { emoji: "😄", bg: "bg-emerald-50", text: "text-emerald-600", sub: "text-emerald-400" }
+        : persen >= 60
+          ? { emoji: "🙂", bg: "bg-lime-50", text: "text-lime-600", sub: "text-lime-400" }
+          : persen >= 40
+            ? { emoji: "😐", bg: "bg-amber-50", text: "text-amber-600", sub: "text-amber-400" }
+            : persen >= 20
+              ? { emoji: "😟", bg: "bg-orange-50", text: "text-orange-500", sub: "text-orange-300" }
+              : { emoji: "😭", bg: "bg-red-50", text: "text-red-500", sub: "text-red-300" };
+
   return (
     <div className="card flex items-center gap-3 p-3">
-      <div className="flex flex-col items-center justify-center rounded-xl bg-orange-50 px-4 py-2 min-w-[72px]">
-        <span className="text-2xl leading-none">🔥</span>
-        <p className="text-lg font-bold text-orange-600 leading-tight">{streak}</p>
-        <p className="text-[10px] text-orange-400">hari streak</p>
+      <div className={`flex flex-col items-center justify-center rounded-xl px-3 py-2 min-w-[76px] ${level.bg}`}>
+        <span className="text-2xl leading-none">{level.emoji}</span>
+        <p className={`text-lg font-bold leading-tight ${level.text}`}>{persen}%</p>
+        <p className={`text-[10px] ${level.sub}`}>rajin lapor</p>
       </div>
 
       <div className="h-10 w-px bg-gray-100" />

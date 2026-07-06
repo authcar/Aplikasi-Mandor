@@ -92,7 +92,7 @@ export default function ProyekForm({ mandors }) {
           />
         </div>
         <div>
-          <label className="label">Nilai Project (opsional)</label>
+          <label className="label">Nilai Jasa Tukang (opsional)</label>
           <input
             inputMode="numeric"
             value={nilaiProyek}

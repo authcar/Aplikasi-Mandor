@@ -76,7 +76,7 @@ export default async function DashboardMaster() {
         </Link>
         <Link href="/master/gaji" className="card-tap flex flex-col items-center justify-center gap-0.5 p-3">
           <span className="icon-tile bg-emerald-100 text-emerald-600 !w-8 !h-8"><Icon name="wallet" /></span>
-          <p className="text-[11px] font-semibold text-gray-600">Total Budget</p>
+          <p className="text-[11px] font-semibold text-gray-600">Total Nilai Jasa</p>
           <p className="text-[10px] font-bold text-emerald-600 leading-tight text-center">
             {totalNilaiProyek > 0 ? rupiah(totalNilaiProyek) : "—"}
           </p>

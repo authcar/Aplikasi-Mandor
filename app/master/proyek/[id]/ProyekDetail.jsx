@@ -99,7 +99,7 @@ export default function ProyekDetail({ proyek, mandors, jumlahHadir }) {
       </div>
 
       <div className="mb-4">
-        <label className="label">Nilai Project</label>
+        <label className="label">Nilai Jasa Tukang</label>
         <div className="flex gap-2">
           <input
             inputMode="numeric"

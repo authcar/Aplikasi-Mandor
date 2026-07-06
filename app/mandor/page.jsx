@@ -65,7 +65,6 @@ export default async function DashboardMandor({ searchParams }) {
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
   const actions = [
-    { href: `/mandor/absensi${q}`, label: "Absensi Tukang", icon: "check-circle", tile: "bg-green-100 text-green-600" },
     { href: `/mandor/lembur${q}`, label: "Lembur", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600" },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
@@ -104,7 +103,7 @@ export default async function DashboardMandor({ searchParams }) {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <Stat big={`${hadir} org`} label="Hadir hari ini" />
-              <Stat big={proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"} label="Nilai Project" />
+              <Stat big={proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"} label="Nilai Jasa Tukang" />
             </div>
           </div>
 
