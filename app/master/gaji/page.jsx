@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 export default async function DompetMasterPage() {
   const { profile, supabase } = await getSessionProfile();
 
+  // Master melihat semua proyek aktif (tidak difilter supervisor_id)
   const { data: proyek } = await supabase
     .from("proyek")
     .select("id, nama, lokasi, icon, nilai_proyek, mandor:mandor_id(name)")
-    .eq("supervisor_id", profile.id)
     .eq("is_active", true)
     .order("nama");
 

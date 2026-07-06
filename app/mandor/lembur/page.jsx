@@ -12,5 +12,17 @@ export default async function LemburPage({ searchParams }) {
     .eq("is_active", true);
   q = searchParams?.proyek ? q.eq("id", searchParams.proyek) : q.order("nama").limit(1);
   const { data: proyek } = await q.maybeSingle();
-  return <LemburForm proyek={proyek} />;
+
+  // Riwayat pengajuan lembur mandor ini (terbaru dulu)
+  const { data: riwayat } = proyek
+    ? await supabase
+        .from("lembur")
+        .select("id, jam, total, catatan, tanggal, status, created_at")
+        .eq("proyek_id", proyek.id)
+        .eq("created_by", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(10)
+    : { data: [] };
+
+  return <LemburForm proyek={proyek} riwayat={riwayat || []} />;
 }

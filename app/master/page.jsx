@@ -18,10 +18,10 @@ export default async function DashboardMaster() {
   const bulanIni = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
   const chatId = String(profile.telegram_chat_id ?? "");
 
+  // Master melihat semua proyek aktif (tidak difilter supervisor_id)
   const { data: proyek } = await supabase
     .from("proyek")
     .select("id, nama, lokasi, icon, nilai_proyek, mandor:mandor_id(name)")
-    .eq("supervisor_id", profile.id)
     .eq("is_active", true);
 
   const totalNilaiProyek = (proyek || []).reduce((sum, p) => sum + (p.nilai_proyek || 0), 0);

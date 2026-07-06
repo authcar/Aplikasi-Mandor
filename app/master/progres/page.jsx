@@ -22,7 +22,7 @@ export default async function ProgresFeedPage() {
     ? await supabase.storage.from("progres").createSignedUrls(paths, 3600)
     : { data: [] };
   const urlMap = Object.fromEntries(
-    (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
+    (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl]),
   );
 
   // Kelompokkan per tanggal (terbaru dulu)
@@ -54,9 +54,7 @@ export default async function ProgresFeedPage() {
     <main className="p-4 pb-8">
       <BackButton href="/master" />
       <h1 className="text-xl font-bold tracking-tight">Progres Harian</h1>
-      <p className="mb-4 text-sm text-gray-500">
-        Foto suasana semua proyek · {LIMIT_FOTO} foto terakhir
-      </p>
+      <p className="mb-4 text-sm text-gray-500">Foto suasana semua proyek</p>
 
       {perTanggal.map((grup) => (
         <div key={grup.tanggal} className="card mb-3 p-4">
@@ -76,7 +74,10 @@ export default async function ProgresFeedPage() {
                   className="aspect-square w-full rounded-lg border border-gray-200 object-cover"
                 />
                 <p className="mt-1 flex items-center gap-1 truncate text-[10px] text-gray-500">
-                  <Icon name={f.proyek?.icon || "building"} className="h-3 w-3 shrink-0 text-gray-400" />
+                  <Icon
+                    name={f.proyek?.icon || "building"}
+                    className="h-3 w-3 shrink-0 text-gray-400"
+                  />
                   <span className="truncate">{f.proyek?.nama || "—"}</span>
                 </p>
               </FotoLightbox>

@@ -2,6 +2,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import BackButton from "@/components/BackButton";
 import KalenderAbsensiMandor from "@/components/KalenderAbsensiMandor";
 import GajiSupervisorHero from "@/components/GajiSupervisorHero";
+import PotonganCard from "@/components/PotonganCard";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,9 @@ export default async function DompetMandorPage({ searchParams }) {
         initialCheckin={checkin || []}
         gajiPokok={profile.gaji_pokok || 0}
       />
+
+      <h2 className="mt-5 mb-3 font-bold text-gray-700">Performa {profile.name}</h2>
+      <PotonganCard rows={potonganRows} gajiPokok={profile.gaji_pokok || 0} />
     </main>
   );
 }

@@ -110,9 +110,6 @@ const { data: proyek } = await supabase
         </div>
       )}
 
-      <p className="mt-4 text-xs text-gray-400">
-        *Ketuk proyek untuk lihat rincian. Hanya lembur & reimburse berstatus DISETUJUI yang dihitung.
-      </p>
     </main>
   );
 }

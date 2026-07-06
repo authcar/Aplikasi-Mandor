@@ -13,42 +13,41 @@ export default async function DashboardMandor({ searchParams }) {
   const { profile, supabase } = await getSessionProfile();
   const today = new Date().toISOString().slice(0, 10);
 
-  // Semua proyek aktif yang dipegang mandor (boleh lebih dari satu).
-  const { data: proyekList } = await supabase
-    .from("proyek")
-    .select("id, nama, lokasi, nilai_proyek")
-    .eq("mandor_id", profile.id)
-    .eq("is_active", true)
-    .order("nama");
+  // Semua proyek aktif + check-in hari ini diambil sekaligus (paralel).
+  const chatId = String(profile.telegram_chat_id ?? profile.id ?? "");
+  const [{ data: proyekList }, { data: checkinHari }] = await Promise.all([
+    supabase
+      .from("proyek")
+      .select("id, nama, lokasi, nilai_proyek")
+      .eq("mandor_id", profile.id)
+      .eq("is_active", true)
+      .order("nama"),
+    supabase
+      .from("checkin_harian")
+      .select("tanggal, checkout_at")
+      .eq("chat_id", chatId)
+      .eq("tanggal", today)
+      .maybeSingle(),
+  ]);
 
   const list = proyekList || [];
   // Proyek terpilih: dari ?proyek=, jika tidak valid pakai yang pertama.
   const proyek = list.find((p) => p.id === searchParams?.proyek) || list[0] || null;
 
-  const chatId = String(profile.telegram_chat_id ?? profile.id ?? "");
-  const { data: checkinHari } = await supabase
-    .from("checkin_harian")
-    .select("tanggal, checkout_at")
-    .eq("chat_id", chatId)
-    .eq("tanggal", today)
-    .maybeSingle();
   const sudahCheckin = !!checkinHari;
   const sudahCheckout = !!checkinHari?.checkout_at;
 
   let hadir = 0,
-    upah = 0,
     pendingApr = 0;
 
   if (proyek) {
-    const { data: ringkas } = await supabase
-      .from("absensi_ringkas")
-      .select("jumlah_hadir")
-      .eq("proyek_id", proyek.id)
-      .eq("tanggal", today)
-      .maybeSingle();
-    hadir = ringkas?.jumlah_hadir ?? 0;
-
-    const [{ count: l }, { count: k }] = await Promise.all([
+    const [{ data: ringkas }, { count: l }, { count: k }] = await Promise.all([
+      supabase
+        .from("absensi_ringkas")
+        .select("jumlah_hadir")
+        .eq("proyek_id", proyek.id)
+        .eq("tanggal", today)
+        .maybeSingle(),
       supabase
         .from("lembur")
         .select("id", { count: "exact", head: true })
@@ -60,6 +59,7 @@ export default async function DashboardMandor({ searchParams }) {
         .eq("proyek_id", proyek.id)
         .eq("status", "PENDING"),
     ]);
+    hadir = ringkas?.jumlah_hadir ?? 0;
     pendingApr = (l || 0) + (k || 0);
   }
 

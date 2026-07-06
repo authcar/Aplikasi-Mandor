@@ -9,7 +9,7 @@ export default async function PersetujuanMasterPage() {
   const [{ data: lembur }, { data: keuangan }] = await Promise.all([
     supabase
       .from("lembur")
-      .select("id, jam, total, catatan, tanggal, status, created_at, proyek(nama), creator:created_by(name)")
+      .select("id, jam, total, catatan, tanggal, foto_url, status, created_at, proyek(nama), creator:created_by(name)")
       .order("created_at", { ascending: false }),
     supabase
       .from("keuangan")
@@ -21,6 +21,11 @@ export default async function PersetujuanMasterPage() {
   const items = [];
 
   for (const l of lembur || []) {
+    let foto = null;
+    if (l.foto_url) {
+      const { data } = await supabase.storage.from("lembur").createSignedUrl(l.foto_url, 3600);
+      foto = data?.signedUrl || null;
+    }
     items.push({
       id: l.id,
       _tipe: "lembur",
@@ -32,7 +37,7 @@ export default async function PersetujuanMasterPage() {
       _jam: l.jam,
       _tanggal: l.tanggal || l.created_at?.slice(0, 10),
       _status: l.status,
-      _nota: null,
+      _nota: foto,
     });
   }
 

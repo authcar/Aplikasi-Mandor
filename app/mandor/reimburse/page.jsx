@@ -12,5 +12,18 @@ export default async function ReimbursePage({ searchParams }) {
     .eq("is_active", true);
   q = searchParams?.proyek ? q.eq("id", searchParams.proyek) : q.order("nama").limit(1);
   const { data: proyek } = await q.maybeSingle();
-  return <ReimburseForm proyek={proyek} />;
+
+  // Riwayat pengajuan reimburse mandor ini (terbaru dulu)
+  const { data: riwayat } = proyek
+    ? await supabase
+        .from("keuangan")
+        .select("id, nominal, keterangan, status, created_at")
+        .eq("proyek_id", proyek.id)
+        .eq("jenis", "REIMBURSE")
+        .eq("created_by", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(10)
+    : { data: [] };
+
+  return <ReimburseForm proyek={proyek} riwayat={riwayat || []} />;
 }

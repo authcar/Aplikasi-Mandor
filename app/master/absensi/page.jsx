@@ -84,7 +84,7 @@ export default async function AbsensiMasterPage() {
   return (
     <main className="p-4 pb-8">
       <BackButton href="/master" />
-      <h1 className="text-xl font-bold tracking-tight">Absensi Tukang</h1>
+      <h1 className="text-xl font-bold tracking-tight">Absensi</h1>
       <p className="mb-4 text-sm text-gray-500">
         {new Date().toLocaleDateString("id-ID", {
           weekday: "long",
