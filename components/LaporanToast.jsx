@@ -21,7 +21,7 @@ export default function LaporanToast({
 
   return (
     <div
-      className={`fixed right-3 top-3 z-[90] flex items-center gap-2 rounded-full border border-amber-200 bg-white/95 py-1.5 pl-3 pr-1.5 shadow-lg backdrop-blur transition-all duration-500 ${
+      className={`absolute right-3 top-3 z-[90] flex items-center gap-2 rounded-full border border-amber-200 bg-white/95 py-1.5 pl-3 pr-1.5 shadow-lg backdrop-blur transition-all duration-500 ${
         masuk ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0"
       }`}
     >

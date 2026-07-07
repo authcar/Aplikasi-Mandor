@@ -15,7 +15,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Workflow jalan lewat tengah malam WIB, jadi yang dinilai adalah laporan HARI KEMARIN.\nconst wib = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));\nwib.setDate(wib.getDate() - 1);\nif (wib.getDay() === 0 || wib.getDay() === 6) return []; // Sabtu & Minggu libur, tidak ada potongan\nconst today = `${wib.getFullYear()}-${String(wib.getMonth() + 1).padStart(2, '0')}-${String(wib.getDate()).padStart(2, '0')}`;\nreturn [{ json: { today } }];"
+        "jsCode": "// Workflow jalan lewat tengah malam WIB, jadi yang dinilai adalah laporan HARI KEMARIN.\nconst wib = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));\nwib.setDate(wib.getDate() - 1);\nif (wib.getDay() === 0) return []; // Minggu libur, tidak ada potongan (supervisor kerja Senin-Sabtu)\nconst today = `${wib.getFullYear()}-${String(wib.getMonth() + 1).padStart(2, '0')}-${String(wib.getDate()).padStart(2, '0')}`;\nreturn [{ json: { today } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

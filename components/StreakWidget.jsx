@@ -1,11 +1,11 @@
 export default function StreakWidget({ potongan = [], checkin = [] }) {
-  // Hari kerja (Senin–Jumat) bulan ini sampai hari ini, zona WIB
+  // Hari kerja supervisor (Senin–Sabtu) bulan ini sampai hari ini, zona WIB
   const wibStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const [y, m, d] = wibStr.split("-").map(Number);
   let hariKerja = 0;
   for (let i = 1; i <= d; i++) {
     const day = new Date(y, m - 1, i).getDay();
-    if (day !== 0 && day !== 6) hariKerja++;
+    if (day !== 0) hariKerja++;
   }
 
   const totalAbsen = potongan.length;

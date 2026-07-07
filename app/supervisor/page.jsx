@@ -25,18 +25,20 @@ export default async function DashboardSupervisor() {
 
   const chatId = String(profile.telegram_chat_id ?? "");
 
-  const [{ count: l }, { count: k }, { count: m }, { data: potongan }, { data: checkin }] = await Promise.all([
+  const [{ count: l }, { count: k }, { count: m }, { count: pb }, { data: potongan }, { data: checkin }] = await Promise.all([
     supabase.from("lembur").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
     supabase.from("keuangan").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
     supabase.from("masalah").select("id", { count: "exact", head: true }).neq("status", "DONE"),
+    supabase.from("checklist_perbaikan").select("id", { count: "exact", head: true }).neq("status", "DONE"),
     supabase.from("potongan_gaji").select("id, tanggal, persentase").eq("chat_id", chatId).gte("tanggal", bulanIni).order("tanggal"),
     supabase.from("checkin_harian").select("tanggal").eq("chat_id", chatId).gte("tanggal", bulanIni),
   ]);
   const pending = (l || 0) + (k || 0);
   const masalahAktif = m || 0;
+  const perbaikanAktif = pb || 0;
   const todayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const sudahLaporan = (checkin || []).some((c) => c.tanggal === todayStr);
-  const isWeekend = today.getDay() === 0 || today.getDay() === 6; // Sabtu & Minggu = libur, tidak wajib laporan
+  const isWeekend = today.getDay() === 0; // Minggu = libur, supervisor kerja Senin–Sabtu
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden p-4 gap-3">
@@ -118,6 +120,14 @@ export default async function DashboardSupervisor() {
           </span>
           <p className="text-[11px] font-semibold text-gray-600">Rekap Gaji</p>
           <p className="text-[11px] font-medium text-brand">Lihat ›</p>
+        </Link>
+
+        <Link href="/supervisor/perbaikan" className="card-tap col-span-2 flex flex-col items-center justify-center gap-0.5 p-3">
+          <span className="icon-tile bg-indigo-100 text-indigo-600 !w-8 !h-8">
+            <Icon name="wrench" />
+          </span>
+          <p className="text-[11px] font-semibold text-gray-600">Checklist Perbaikan</p>
+          <p className="text-xl font-bold text-indigo-500 leading-tight">{perbaikanAktif}</p>
         </Link>
       </div>
 

@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Aplikasi Mandor",
+  title: "Taraco App",
   description: "Manajemen proyek lapangan untuk Mandor & Supervisor",
 };
 
@@ -16,7 +16,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="id">
       <body>
-        <div className="mx-auto min-h-screen max-w-md bg-slate-50 shadow-soft sm:my-0">
+        <div className="relative mx-auto min-h-screen max-w-md bg-slate-50 shadow-soft sm:my-0">
           {children}
         </div>
       </body>

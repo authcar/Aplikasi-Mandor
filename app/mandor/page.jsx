@@ -38,10 +38,11 @@ export default async function DashboardMandor({ searchParams }) {
   const sudahCheckout = !!checkinHari?.checkout_at;
 
   let hadir = 0,
-    pendingApr = 0;
+    pendingApr = 0,
+    perbaikanBaru = 0;
 
   if (proyek) {
-    const [{ data: ringkas }, { count: l }, { count: k }] = await Promise.all([
+    const [{ data: ringkas }, { count: l }, { count: k }, { count: pb }] = await Promise.all([
       supabase
         .from("absensi_ringkas")
         .select("jumlah_hadir")
@@ -58,9 +59,15 @@ export default async function DashboardMandor({ searchParams }) {
         .select("id", { count: "exact", head: true })
         .eq("proyek_id", proyek.id)
         .eq("status", "PENDING"),
+      supabase
+        .from("checklist_perbaikan")
+        .select("id", { count: "exact", head: true })
+        .eq("proyek_id", proyek.id)
+        .eq("dibaca_mandor", false),
     ]);
     hadir = ringkas?.jumlah_hadir ?? 0;
     pendingApr = (l || 0) + (k || 0);
+    perbaikanBaru = pb || 0;
   }
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
@@ -68,6 +75,7 @@ export default async function DashboardMandor({ searchParams }) {
     { href: `/mandor/lembur${q}`, label: "Lembur", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600" },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
+    { href: `/mandor/perbaikan${q}`, label: "Checklist Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
   ];
 
   return (
@@ -95,6 +103,25 @@ export default async function DashboardMandor({ searchParams }) {
           {/* Pemilih proyek (dropdown) — tampil bila mandor memegang lebih dari satu */}
           {list.length > 1 && <ProyekSwitcher list={list} current={proyek.id} />}
 
+          {/* Notifikasi checklist perbaikan baru dari Supervisor */}
+          {perbaikanBaru > 0 && (
+            <Link
+              href={`/mandor/perbaikan${q}`}
+              className="mb-5 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 active:bg-rose-100"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                <Icon name="wrench" className="h-4 w-4" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-rose-800">
+                  {perbaikanBaru} checklist perbaikan baru
+                </p>
+                <p className="text-xs text-rose-600">Ketuk untuk lihat detail</p>
+              </div>
+              <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-rose-400" />
+            </Link>
+          )}
+
           <div className="hero mb-5">
             <p className="text-base font-semibold">{proyek.nama}</p>
             <p className="mb-4 flex items-center gap-1 text-xs text-white/70">
@@ -113,8 +140,13 @@ export default async function DashboardMandor({ searchParams }) {
               <Link
                 key={a.href}
                 href={a.href}
-                className="card-tap flex flex-col items-start gap-3 p-4"
+                className="card-tap relative flex flex-col items-start gap-3 p-4"
               >
+                {!!a.badge && (
+                  <span className="absolute right-3 top-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                    {a.badge}
+                  </span>
+                )}
                 <span className={`icon-tile ${a.tile}`}>
                   <Icon name={a.icon} />
                 </span>

@@ -11,7 +11,7 @@ function hitungStreak(checkinSet) {
 
   for (let i = 0; i < 90; i++) {
     const dayOfWeek = d.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
+    if (dayOfWeek === 0) {
       d.setDate(d.getDate() - 1);
       continue;
     }
@@ -131,7 +131,7 @@ export default function CalendarPotongan({
 
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
             const dayOfWeek = (firstDay + d - 1) % 7;
-            const isLibur = dayOfWeek === 0 || dayOfWeek === 6; // Sabtu & Minggu
+            const isLibur = dayOfWeek === 0; // Minggu (supervisor kerja Senin–Sabtu)
             const isPast = dateStr < todayStr;
             const isToday = dateStr === todayStr;
             const isHadir = hadirDates.has(dateStr);
