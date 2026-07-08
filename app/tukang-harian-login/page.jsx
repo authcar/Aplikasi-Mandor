@@ -1,39 +1,19 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function TukangLoginPage() {
   const supabase = createClient();
-  const [digits, setDigits] = useState(["", "", "", "", ""]);
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const inputs = useRef([]);
 
-  const handleChange = (i, val) => {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...digits];
-    next[i] = val;
-    setDigits(next);
-    if (val && i < 4) inputs.current[i + 1]?.focus();
-  };
-
-  const handleKeyDown = (i, e) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) {
-      inputs.current[i - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e) => {
-    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 5);
-    if (paste.length === 5) {
-      setDigits(paste.split(""));
-      inputs.current[4]?.focus();
-    }
+  const handleChange = (e) => {
+    setCode(e.target.value.replace(/\D/g, "").slice(0, 5));
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    const code = digits.join("");
     if (code.length !== 5) return setErr("Masukkan 5 digit nomor HP.");
     setLoading(true);
     setErr("");
@@ -78,21 +58,19 @@ export default function TukangLoginPage() {
       <form onSubmit={onSubmit} className="card space-y-6 p-5">
         <div>
           <label className="label mb-3 block">5 Digit Pertama Nomor HP</label>
-          <div className="flex gap-3 justify-center" onPaste={handlePaste}>
-            {digits.map((d, i) => (
-              <input
-                key={i}
-                ref={(el) => (inputs.current[i] = el)}
-                type="tel"
-                inputMode="numeric"
-                maxLength={1}
-                value={d}
-                onChange={(e) => handleChange(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                className="h-14 w-12 rounded-xl border-2 border-gray-200 text-center text-2xl font-bold focus:border-amber-500 focus:outline-none"
-              />
-            ))}
-          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={5}
+            value={code}
+            onChange={handleChange}
+            placeholder="08123"
+            className="input w-full text-center text-3xl font-bold tracking-[0.3em] focus:border-amber-500"
+          />
           <p className="mt-2 text-center text-xs text-gray-400">
             Contoh: nomor 08123-456-789 → masukkan <strong>08123</strong>
           </p>
@@ -105,7 +83,7 @@ export default function TukangLoginPage() {
         )}
 
         <button
-          disabled={loading || digits.join("").length !== 5}
+          disabled={loading || code.length !== 5}
           className="btn-primary btn-lg w-full disabled:opacity-50"
         >
           {loading ? "Memproses..." : "MASUK"}
