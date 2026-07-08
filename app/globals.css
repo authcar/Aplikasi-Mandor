@@ -6,6 +6,12 @@
 html {
   -webkit-text-size-adjust: 100%;
 }
+
+/* Glow "napas" (in-out) di belakang tombol absen — transform+opacity saja, ringan di HP jadul */
+@keyframes breathe {
+  0%, 100% { transform: scale(0.8); opacity: 0.15; }
+  50% { transform: scale(1.25); opacity: 0.55; }
+}
 body {
   @apply text-gray-900 antialiased;
   background-color: #f1f5f9;

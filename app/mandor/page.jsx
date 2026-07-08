@@ -4,7 +4,6 @@ import { rupiah, tglID } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import ProyekSwitcher from "./ProyekSwitcher";
 import Icon from "@/components/Icon";
-import AbsensiSayaCard from "@/components/AbsensiSayaCard";
 
 export const dynamic = "force-dynamic";
 
@@ -13,29 +12,16 @@ export default async function DashboardMandor({ searchParams }) {
   const { profile, supabase } = await getSessionProfile();
   const today = new Date().toISOString().slice(0, 10);
 
-  // Semua proyek aktif + check-in hari ini diambil sekaligus (paralel).
-  const chatId = String(profile.telegram_chat_id ?? profile.id ?? "");
-  const [{ data: proyekList }, { data: checkinHari }] = await Promise.all([
-    supabase
-      .from("proyek")
-      .select("id, nama, lokasi, nilai_proyek")
-      .eq("mandor_id", profile.id)
-      .eq("is_active", true)
-      .order("nama"),
-    supabase
-      .from("checkin_harian")
-      .select("tanggal, checkout_at")
-      .eq("chat_id", chatId)
-      .eq("tanggal", today)
-      .maybeSingle(),
-  ]);
+  const { data: proyekList } = await supabase
+    .from("proyek")
+    .select("id, nama, lokasi, nilai_proyek")
+    .eq("mandor_id", profile.id)
+    .eq("is_active", true)
+    .order("nama");
 
   const list = proyekList || [];
   // Proyek terpilih: dari ?proyek=, jika tidak valid pakai yang pertama.
   const proyek = list.find((p) => p.id === searchParams?.proyek) || list[0] || null;
-
-  const sudahCheckin = !!checkinHari;
-  const sudahCheckout = !!checkinHari?.checkout_at;
 
   let hadir = 0,
     pendingApr = 0,
@@ -75,8 +61,7 @@ export default async function DashboardMandor({ searchParams }) {
     { href: `/mandor/lembur${q}`, label: "Lembur", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600" },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
-    { href: `/mandor/perbaikan${q}`, label: "Checklist Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
-    { href: `/mandor/gaji${q}`, label: "Dompet Saya", icon: "wallet", tile: "bg-emerald-100 text-emerald-600" },
+    { href: `/mandor/perbaikan${q}`, label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
   ];
 
   return (
@@ -89,8 +74,6 @@ export default async function DashboardMandor({ searchParams }) {
         </div>
         <LogoutButton />
       </header>
-
-      <AbsensiSayaCard chatId={chatId} sudahCheckin={sudahCheckin} sudahCheckout={sudahCheckout} />
 
       {!proyek ? (
         <div className="card flex items-start gap-3 border-amber-200 bg-amber-50 p-4 text-amber-800">

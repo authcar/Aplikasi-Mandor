@@ -1,10 +1,8 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const router = useRouter();
   const supabase = createClient();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +17,9 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return setErr("Nomor HP atau sandi salah.");
-    router.push("/");
+    // Hard navigation (bukan router.push) supaya session baru pasti terbaca,
+    // bukan RSC cache lama dari kunjungan sebelum login.
+    window.location.href = "/";
   };
 
   return (

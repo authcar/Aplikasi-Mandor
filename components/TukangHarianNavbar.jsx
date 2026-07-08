@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   {
-    href: "/mandor",
+    href: "/tukang-harian",
     label: "Home",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
@@ -14,7 +14,7 @@ const TABS = [
     ),
   },
   {
-    href: "/mandor/lembur",
+    href: "/tukang-harian/lembur",
     label: "Lembur",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
@@ -24,7 +24,18 @@ const TABS = [
     ),
   },
   {
-    href: "/mandor/profil",
+    href: "/tukang-harian/gaji",
+    label: "Dompet",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+        <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/tukang-harian/profil",
     label: "Profil",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
@@ -35,17 +46,17 @@ const TABS = [
   },
 ];
 
-export default function MandorNavbar() {
+export default function TukangHarianNavbar() {
   const pathname = usePathname();
 
   const isActive = (href) => {
-    if (href === "/mandor") return pathname === "/mandor";
+    if (href === "/tukang-harian") return pathname === "/tukang-harian";
     return pathname.startsWith(href);
   };
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md border-t border-gray-200 bg-white/95 backdrop-blur">
-      <div className="grid grid-cols-3">
+      <div className="grid grid-cols-4">
         {TABS.map((tab) => {
           const active = isActive(tab.href);
           return (

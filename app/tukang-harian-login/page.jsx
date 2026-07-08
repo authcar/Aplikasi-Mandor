@@ -1,10 +1,8 @@
 "use client";
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function TukangLoginPage() {
-  const router = useRouter();
   const supabase = createClient();
   const [digits, setDigits] = useState(["", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -60,7 +58,9 @@ export default function TukangLoginPage() {
 
     setLoading(false);
     if (error) return setErr("Gagal masuk. Coba lagi.");
-    router.push("/");
+    // Hard navigation (bukan router.push) supaya session baru pasti terbaca,
+    // bukan RSC cache lama dari kunjungan sebelum login.
+    window.location.href = "/";
   };
 
   return (
