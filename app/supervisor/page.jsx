@@ -3,7 +3,6 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
 import StreakWidget from "@/components/StreakWidget";
-import LaporanToast from "@/components/LaporanToast";
 
 export const dynamic = "force-dynamic";
 
@@ -41,9 +40,7 @@ export default async function DashboardSupervisor() {
   const isWeekend = today.getDay() === 0; // Minggu = libur, supervisor kerja Senin–Sabtu
 
   return (
-    <main className="flex h-dvh flex-col overflow-hidden p-4 gap-3">
-      <LaporanToast show={!sudahLaporan && !isWeekend} />
-
+    <main className="flex min-h-dvh flex-col p-4 gap-3">
       {/* Header */}
       <header className="flex shrink-0 items-center justify-between">
         <div>
@@ -53,21 +50,23 @@ export default async function DashboardSupervisor() {
       </header>
 
       {/* Notifikasi laporan harian */}
-      {!sudahLaporan && !isWeekend && (
+      {!isWeekend && (
         <a
           href="https://t.me/TaracoBot"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 active:bg-amber-100"
+          className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 ${
+            sudahLaporan
+              ? "border-emerald-200 bg-emerald-50 active:bg-emerald-100"
+              : "border-amber-200 bg-amber-50 active:bg-amber-100"
+          }`}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-lg">📋</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-amber-800">Laporan harian belum dibuat</p>
-            <p className="text-xs text-amber-600">Ketuk untuk buka Telegram</p>
-          </div>
-          <svg className="h-4 w-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h10v10M7 17 17 7" />
-          </svg>
+          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm ${sudahLaporan ? "bg-emerald-100" : "bg-amber-100"}`}>
+            {sudahLaporan ? "✅" : "📋"}
+          </span>
+          <p className={`flex-1 min-w-0 text-xs font-bold ${sudahLaporan ? "text-emerald-700" : "text-amber-800"}`}>
+            {sudahLaporan ? "Laporan hari ini sudah dikirim" : "Laporan harian belum dibuat — ketuk untuk buka Telegram"}
+          </p>
         </a>
       )}
 
@@ -83,52 +82,54 @@ export default async function DashboardSupervisor() {
         <Icon name="chevron-right" className="h-5 w-5 text-white/70" />
       </Link>
 
-      {/* Buat laporan + grid stats */}
-      <div className="shrink-0 grid grid-cols-2 gap-2">
-        <a
-          href="https://t.me/TaracoBot"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="card-tap col-span-1 flex flex-col items-center justify-center gap-1 p-3"
-        >
-          <span className="icon-tile bg-sky-100 text-sky-600 !w-8 !h-8">
-            <Icon name="clipboard" />
-          </span>
-          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Laporan Harian</p>
-          <Icon name="arrow-up-right" className="h-3 w-3 text-gray-300" />
-        </a>
+      {/* Aksi Cepat */}
+      <div className="shrink-0">
+        <div className="grid grid-cols-4 gap-y-3">
+          <a href="https://t.me/TaracoBot" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 active:opacity-70">
+            <span className="icon-tile !rounded-full bg-sky-100 text-sky-600">
+              <Icon name="clipboard" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Laporan Harian</p>
+          </a>
 
-        <Link href="/supervisor/absensi" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
-          <span className="icon-tile bg-green-100 text-green-600 !w-8 !h-8">
-            <Icon name="users" />
-          </span>
-          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Absensi Tukang</p>
-          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
-        </Link>
+          <Link href="/supervisor/absensi" className="flex flex-col items-center gap-1 active:opacity-70">
+            <span className="icon-tile !rounded-full bg-green-100 text-green-600">
+              <Icon name="users" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Absensi Tukang</p>
+          </Link>
 
-        <Link href="/supervisor/masalah" className="card-tap flex flex-col items-center justify-center gap-0.5 p-3">
-          <span className="icon-tile bg-red-100 text-red-600 !w-8 !h-8">
-            <Icon name="alert-triangle" />
-          </span>
-          <p className="text-[11px] font-semibold text-gray-600">Kurang Material</p>
-          <p className="text-xl font-bold text-red-500 leading-tight">{masalahAktif}</p>
-        </Link>
+          <Link href="/supervisor/masalah" className="relative flex flex-col items-center gap-1 active:opacity-70">
+            <span className="icon-tile !rounded-full bg-red-100 text-red-600">
+              <Icon name="alert-triangle" />
+            </span>
+            {masalahAktif > 0 && (
+              <span className="absolute right-2 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                {masalahAktif}
+              </span>
+            )}
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Kurang Material</p>
+          </Link>
 
-        <Link href="/supervisor/gaji" className="card-tap flex flex-col items-center justify-center gap-0.5 p-3">
-          <span className="icon-tile bg-emerald-100 text-emerald-600 !w-8 !h-8">
-            <Icon name="wallet" />
-          </span>
-          <p className="text-[11px] font-semibold text-gray-600">Rekap Gaji</p>
-          <p className="text-[11px] font-medium text-brand">Lihat ›</p>
-        </Link>
+          <Link href="/supervisor/gaji" className="flex flex-col items-center gap-1 active:opacity-70">
+            <span className="icon-tile !rounded-full bg-emerald-100 text-emerald-600">
+              <Icon name="wallet" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Rekap Gaji</p>
+          </Link>
 
-        <Link href="/supervisor/perbaikan" className="card-tap col-span-2 flex flex-col items-center justify-center gap-0.5 p-3">
-          <span className="icon-tile bg-indigo-100 text-indigo-600 !w-8 !h-8">
-            <Icon name="wrench" />
-          </span>
-          <p className="text-[11px] font-semibold text-gray-600">Checklist Perbaikan</p>
-          <p className="text-xl font-bold text-indigo-500 leading-tight">{perbaikanAktif}</p>
-        </Link>
+          <Link href="/supervisor/perbaikan" className="relative flex flex-col items-center gap-1 active:opacity-70">
+            <span className="icon-tile !rounded-full bg-indigo-100 text-indigo-600">
+              <Icon name="wrench" />
+            </span>
+            {perbaikanAktif > 0 && (
+              <span className="absolute right-2 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                {perbaikanAktif}
+              </span>
+            )}
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Checklist Perbaikan</p>
+          </Link>
+        </div>
       </div>
 
       {/* Streak widget */}
@@ -136,12 +137,9 @@ export default async function DashboardSupervisor() {
         <StreakWidget potongan={potongan || []} checkin={checkin || []} />
       </div>
 
-      {/* Proyek — scroll bersama */}
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-
-      {/* Proyek — card dengan scroll internal, flex-1 sisa ruang */}
-      <div className="card flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-2.5">
+      {/* Proyek */}
+      <div className="card flex flex-col">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
           <h2 className="font-bold text-gray-700 text-sm">Proyek Saya ({proyek?.length || 0})</h2>
           <Link
             href="/supervisor/proyek/baru"
@@ -150,7 +148,7 @@ export default async function DashboardSupervisor() {
             + Proyek Baru
           </Link>
         </div>
-        <div className="divide-y divide-gray-100 overflow-y-auto">
+        <div className="divide-y divide-gray-100">
           {(proyek || []).map((p) => (
             <Link
               key={p.id}
@@ -174,8 +172,6 @@ export default async function DashboardSupervisor() {
           )}
         </div>
       </div>
-      </div>
-
     </main>
   );
 }

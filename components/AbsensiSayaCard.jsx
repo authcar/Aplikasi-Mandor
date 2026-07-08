@@ -107,7 +107,7 @@ export default function AbsensiSayaCard({ chatId, sudahCheckin, sudahCheckout })
   const handleTap = mode === "idle" ? handleMasuk : mode === "masuk" ? handlePulang : undefined;
 
   return (
-    <div className="card px-4 py-3 mb-4 flex items-center gap-4">
+    <div className="card px-4 py-3 mb-3 flex items-center gap-4">
       {/* Tombol */}
       <div className="relative flex items-center justify-center shrink-0">
         <span className={`absolute w-14 h-14 rounded-full transition-all duration-500 ${
