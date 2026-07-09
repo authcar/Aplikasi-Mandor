@@ -1,4 +1,5 @@
 import { getSessionProfile } from "@/lib/supabase/server";
+import { groupAbsensiTimPerHari } from "@/lib/format";
 import AbsensiTimForm from "./AbsensiTimForm";
 
 export const dynamic = "force-dynamic";
@@ -6,8 +7,11 @@ export const dynamic = "force-dynamic";
 export default async function AbsensiTukangPage() {
   const { supabase } = await getSessionProfile();
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const mulaiRiwayat = new Date();
+  mulaiRiwayat.setDate(mulaiRiwayat.getDate() - 30);
+  const iso30HariLalu = mulaiRiwayat.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-  const [{ data: rows }, { data: fotoRows }] = await Promise.all([
+  const [{ data: rows }, { data: fotoRows }, { data: riwayatRows }] = await Promise.all([
     supabase
       .from("absensi_tim")
       .select("tim, jumlah, kegiatan, urutan")
@@ -18,7 +22,16 @@ export default async function AbsensiTukangPage() {
       .select("id, foto_url")
       .eq("tanggal", today)
       .order("created_at"),
+    supabase
+      .from("absensi_tim")
+      .select("tanggal, tim, jumlah, kegiatan, urutan")
+      .gte("tanggal", iso30HariLalu)
+      .lt("tanggal", today)
+      .order("tanggal", { ascending: false })
+      .order("urutan"),
   ]);
+
+  const riwayat = groupAbsensiTimPerHari(riwayatRows);
 
   // Kelompokkan baris ke struktur per tim (urutan dipertahankan)
   const tims = [];
@@ -43,5 +56,12 @@ export default async function AbsensiTukangPage() {
       .filter((f) => f.url);
   }
 
-  return <AbsensiTimForm initialTims={tims} initialFotos={fotos} today={today} />;
+  return (
+    <AbsensiTimForm
+      initialTims={tims}
+      initialFotos={fotos}
+      today={today}
+      riwayat={riwayat}
+    />
+  );
 }

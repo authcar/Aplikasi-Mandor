@@ -5,11 +5,12 @@ import { createClient } from "@/lib/supabase/client";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
+import RiwayatLaporanCard from "@/components/RiwayatLaporanCard";
 
 // Editor absensi harian per tim.
 // Tiap baris punya counter jumlah orang (boleh dikosongkan untuk baris
 // bernama, mis. "Depi ke TA apartment...") + keterangan kegiatan.
-export default function AbsensiTimForm({ initialTims = [], initialFotos = [], today }) {
+export default function AbsensiTimForm({ initialTims = [], initialFotos = [], today, riwayat = [] }) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -356,6 +357,8 @@ export default function AbsensiTimForm({ initialTims = [], initialFotos = [], to
       <div className="card p-4">
         <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">{teksLaporan()}</pre>
       </div>
+
+      <RiwayatLaporanCard riwayat={riwayat} />
 
       {/* Aksi */}
       <div className="fixed inset-x-0 bottom-14 z-40 mx-auto flex max-w-md gap-2 border-t border-gray-200 bg-white/95 p-3 backdrop-blur">

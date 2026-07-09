@@ -19,7 +19,6 @@ export default function ProyekForm({ mandors }) {
   const [lokasi, setLokasi] = useState("");
   const [mandorId, setMandorId] = useState("");
   const [icon, setIcon] = useState("building");
-  const [nilaiProyek, setNilaiProyek] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -34,7 +33,6 @@ export default function ProyekForm({ mandors }) {
       icon,
       supervisor_id: uid,
       mandor_id: mandorId || null,
-      nilai_proyek: nilaiProyek ? Number(nilaiProyek) : null,
     });
     setBusy(false);
     if (error) return setErr("Gagal menyimpan: " + error.message);
@@ -88,16 +86,6 @@ export default function ProyekForm({ mandors }) {
             value={lokasi}
             onChange={(e) => setLokasi(e.target.value)}
             placeholder="Blok C, Bekasi"
-            className="input text-lg"
-          />
-        </div>
-        <div>
-          <label className="label">Nilai Jasa Tukang (opsional)</label>
-          <input
-            inputMode="numeric"
-            value={nilaiProyek}
-            onChange={(e) => setNilaiProyek(e.target.value.replace(/\D/g, ""))}
-            placeholder="Contoh: 500000000"
             className="input text-lg"
           />
         </div>
