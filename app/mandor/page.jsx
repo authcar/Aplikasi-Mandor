@@ -12,6 +12,11 @@ export default async function DashboardMandor({ searchParams }) {
   const { profile, supabase } = await getSessionProfile();
   const today = new Date().toISOString().slice(0, 10);
 
+  const jam = Number(
+    new Intl.DateTimeFormat("id-ID", { hour: "numeric", hour12: false, timeZone: "Asia/Jakarta" }).format(new Date())
+  );
+  const sapa = jam < 11 ? "Selamat Pagi" : jam < 15 ? "Selamat Siang" : jam < 19 ? "Selamat Sore" : "Selamat Malam";
+
   const { data: proyekList } = await supabase
     .from("proyek")
     .select("id, nama, lokasi, nilai_proyek")
@@ -58,6 +63,7 @@ export default async function DashboardMandor({ searchParams }) {
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
   const actions = [
+    { href: `/mandor/absensi${q}`, label: "Absensi", icon: "users", tile: "bg-green-100 text-green-600" },
     { href: `/mandor/lembur${q}`, label: "Lembur", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600" },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
@@ -66,11 +72,16 @@ export default async function DashboardMandor({ searchParams }) {
 
   return (
     <main className="p-4 pb-8">
-      <header className="mb-3 flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">Halo Mandor,</p>
-          <h1 className="text-xl font-bold tracking-tight">{profile.name}</h1>
-          <p className="mt-0.5 text-sm capitalize text-gray-400">{tglID(today)}</p>
+      <header className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-lg font-bold text-white">
+            {profile.name?.[0]?.toUpperCase() ?? "M"}
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-brand">{sapa}</p>
+            <h1 className="truncate text-lg font-bold tracking-tight">{profile.name}</h1>
+            <p className="text-xs capitalize text-gray-400">{tglID(today)}</p>
+          </div>
         </div>
         <LogoutButton />
       </header>
@@ -102,22 +113,28 @@ export default async function DashboardMandor({ searchParams }) {
             </Link>
           )}
 
-          <div className="hero mb-3 p-4">
-            <p className="text-base font-semibold">{proyek.nama}</p>
-            <p className="mb-3 flex items-center gap-1 text-xs text-white/70">
-              <Icon name="map-pin" className="h-3.5 w-3.5" />
-              {proyek.lokasi}
-            </p>
+          <div className="hero mb-4 p-4">
+            <div className="mb-3 flex items-center gap-2.5">
+              <span className="icon-tile !h-9 !w-9 bg-white/15 text-white">
+                <Icon name="building" className="h-4.5 w-4.5" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-base font-semibold leading-tight">{proyek.nama}</p>
+                <p className="flex items-center gap-1 text-xs text-white/70">
+                  <Icon name="map-pin" className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{proyek.lokasi}</span>
+                </p>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-2.5">
               <Stat big={`${hadir} org`} label="Hadir hari ini" />
               <Stat big={proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"} label="Nilai Jasa Tukang" />
             </div>
           </div>
 
-          {/* Aksi Cepat */}
-          <div className="grid grid-cols-4 gap-y-3">
+          <div className="grid grid-cols-4 gap-y-4">
             {actions.map((a) => (
-              <Link key={a.href} href={a.href} className="relative flex flex-col items-center gap-1 active:opacity-70">
+              <Link key={a.href} href={a.href} className="relative flex flex-col items-center gap-1.5 active:opacity-70">
                 <span className={`icon-tile !rounded-full ${a.tile}`}>
                   <Icon name={a.icon} />
                 </span>
@@ -134,9 +151,14 @@ export default async function DashboardMandor({ searchParams }) {
           </div>
 
           {pendingApr > 0 && (
-            <p className="mt-4 text-center text-sm text-gray-500">
-              {pendingApr} pengajuan menunggu persetujuan Supervisor
-            </p>
+            <div className="mt-5 flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-card">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand">
+                <Icon name="clock" className="h-3.5 w-3.5" />
+              </span>
+              <p className="text-xs font-semibold text-gray-600">
+                {pendingApr} pengajuan menunggu persetujuan Supervisor
+              </p>
+            </div>
           )}
         </>
       )}

@@ -61,6 +61,12 @@ export default async function DashboardTukangHarian() {
   const q = proyek ? `?proyek=${proyek.id}` : "";
   const actions = [
     {
+      href: `/tukang-harian/absensi${q}`,
+      label: "Absensi",
+      icon: "users",
+      tile: "bg-green-100 text-green-600",
+    },
+    {
       href: `/tukang-harian/lembur${q}`,
       label: "Lembur",
       icon: "clock",

@@ -93,13 +93,18 @@ export default function AbsensiSayaCard({ chatId, sudahCheckin, sudahCheckout, c
     cekLokasi(async () => {
       const now = new Date();
       const today = now.toISOString().slice(0, 10);
-      await supabase.from("checkin_harian").upsert(
+      const { error } = await supabase.from("checkin_harian").upsert(
         { chat_id: chatId, tanggal: today, checkin_at: now.toISOString(), checkout_at: null },
         { onConflict: "chat_id,tanggal" }
       );
+      setLoading(false);
+      if (error) {
+        setPesan("Gagal menyimpan absen: " + error.message);
+        setTimeout(() => setPesan(""), 4000);
+        return;
+      }
       setMode("masuk");
       setCheckinAt(now.toISOString());
-      setLoading(false);
       const late = jamSekarang > JAM_MASUK + TOLERANSI_TELAT_JAM;
       setFeedback({ late, jam: formatJam(now.toISOString()) });
       setTimeout(() => setFeedback(null), 2500);
@@ -115,15 +120,20 @@ export default function AbsensiSayaCard({ chatId, sudahCheckin, sudahCheckout, c
     cekLokasi(async () => {
       const now = new Date();
       const today = now.toISOString().slice(0, 10);
-      await supabase
+      const { error } = await supabase
         .from("checkin_harian")
         .update({ checkout_at: now.toISOString() })
         .eq("chat_id", chatId)
         .eq("tanggal", today);
+      setLoading(false);
+      if (error) {
+        setPesan("Gagal menyimpan absen: " + error.message);
+        setTimeout(() => setPesan(""), 4000);
+        return;
+      }
       setMode("pulang");
       setCheckoutAt(now.toISOString());
       setPesan("Absen pulang tercatat ✓");
-      setLoading(false);
     });
   };
 

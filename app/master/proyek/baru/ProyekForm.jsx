@@ -12,11 +12,12 @@ const ICON_OPTIONS = [
   { key: "utensils", label: "Restoran" },
 ];
 
-export default function ProyekForm({ mandors }) {
+export default function ProyekForm({ mandors, supervisors = [] }) {
   const router = useRouter();
   const supabase = createClient();
   const [nama, setNama] = useState("");
   const [lokasi, setLokasi] = useState("");
+  const [supervisorId, setSupervisorId] = useState("");
   const [mandorId, setMandorId] = useState("");
   const [icon, setIcon] = useState("building");
   const [nilaiProyek, setNilaiProyek] = useState("");
@@ -25,14 +26,14 @@ export default function ProyekForm({ mandors }) {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!supervisorId) return setErr("Pilih Supervisor penanggung jawab proyek.");
     setBusy(true);
     setErr("");
-    const uid = (await supabase.auth.getUser()).data.user.id;
     const { error } = await supabase.from("proyek").insert({
       nama,
       lokasi,
       icon,
-      supervisor_id: uid,
+      supervisor_id: supervisorId,
       mandor_id: mandorId || null,
       nilai_proyek: nilaiProyek ? Number(nilaiProyek) : null,
     });
@@ -89,6 +90,20 @@ export default function ProyekForm({ mandors }) {
             placeholder="Blok C, Bekasi"
             className="input text-lg"
           />
+        </div>
+        <div>
+          <label className="label">Supervisor Penanggung Jawab</label>
+          <select
+            value={supervisorId}
+            onChange={(e) => setSupervisorId(e.target.value)}
+            className="input text-lg"
+            required
+          >
+            <option value="">— Pilih Supervisor —</option>
+            {supervisors.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="label">Nilai Jasa Tukang (opsional)</label>

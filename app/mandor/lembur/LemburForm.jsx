@@ -61,7 +61,7 @@ export default function LemburForm({ proyek, riwayat = [] }) {
     }
 
     // jam = hari × orang, tarif_per_jam = 80000 → total = jam × tarif = hari × orang × 80000
-    await supabase.from("lembur").insert({
+    const { error } = await supabase.from("lembur").insert({
       proyek_id: proyek.id,
       tanggal,
       jam: Number(hari) * Number(orang),
@@ -71,6 +71,10 @@ export default function LemburForm({ proyek, riwayat = [] }) {
       created_by: uid,
     });
     setBusy(false);
+    if (error) {
+      alert("Gagal mengirim pengajuan lembur: " + error.message);
+      return;
+    }
     router.push(`/mandor?proyek=${proyek.id}`);
   };
 

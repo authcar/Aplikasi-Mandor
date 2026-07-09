@@ -3,12 +3,12 @@ import { getSessionProfile } from "@/lib/supabase/server";
 
 // POST /api/approval
 // body: { tipe: 'lembur'|'keuangan', id: uuid, aksi: 'APPROVED'|'REJECTED' }
-// Hanya SUPERVISOR. RLS di DB jadi lapis pertahanan kedua.
+// SUPERVISOR & MASTER. RLS di DB jadi lapis pertahanan kedua.
 export async function POST(req) {
   const { profile, supabase } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (profile.role !== "SUPERVISOR")
-    return NextResponse.json({ error: "Hanya Supervisor" }, { status: 403 });
+  if (!["SUPERVISOR", "MASTER"].includes(profile.role))
+    return NextResponse.json({ error: "Hanya Supervisor/Master" }, { status: 403 });
 
   const { tipe, id, aksi } = await req.json();
   if (!["lembur", "keuangan"].includes(tipe) || !id)
