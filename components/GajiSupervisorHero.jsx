@@ -3,7 +3,7 @@ import { useState } from "react";
 import { rupiah } from "@/lib/format";
 import Icon from "@/components/Icon";
 
-export default function GajiSupervisorHero({ gajiPokok = 0, potongan = [], label = "Gaji Supervisor" }) {
+export default function GajiSupervisorHero({ gajiPokok = 0, potongan = [], kasbon = 0, label = "Gaji Supervisor" }) {
   const [visible, setVisible] = useState(false);
 
   const bulanIni = new Date().toLocaleDateString("id-ID", {
@@ -13,7 +13,7 @@ export default function GajiSupervisorHero({ gajiPokok = 0, potongan = [], label
 
   const totalPersen = potongan.reduce((s, r) => s + Number(r.persentase), 0);
   const nominalPotongan = gajiPokok * (totalPersen / 100);
-  const gajiBersih = gajiPokok - nominalPotongan;
+  const gajiBersih = gajiPokok - nominalPotongan - kasbon;
 
   return (
     <div className="hero mb-5">
@@ -33,19 +33,27 @@ export default function GajiSupervisorHero({ gajiPokok = 0, potongan = [], label
           <p className="text-3xl font-bold tracking-tight">
             {rupiah(gajiBersih)}
           </p>
-          {totalPersen > 0 && (
+          {(totalPersen > 0 || kasbon > 0) && (
             <div className="mt-2 space-y-0.5 text-sm text-white/70">
               <div className="flex justify-between">
                 <span>Gaji pokok</span>
                 <span>{rupiah(gajiPokok)}</span>
               </div>
-              <div className="flex justify-between text-red-200">
-                <span>Potongan absensi ({totalPersen}%)</span>
-                <span>−{rupiah(nominalPotongan)}</span>
-              </div>
+              {totalPersen > 0 && (
+                <div className="flex justify-between text-red-200">
+                  <span>Potongan absensi ({totalPersen}%)</span>
+                  <span>−{rupiah(nominalPotongan)}</span>
+                </div>
+              )}
+              {kasbon > 0 && (
+                <div className="flex justify-between text-red-200">
+                  <span>Kasbon bulan ini</span>
+                  <span>−{rupiah(kasbon)}</span>
+                </div>
+              )}
             </div>
           )}
-          {totalPersen === 0 && (
+          {totalPersen === 0 && kasbon === 0 && (
             <p className="text-sm text-white/70 mt-1">Tidak ada potongan bulan ini ✓</p>
           )}
         </>

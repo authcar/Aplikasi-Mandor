@@ -9,11 +9,11 @@ export default async function MandorSupervisorPage() {
 
   const { data: rows } = await supabase
     .from("profiles")
-    .select("id, name, phone")
+    .select("id, name, phone, email")
     .eq("role", "MANDOR")
     .order("name");
 
-  const mandors = (rows || []).map((r) => ({ id: r.id, name: r.name, phone: r.phone }));
+  const mandors = (rows || []).map((r) => ({ id: r.id, name: r.name, phone: r.phone, email: r.email }));
 
   return (
     <main className="p-4 pb-8">

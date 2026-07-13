@@ -10,14 +10,14 @@ import RiwayatLaporanCard from "@/components/RiwayatLaporanCard";
 // Editor absensi harian per tim.
 // Tiap baris punya counter jumlah orang (boleh dikosongkan untuk baris
 // bernama, mis. "Depi ke TA apartment...") + keterangan kegiatan.
-export default function AbsensiTimForm({ initialTims = [], initialFotos = [], today, riwayat = [] }) {
+export default function AbsensiTimForm({ initialTims = [], initialFotos = [], today, riwayat = [], proyekList = [] }) {
   const router = useRouter();
   const supabase = createClient();
 
   const [tims, setTims] = useState(
     initialTims.length
       ? initialTims
-      : [{ nama: "", lines: [{ jumlah: "", kegiatan: "" }] }]
+      : [{ nama: "", proyekId: "", lines: [{ jumlah: "", kegiatan: "" }] }]
   );
   const [fotos, setFotos] = useState(initialFotos);
   const [kameraOpen, setKameraOpen] = useState(false);
@@ -105,7 +105,7 @@ export default function AbsensiTimForm({ initialTims = [], initialFotos = [], to
     );
 
   const tambahTim = () =>
-    setTims((ts) => [...ts, { nama: "", lines: [{ jumlah: "", kegiatan: "" }] }]);
+    setTims((ts) => [...ts, { nama: "", proyekId: "", lines: [{ jumlah: "", kegiatan: "" }] }]);
   const hapusTim = (i) => setTims((ts) => ts.filter((_, x) => x !== i));
   const tambahLine = (i) =>
     setTims((ts) =>
@@ -132,7 +132,8 @@ export default function AbsensiTimForm({ initialTims = [], initialFotos = [], to
       if (!t.nama.trim()) continue;
       const lines = t.lines.filter((l) => l.kegiatan.trim());
       if (!lines.length) continue;
-      out += `\n${t.nama.trim()}\n`;
+      const proyekNama = proyekList.find((p) => p.id === t.proyekId)?.nama;
+      out += `\n${t.nama.trim()}${proyekNama ? ` — ${proyekNama}` : ""}\n`;
       for (const l of lines) out += `${barisTeks(l)}\n`;
     }
     return out.trimEnd();
@@ -166,6 +167,7 @@ export default function AbsensiTimForm({ initialTims = [], initialFotos = [], to
         rows.push({
           tanggal: today,
           tim: t.nama.trim(),
+          proyek_id: t.proyekId || null,
           jumlah: Number(l.jumlah) > 0 ? Number(l.jumlah) : null,
           kegiatan: l.kegiatan.trim(),
           urutan: ti * 100 + li,
@@ -234,6 +236,17 @@ export default function AbsensiTimForm({ initialTims = [], initialFotos = [], to
                 </button>
               )}
             </div>
+
+            <select
+              value={t.proyekId || ""}
+              onChange={(e) => setTim(i, { proyekId: e.target.value })}
+              className="input mb-3 !py-2 text-sm text-gray-600"
+            >
+              <option value="">— Proyek —</option>
+              {proyekList.map((p) => (
+                <option key={p.id} value={p.id}>{p.nama}</option>
+              ))}
+            </select>
 
             <div className="space-y-2">
               {t.lines.map((l, j) => (
@@ -306,51 +319,6 @@ export default function AbsensiTimForm({ initialTims = [], initialFotos = [], to
         + Tambah Tim
       </button>
 
-      {/* Dokumentasi */}
-      <h2 className="mt-6 mb-2 font-bold text-gray-700">Dokumentasi</h2>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setKameraOpen(true)}
-          disabled={uploadBusy}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50 disabled:opacity-50"
-        >
-          <Icon name="camera" className="h-5 w-5 text-gray-400" />
-          Kamera
-        </button>
-        <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50">
-          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3 21h18M6.75 6.75h.008v.008H6.75V6.75z" />
-          </svg>
-          Galeri
-          <input type="file" accept="image/*" className="hidden" onChange={pilihDariGaleri} />
-        </label>
-      </div>
-      {uploadBusy && (
-        <p className="mt-2 text-xs text-gray-400">Mengunggah foto...</p>
-      )}
-      {fotos.length > 0 && (
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          {fotos.map((f) => (
-            <div key={f.id} className="relative">
-              <img
-                src={f.url}
-                alt="dokumentasi absensi"
-                className="aspect-square w-full rounded-xl border border-gray-200 object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => hapusFoto(f)}
-                className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Preview format laporan */}
       <h2 className="mt-6 mb-2 font-bold text-gray-700">Preview Laporan</h2>

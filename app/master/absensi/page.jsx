@@ -16,7 +16,7 @@ export default async function AbsensiMasterPage() {
   const [{ data: rows }, { data: fotoRows }, { data: riwayatRows }] = await Promise.all([
     supabase
       .from("absensi_tim")
-      .select("tim, jumlah, kegiatan, urutan")
+      .select("tim, jumlah, kegiatan, urutan, proyek:proyek_id(nama)")
       .eq("tanggal", today)
       .order("urutan"),
     supabase
@@ -40,7 +40,7 @@ export default async function AbsensiMasterPage() {
   for (const r of rows || []) {
     const last = tims[tims.length - 1];
     if (last && last.tim === r.tim) last.lines.push(r);
-    else tims.push({ tim: r.tim, lines: [r] });
+    else tims.push({ tim: r.tim, proyekNama: r.proyek?.nama, lines: [r] });
   }
 
   // Baris bernama (jumlah null) dihitung 1 orang
@@ -102,8 +102,15 @@ export default async function AbsensiMasterPage() {
             return (
               <div key={t.tim} className="card overflow-hidden">
                 <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
-                  <h2 className="font-bold text-gray-700 text-sm">{t.tim}</h2>
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <h2 className="font-bold text-gray-700 text-sm truncate">{t.tim}</h2>
+                    {t.proyekNama && (
+                      <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-600">
+                        {t.proyekNama}
+                      </span>
+                    )}
+                  </div>
+                  <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
                     {orangTim} orang
                   </span>
                 </div>

@@ -16,6 +16,15 @@ export async function POST(req) {
   if (!["APPROVED", "REJECTED"].includes(aksi))
     return NextResponse.json({ error: "Aksi salah" }, { status: 400 });
 
+  // Kasbon (diajukan Supervisor sendiri) cuma boleh disetujui Master —
+  // biar Supervisor tidak menyetujui pengajuan kasbon miliknya sendiri,
+  // walau RLS keuangan_review teknisnya mengizinkan (dia pemilik proyek).
+  if (tipe === "keuangan") {
+    const { data: row } = await supabase.from("keuangan").select("jenis").eq("id", id).maybeSingle();
+    if (row?.jenis === "KASBON" && profile.role !== "MASTER")
+      return NextResponse.json({ error: "Kasbon hanya bisa disetujui Master." }, { status: 403 });
+  }
+
   const { data, error } = await supabase
     .from(tipe)
     .update({

@@ -11,10 +11,10 @@ export default async function AbsensiTukangPage() {
   mulaiRiwayat.setDate(mulaiRiwayat.getDate() - 30);
   const iso30HariLalu = mulaiRiwayat.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-  const [{ data: rows }, { data: fotoRows }, { data: riwayatRows }] = await Promise.all([
+  const [{ data: rows }, { data: fotoRows }, { data: riwayatRows }, { data: proyekList }] = await Promise.all([
     supabase
       .from("absensi_tim")
-      .select("tim, jumlah, kegiatan, urutan")
+      .select("tim, jumlah, kegiatan, urutan, proyek_id")
       .eq("tanggal", today)
       .order("urutan"),
     supabase
@@ -29,6 +29,7 @@ export default async function AbsensiTukangPage() {
       .lt("tanggal", today)
       .order("tanggal", { ascending: false })
       .order("urutan"),
+    supabase.from("proyek").select("id, nama").eq("is_active", true).order("nama"),
   ]);
 
   const riwayat = groupAbsensiTimPerHari(riwayatRows);
@@ -39,7 +40,7 @@ export default async function AbsensiTukangPage() {
     const last = tims[tims.length - 1];
     const line = { jumlah: r.jumlah != null ? String(r.jumlah) : "", kegiatan: r.kegiatan };
     if (last && last.nama === r.tim) last.lines.push(line);
-    else tims.push({ nama: r.tim, lines: [line] });
+    else tims.push({ nama: r.tim, proyekId: r.proyek_id || "", lines: [line] });
   }
 
   // Signed URL untuk dokumentasi yang sudah ter-upload
@@ -62,6 +63,7 @@ export default async function AbsensiTukangPage() {
       initialFotos={fotos}
       today={today}
       riwayat={riwayat}
+      proyekList={proyekList || []}
     />
   );
 }

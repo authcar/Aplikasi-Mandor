@@ -13,6 +13,7 @@ export default function MandorManager({ initialMandors }) {
   const [err, setErr] = useState("");
   const [justCreated, setJustCreated] = useState(null); // { name, email, password }
   const [revealed, setRevealed] = useState(() => new Set());
+  const [salinId, setSalinId] = useState(null);
 
   const toggleReveal = (id) => {
     setRevealed((prev) => {
@@ -21,6 +22,13 @@ export default function MandorManager({ initialMandors }) {
       else next.add(id);
       return next;
     });
+  };
+
+  const salinSandi = async (id, password) => {
+    if (!password) return;
+    await navigator.clipboard.writeText(password);
+    setSalinId(id);
+    setTimeout(() => setSalinId((cur) => (cur === id ? null : cur)), 2000);
   };
 
   const submit = async (e) => {
@@ -72,6 +80,13 @@ export default function MandorManager({ initialMandors }) {
           <p className="mb-2 text-center text-3xl font-bold tracking-[0.15em] text-brand-800">
             {justCreated.password}
           </p>
+          <button
+            onClick={() => salinSandi("baru", justCreated.password)}
+            className="mx-auto mb-3 flex w-fit items-center gap-1.5 rounded-full border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 active:bg-brand-100"
+          >
+            <Icon name="copy" className="h-3.5 w-3.5" />
+            {salinId === "baru" ? "Tersalin ✓" : "Salin Sandi"}
+          </button>
           <p className="mb-3 text-center text-xs text-brand-700">
             Sampaikan email &amp; password ini ke {justCreated.name}. Bisa dilihat lagi kapan pun
             lewat daftar di bawah (ikon mata).
@@ -163,11 +178,21 @@ export default function MandorManager({ initialMandors }) {
               </div>
               <button
                 onClick={() => toggleReveal(m.id)}
+                title={!m.password ? "Sandi lama tidak tersimpan — klik Reset untuk sandi baru" : ""}
                 className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 active:bg-gray-100"
               >
                 <Icon name={isRevealed ? "eye-off" : "eye"} className="h-3.5 w-3.5" />
-                {isRevealed ? (m.password || "—") : "Sandi"}
+                {isRevealed ? (m.password || "Reset dulu") : "Sandi"}
               </button>
+              {isRevealed && m.password && (
+                <button
+                  onClick={() => salinSandi(m.id, m.password)}
+                  className="shrink-0 rounded-full border border-gray-200 bg-white p-1.5 text-gray-600 active:bg-gray-100"
+                  title="Salin sandi"
+                >
+                  <Icon name={salinId === m.id ? "check" : "copy"} className="h-3.5 w-3.5" />
+                </button>
+              )}
               <button
                 onClick={() => resetPassword(m)}
                 className="shrink-0 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 active:bg-gray-100"

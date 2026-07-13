@@ -14,7 +14,6 @@ export default async function PersetujuanMasterPage() {
     supabase
       .from("keuangan")
       .select("id, jenis, nominal, keterangan, nota_url, status, created_at, proyek(nama), creator:created_by(name)")
-      .neq("jenis", "KASBON")
       .order("created_at", { ascending: false }),
   ]);
 

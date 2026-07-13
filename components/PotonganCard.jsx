@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { rupiah } from "@/lib/format";
 
-export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
+export default function PotonganCard({ rows = [], gajiPokok = 0, kasbon = 0 }) {
   const bulanIni = new Date().toLocaleDateString("id-ID", {
     month: "long",
     year: "numeric",
@@ -12,8 +12,9 @@ export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
   const totalHari = rows.length;
   const totalPersen = rows.reduce((s, r) => s + Number(r.persentase), 0);
   const nominalPotongan = gajiPokok * (totalPersen / 100);
+  const totalPotongan = nominalPotongan + kasbon;
 
-  if (totalHari === 0) {
+  if (totalHari === 0 && kasbon === 0) {
     return (
       <div className="card p-4 flex items-center gap-3">
         <span className="text-2xl">✅</span>
@@ -35,17 +36,22 @@ export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
       >
         <div>
           <p className="font-bold text-red-700">{bulanIni}</p>
-          <p className="text-sm text-gray-500">
-            {totalHari} hari tidak laporan bulan ini
-          </p>
+          {totalHari > 0 && (
+            <p className="text-sm text-gray-500">
+              {totalHari} hari tidak laporan bulan ini
+            </p>
+          )}
+          {kasbon > 0 && (
+            <p className="text-sm text-gray-500">Kasbon disetujui bulan ini</p>
+          )}
           {gajiPokok > 0 && (
             <p className="text-sm font-bold text-red-600 mt-0.5">
-              −{rupiah(nominalPotongan)}
+              −{rupiah(totalPotongan)}
             </p>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-lg font-bold text-red-600">−{totalPersen}%</p>
+          {totalPersen > 0 && <p className="text-lg font-bold text-red-600">−{totalPersen}%</p>}
           <span
             className={`text-xl text-gray-300 transition-transform ${open ? "rotate-90" : ""}`}
           >
@@ -83,13 +89,19 @@ export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
               </div>
             );
           })}
+          {kasbon > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Kasbon disetujui</span>
+              <span className="font-bold text-red-600">−{rupiah(kasbon)}</span>
+            </div>
+          )}
           <div className="mt-2 border-t border-red-200 pt-2 flex justify-between font-bold">
             <span>Total Potongan</span>
             <div className="text-right">
-              <span className="text-red-700">−{totalPersen}%</span>
+              {totalPersen > 0 && <span className="text-red-700">−{totalPersen}%</span>}
               {gajiPokok > 0 && (
                 <span className="block text-sm text-red-500">
-                  −{rupiah(nominalPotongan)}
+                  −{rupiah(totalPotongan)}
                 </span>
               )}
             </div>
@@ -98,7 +110,7 @@ export default function PotonganCard({ rows = [], gajiPokok = 0 }) {
             <div className="flex justify-between text-sm text-gray-500 pt-1">
               <span>Estimasi gaji bersih</span>
               <span className="font-bold text-gray-700">
-                {rupiah(gajiPokok - nominalPotongan)}
+                {rupiah(gajiPokok - totalPotongan)}
               </span>
             </div>
           )}

@@ -40,6 +40,10 @@ export default async function DashboardSupervisor() {
     .slice(0, 10);
 
   const chatId = String(profile.telegram_chat_id ?? "");
+  const todayStr = today.toLocaleDateString("en-CA", {
+    timeZone: "Asia/Jakarta",
+  });
+  const proyekIds = (proyek || []).map((p) => p.id);
 
   const [
     { count: l },
@@ -48,6 +52,7 @@ export default async function DashboardSupervisor() {
     { count: pb },
     { data: potongan },
     { data: checkin },
+    { data: laporanHariIni },
   ] = await Promise.all([
     supabase
       .from("lembur")
@@ -76,15 +81,15 @@ export default async function DashboardSupervisor() {
       .select("tanggal")
       .eq("chat_id", chatId)
       .gte("tanggal", bulanIni),
+    proyekIds.length
+      ? supabase.from("laporan_harian").select("proyek_id").eq("tanggal", todayStr).in("proyek_id", proyekIds)
+      : Promise.resolve({ data: [] }),
   ]);
   const pending = (l || 0) + (k || 0);
   const masalahAktif = m || 0;
   const perbaikanAktif = pb || 0;
-  const todayStr = today.toLocaleDateString("en-CA", {
-    timeZone: "Asia/Jakarta",
-  });
-  const sudahLaporan = (checkin || []).some((c) => c.tanggal === todayStr);
-  const isWeekend = today.getDay() === 0; // Minggu = libur, supervisor kerja Senin–Sabtu
+  const proyekSudahLapor = new Set((laporanHariIni || []).map((r) => r.proyek_id)).size;
+  const totalProyekAktif = proyekIds.length;
 
   return (
     <main className="flex min-h-dvh flex-col p-4 gap-3">
@@ -98,31 +103,19 @@ export default async function DashboardSupervisor() {
         </div>
       </header>
 
-      {/* Notifikasi laporan harian */}
-      {!isWeekend && (
-        <a
-          href="https://t.me/TaracoBot"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 ${
-            sudahLaporan
-              ? "border-emerald-200 bg-emerald-50 active:bg-emerald-100"
-              : "border-amber-200 bg-amber-50 active:bg-amber-100"
-          }`}
+      {/* Notifikasi kelengkapan laporan harian per proyek */}
+      {totalProyekAktif > 0 && proyekSudahLapor < totalProyekAktif && (
+        <Link
+          href="/supervisor/laporan-harian"
+          className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 active:bg-amber-100"
         >
-          <span
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm ${sudahLaporan ? "bg-emerald-100" : "bg-amber-100"}`}
-          >
-            {sudahLaporan ? "✅" : "📋"}
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm">
+            📝
           </span>
-          <p
-            className={`flex-1 min-w-0 text-xs font-bold ${sudahLaporan ? "text-emerald-700" : "text-amber-800"}`}
-          >
-            {sudahLaporan
-              ? "Laporan hari ini sudah dikirim"
-              : "Laporan harian belum dibuat — ketuk untuk buka Telegram"}
+          <p className="flex-1 min-w-0 text-xs font-bold text-amber-800">
+            Anda Belum Selesai membuat laporan harian! ({proyekSudahLapor}/{totalProyekAktif} laporan harian dibuat)
           </p>
-        </a>
+        </Link>
       )}
 
       {/* Hero: menunggu persetujuan */}
@@ -143,10 +136,8 @@ export default async function DashboardSupervisor() {
       {/* Aksi Cepat */}
       <div className="shrink-0">
         <div className="grid grid-cols-4 gap-y-3">
-          <a
-            href="https://t.me/TaracoBot"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/supervisor/laporan-harian"
             className="flex flex-col items-center gap-1 active:opacity-70"
           >
             <span className="icon-tile !rounded-full bg-sky-100 text-sky-600">
@@ -155,7 +146,7 @@ export default async function DashboardSupervisor() {
             <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
               Laporan Harian
             </p>
-          </a>
+          </Link>
 
           <Link
             href="/supervisor/absensi"
@@ -216,26 +207,14 @@ export default async function DashboardSupervisor() {
           </Link>
 
           <Link
-            href="/supervisor/tukang-harian"
+            href="/supervisor/kasbon"
             className="flex flex-col items-center gap-1 active:opacity-70"
           >
-            <span className="icon-tile !rounded-full bg-cyan-100 text-cyan-600">
-              <Icon name="hard-hat" />
+            <span className="icon-tile !rounded-full bg-orange-100 text-orange-600">
+              <Icon name="wallet" />
             </span>
             <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
-              Tambah Tukang Harian
-            </p>
-          </Link>
-
-          <Link
-            href="/supervisor/mandor"
-            className="flex flex-col items-center gap-1 active:opacity-70"
-          >
-            <span className="icon-tile !rounded-full bg-teal-100 text-teal-600">
-              <Icon name="hard-hat" />
-            </span>
-            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
-              Mandor
+              Kasbon
             </p>
           </Link>
         </div>

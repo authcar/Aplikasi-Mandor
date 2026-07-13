@@ -26,21 +26,33 @@ const { data: proyek } = await supabase
 
   const chatId = profile.telegram_chat_id ? String(profile.telegram_chat_id) : null;
 
-  const [{ data: potongan }, { data: checkin }] = chatId
-    ? await Promise.all([
-        supabase
+  const [{ data: potongan }, { data: checkin }, { data: kasbonRows }] = await Promise.all([
+    chatId
+      ? supabase
           .from("potongan_gaji")
           .select("id, tanggal, persentase")
           .eq("chat_id", chatId)
           .gte("tanggal", iso(bulanIni))
-          .order("tanggal"),
-        supabase
+          .order("tanggal")
+      : Promise.resolve({ data: [] }),
+    chatId
+      ? supabase
           .from("checkin_harian")
           .select("tanggal")
           .eq("chat_id", chatId)
-          .gte("tanggal", iso(bulanIni)),
-      ])
-    : [{ data: [] }, { data: [] }];
+          .gte("tanggal", iso(bulanIni))
+      : Promise.resolve({ data: [] }),
+    // Kasbon disetujui Master bulan ini — otomatis jadi potongan gaji.
+    supabase
+      .from("keuangan")
+      .select("nominal")
+      .eq("jenis", "KASBON")
+      .eq("created_by", profile.id)
+      .eq("status", "APPROVED")
+      .gte("created_at", iso(bulanIni)),
+  ]);
+
+  const totalKasbon = sum(kasbonRows, (k) => k.nominal);
 
   // Hitung rekap tiap proyek secara paralel.
   const rekap = await Promise.all(
@@ -86,6 +98,7 @@ const { data: proyek } = await supabase
       <GajiSupervisorHero
         gajiPokok={profile.gaji_pokok || 0}
         potongan={potongan || []}
+        kasbon={totalKasbon}
       />
 
       {chatId ? (
@@ -98,7 +111,7 @@ const { data: proyek } = await supabase
           />
 
           <h2 className="mt-5 mb-3 font-bold text-gray-700">Performa {profile.name}</h2>
-          <PotonganCard rows={potongan || []} gajiPokok={profile.gaji_pokok || 0} />
+          <PotonganCard rows={potongan || []} gajiPokok={profile.gaji_pokok || 0} kasbon={totalKasbon} />
         </>
       ) : (
         <div className="card mt-6 border-amber-200 bg-amber-50 p-4 text-amber-800">
