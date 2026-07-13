@@ -20,6 +20,8 @@ const STATUS_LABEL = {
   DONE: { label: "Sudah Datang", cls: "text-green-500" },
 };
 
+const HALAMAN = 20;
+
 export default function MasalahForm({ proyeks = [], laporan = [] }) {
   const router = useRouter();
   const supabase = createClient();
@@ -34,6 +36,10 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
   const [preview, setPreview] = useState(null);
   const [kameraOpen, setKameraOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [daftar, setDaftar] = useState(laporan);
+  const [hasMore, setHasMore] = useState(laporan.length === HALAMAN);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const pilihFoto = (e) => {
     const file = e.target.files?.[0];
@@ -52,33 +58,78 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
     e.preventDefault();
     if (!proyekId || !material || !jumlah) return;
     setBusy(true);
-    const uid = (await supabase.auth.getUser()).data.user.id;
-    let foto_url = null;
-    if (foto) {
-      const ext = foto.name.split(".").pop();
-      const path = `${proyekId}/${Date.now()}.${ext}`;
-      await supabase.storage.from("masalah").upload(path, foto);
-      foto_url = path;
+    setErr("");
+    try {
+      const uid = (await supabase.auth.getUser()).data.user.id;
+      let foto_url = null;
+      if (foto) {
+        const ext = foto.name.split(".").pop();
+        const path = `${proyekId}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("masalah").upload(path, foto);
+        if (upErr) throw new Error("Gagal upload foto: " + upErr.message);
+        foto_url = path;
+      }
+      const { data: created, error } = await supabase
+        .from("masalah")
+        .insert({
+          proyek_id: proyekId,
+          judul: material,
+          deskripsi: catatan,
+          foto_url,
+          material,
+          jumlah: parseFloat(jumlah),
+          satuan,
+          urgensi,
+          created_by: uid,
+        })
+        .select("id, judul, material, jumlah, satuan, urgensi, deskripsi, status, created_at")
+        .single();
+      if (error) throw new Error("Gagal mengirim laporan: " + error.message);
+
+      const proyekNama = proyeks.find((p) => p.id === proyekId)?.nama || null;
+      setDaftar((d) => [{ ...created, catatan: created.deskripsi, proyek: proyekNama }, ...d]);
+
+      fetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipe: "masalah",
+          proyek_id: proyekId,
+          ringkasan: `${material} — ${jumlah} ${satuan} (${urgensi})`,
+        }),
+      }).catch(() => {});
+
+      setMaterial("");
+      setJumlah("");
+      setCatatan("");
+      setUrgensi("Sedang");
+      setFoto(null);
+      setPreview(null);
+      router.refresh();
+    } catch (e) {
+      setErr(
+        e instanceof TypeError
+          ? "Gagal terhubung ke server. Periksa koneksi internet lalu coba lagi."
+          : e.message || "Gagal mengirim laporan. Coba lagi."
+      );
+    } finally {
+      setBusy(false);
     }
-    await supabase.from("masalah").insert({
-      proyek_id: proyekId,
-      judul: material,
-      deskripsi: catatan,
-      foto_url,
-      material,
-      jumlah: parseFloat(jumlah),
-      satuan,
-      urgensi,
-      created_by: uid,
-    });
-    setBusy(false);
-    router.refresh();
-    setMaterial("");
-    setJumlah("");
-    setCatatan("");
-    setUrgensi("Sedang");
-    setFoto(null);
-    setPreview(null);
+  };
+
+  const muatLagi = async () => {
+    setLoadingMore(true);
+    const uid = (await supabase.auth.getUser()).data.user.id;
+    const { data: rows } = await supabase
+      .from("masalah")
+      .select("id, judul, material, jumlah, satuan, urgensi, deskripsi, status, created_at, proyek(nama)")
+      .eq("created_by", uid)
+      .order("created_at", { ascending: false })
+      .range(daftar.length, daftar.length + HALAMAN - 1);
+    const next = (rows || []).map((r) => ({ ...r, catatan: r.deskripsi, proyek: r.proyek?.nama || null }));
+    setDaftar((d) => [...d, ...next]);
+    setHasMore(next.length === HALAMAN);
+    setLoadingMore(false);
   };
 
   if (proyeks.length === 0)
@@ -227,6 +278,10 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
             )}
           </div>
 
+          {err && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{err}</p>
+          )}
+
           <button disabled={busy} className="btn-primary btn-lg w-full">
             {busy ? "Mengirim..." : "Kirim Laporan"}
           </button>
@@ -234,11 +289,11 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
       </div>
 
 
-      {laporan.length > 0 && (
+      {daftar.length > 0 && (
         <section>
           <h2 className="mb-3 font-bold text-gray-700">Riwayat Pelaporan</h2>
           <div className="space-y-3">
-            {laporan.map((it) => {
+            {daftar.map((it) => {
               const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
               return (
                 <div key={it.id} className="card p-4">
@@ -269,6 +324,15 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
               );
             })}
           </div>
+          {hasMore && (
+            <button
+              onClick={muatLagi}
+              disabled={loadingMore}
+              className="mt-3 w-full rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-600 active:bg-gray-100"
+            >
+              {loadingMore ? "Memuat..." : "Muat Lebih Banyak"}
+            </button>
+          )}
         </section>
       )}
     </main>

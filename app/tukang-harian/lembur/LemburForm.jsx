@@ -15,6 +15,8 @@ const STATUS_BADGE = {
   REJECTED: { label: "Ditolak", cls: "bg-red-100 text-red-700" },
 };
 
+const HALAMAN = 10;
+
 export default function LemburForm({ proyek, riwayat = [] }) {
   const router = useRouter();
   const supabase = createClient();
@@ -26,6 +28,10 @@ export default function LemburForm({ proyek, riwayat = [] }) {
   const [preview, setPreview] = useState(null);
   const [kameraOpen, setKameraOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [daftar, setDaftar] = useState(riwayat);
+  const [hasMore, setHasMore] = useState(riwayat.length === HALAMAN);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const totalBiaya = Number(hari) * Number(orang) * TARIF;
 
@@ -45,37 +51,65 @@ export default function LemburForm({ proyek, riwayat = [] }) {
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
-    const uid = (await supabase.auth.getUser()).data.user.id;
+    setErr("");
+    try {
+      const uid = (await supabase.auth.getUser()).data.user.id;
 
-    let foto_url = null;
-    if (foto) {
-      const ext = foto.name.split(".").pop();
-      const path = `${proyek.id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("lembur").upload(path, foto);
-      if (upErr) {
-        setBusy(false);
-        alert("Gagal upload foto: " + upErr.message);
-        return;
+      let foto_url = null;
+      if (foto) {
+        const ext = foto.name.split(".").pop();
+        const path = `${proyek.id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("lembur").upload(path, foto);
+        if (upErr) throw new Error("Gagal upload foto: " + upErr.message);
+        foto_url = path;
       }
-      foto_url = path;
-    }
 
-    // jam = hari × orang, tarif_per_jam = 80000 → total = jam × tarif = hari × orang × 80000
-    const { error } = await supabase.from("lembur").insert({
-      proyek_id: proyek.id,
-      tanggal,
-      jam: Number(hari) * Number(orang),
-      tarif_per_jam: TARIF,
-      catatan: `${orang} orang × ${hari} hari`,
-      foto_url,
-      created_by: uid,
-    });
-    setBusy(false);
-    if (error) {
-      alert("Gagal mengirim pengajuan lembur: " + error.message);
-      return;
+      // jam = hari × orang, tarif_per_jam = 80000 → total = jam × tarif = hari × orang × 80000
+      const { error } = await supabase.from("lembur").insert({
+        proyek_id: proyek.id,
+        tanggal,
+        jam: Number(hari) * Number(orang),
+        tarif_per_jam: TARIF,
+        catatan: `${orang} orang × ${hari} hari`,
+        foto_url,
+        created_by: uid,
+      });
+      if (error) throw new Error("Gagal mengirim pengajuan lembur: " + error.message);
+
+      fetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipe: "lembur",
+          proyek_id: proyek.id,
+          ringkasan: `${orang} orang × ${hari} hari — ${rupiah(totalBiaya)}`,
+        }),
+      }).catch(() => {});
+
+      router.push(`/tukang-harian?proyek=${proyek.id}`);
+    } catch (e) {
+      setErr(
+        e instanceof TypeError
+          ? "Gagal terhubung ke server. Periksa koneksi internet lalu coba lagi."
+          : e.message || "Gagal mengirim pengajuan. Coba lagi."
+      );
+      setBusy(false);
     }
-    router.push(`/tukang-harian?proyek=${proyek.id}`);
+  };
+
+  const muatLagi = async () => {
+    setLoadingMore(true);
+    const uid = (await supabase.auth.getUser()).data.user.id;
+    const { data: rows } = await supabase
+      .from("lembur")
+      .select("id, jam, total, catatan, tanggal, status, created_at")
+      .eq("proyek_id", proyek.id)
+      .eq("created_by", uid)
+      .order("created_at", { ascending: false })
+      .range(daftar.length, daftar.length + HALAMAN - 1);
+    setDaftar((d) => [...d, ...(rows || [])]);
+    setHasMore((rows || []).length === HALAMAN);
+    setLoadingMore(false);
   };
 
   if (!proyek) return <p className="p-6">Belum ada proyek aktif.</p>;
@@ -175,17 +209,21 @@ export default function LemburForm({ proyek, riwayat = [] }) {
           )}
         </div>
 
+        {err && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{err}</p>
+        )}
+
         <button disabled={busy} className="btn-primary btn-lg w-full">
           {busy ? "Mengirim..." : "AJUKAN KE SUPERVISOR"}
         </button>
       </form>
 
       {/* Riwayat pengajuan */}
-      {riwayat.length > 0 && (
+      {daftar.length > 0 && (
         <section className="mt-6">
           <h2 className="mb-3 font-bold text-gray-700">Riwayat Pengajuan</h2>
           <div className="space-y-3">
-            {riwayat.map((it) => {
+            {daftar.map((it) => {
               const badge = STATUS_BADGE[it.status] || STATUS_BADGE.PENDING;
               return (
                 <div key={it.id} className="card p-4">
@@ -208,6 +246,15 @@ export default function LemburForm({ proyek, riwayat = [] }) {
               );
             })}
           </div>
+          {hasMore && (
+            <button
+              onClick={muatLagi}
+              disabled={loadingMore}
+              className="mt-3 w-full rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-600 active:bg-gray-100"
+            >
+              {loadingMore ? "Memuat..." : "Muat Lebih Banyak"}
+            </button>
+          )}
         </section>
       )}
     </main>

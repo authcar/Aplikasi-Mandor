@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
@@ -12,14 +13,21 @@ const STATUS_BADGE = {
   REJECTED: { label: "Ditolak", cls: "bg-red-100 text-red-700" },
 };
 
+const HALAMAN = 10;
+
 export default function ReimburseForm({ proyek, riwayat = [] }) {
   const router = useRouter();
+  const supabase = createClient();
   const [nominal, setNominal] = useState("");
   const [ket, setKet] = useState("");
   const [nota, setNota] = useState(null);
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [kameraOpen, setKameraOpen] = useState(false);
+  const [err, setErr] = useState("");
+  const [daftar, setDaftar] = useState(riwayat);
+  const [hasMore, setHasMore] = useState(riwayat.length === HALAMAN);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const pilihFoto = (e) => {
     const file = e.target.files?.[0];
@@ -37,16 +45,44 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
-    const fd = new FormData();
-    fd.append("proyek_id", proyek.id);
-    fd.append("jenis", "REIMBURSE");
-    fd.append("nominal", nominal);
-    fd.append("keterangan", ket);
-    if (nota) fd.append("nota", nota);
-    const res = await fetch("/api/keuangan", { method: "POST", body: fd });
-    setBusy(false);
-    if (res.ok) router.push(`/tukang-harian?proyek=${proyek.id}`);
-    else alert("Gagal mengirim. Coba lagi.");
+    setErr("");
+    try {
+      const fd = new FormData();
+      fd.append("proyek_id", proyek.id);
+      fd.append("jenis", "REIMBURSE");
+      fd.append("nominal", nominal);
+      fd.append("keterangan", ket);
+      if (nota) fd.append("nota", nota);
+      const res = await fetch("/api/keuangan", { method: "POST", body: fd });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error || "Gagal mengirim. Coba lagi.");
+      }
+      router.push(`/tukang-harian?proyek=${proyek.id}`);
+    } catch (e) {
+      setErr(
+        e instanceof TypeError
+          ? "Gagal terhubung ke server. Periksa koneksi internet lalu coba lagi."
+          : e.message || "Gagal mengirim. Coba lagi."
+      );
+      setBusy(false);
+    }
+  };
+
+  const muatLagi = async () => {
+    setLoadingMore(true);
+    const uid = (await supabase.auth.getUser()).data.user.id;
+    const { data: rows } = await supabase
+      .from("keuangan")
+      .select("id, nominal, keterangan, status, created_at")
+      .eq("proyek_id", proyek.id)
+      .eq("jenis", "REIMBURSE")
+      .eq("created_by", uid)
+      .order("created_at", { ascending: false })
+      .range(daftar.length, daftar.length + HALAMAN - 1);
+    setDaftar((d) => [...d, ...(rows || [])]);
+    setHasMore((rows || []).length === HALAMAN);
+    setLoadingMore(false);
   };
 
   if (!proyek) return <p className="p-6">Belum ada proyek aktif.</p>;
@@ -119,17 +155,21 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
             )}
           </Field>
 
+          {err && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{err}</p>
+          )}
+
           <button disabled={busy} className="btn-primary btn-lg w-full">
             {busy ? "Mengirim..." : "KIRIM KE SUPERVISOR"}
           </button>
         </form>
 
         {/* Riwayat pengajuan */}
-        {riwayat.length > 0 && (
+        {daftar.length > 0 && (
           <section className="mt-6">
             <h2 className="mb-3 font-bold text-gray-700">Riwayat Pengajuan</h2>
             <div className="space-y-3">
-              {riwayat.map((it) => {
+              {daftar.map((it) => {
                 const badge = STATUS_BADGE[it.status] || STATUS_BADGE.PENDING;
                 return (
                   <div key={it.id} className="card p-4">
@@ -154,6 +194,15 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
                 );
               })}
             </div>
+            {hasMore && (
+              <button
+                onClick={muatLagi}
+                disabled={loadingMore}
+                className="mt-3 w-full rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-600 active:bg-gray-100"
+              >
+                {loadingMore ? "Memuat..." : "Muat Lebih Banyak"}
+              </button>
+            )}
           </section>
         )}
       </main>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { notifySupervisor } from "@/lib/notify";
 
 // POST /api/keuangan — Input Reimburse + Upload Nota.
 // Menerima multipart/form-data:
@@ -44,6 +45,14 @@ export async function POST(req) {
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  await notifySupervisor({
+    supabase,
+    proyek_id,
+    tipe: "keuangan",
+    namaPengaju: profile.name,
+    ringkasan: `${keterangan || "Reimburse"} — Rp${nominal.toLocaleString("id-ID")}`,
+  }).catch(() => {});
 
   return NextResponse.json({ ok: true, data });
 }
