@@ -5,23 +5,29 @@ import { createClient } from "@/lib/supabase/client";
 export default function TukangLoginPage() {
   const supabase = createClient();
   const [code, setCode] = useState("");
+  const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
   const handleChange = (e) => {
-    setCode(e.target.value.replace(/\D/g, "").slice(0, 5));
+    setCode(e.target.value.replace(/\D/g, "").slice(0, 4));
+  };
+
+  const handlePinChange = (e) => {
+    setPin(e.target.value.replace(/\D/g, "").slice(0, 4));
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (code.length !== 5) return setErr("Masukkan 5 digit nomor HP.");
+    if (code.length !== 4) return setErr("Masukkan 4 digit terakhir nomor HP.");
+    if (pin.length !== 4) return setErr("Masukkan PIN 4 digit.");
     setLoading(true);
     setErr("");
 
     const res = await fetch("/api/tukang-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ digits: code }),
+      body: JSON.stringify({ digits: code, pin }),
     });
 
     const json = await res.json();
@@ -51,13 +57,13 @@ export default function TukangLoginPage() {
           Login Tukang Harian
         </h1>
         <p className="mt-1 text-gray-500">
-          Masukkan 5 digit pertama nomor HP kamu
+          Masukkan 4 digit terakhir nomor HP dan PIN kamu
         </p>
       </div>
 
       <form onSubmit={onSubmit} className="card space-y-6 p-5">
         <div>
-          <label className="label mb-3 block">5 Digit Pertama Nomor HP</label>
+          <label className="label mb-3 block">4 Digit Terakhir Nomor HP</label>
           <input
             type="text"
             inputMode="numeric"
@@ -65,14 +71,34 @@ export default function TukangLoginPage() {
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
-            maxLength={5}
+            maxLength={4}
             value={code}
             onChange={handleChange}
-            placeholder="08123"
+            placeholder="6789"
             className="input w-full text-center text-3xl font-bold tracking-[0.3em] focus:border-amber-500"
           />
           <p className="mt-2 text-center text-xs text-gray-400">
-            Contoh: nomor 08123-456-789 → masukkan <strong>08123</strong>
+            Contoh: nomor 08123-456-789 → masukkan <strong>6789</strong>
+          </p>
+        </div>
+
+        <div>
+          <label className="label mb-3 block">PIN</label>
+          <input
+            type="password"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={4}
+            value={pin}
+            onChange={handlePinChange}
+            placeholder="••••"
+            className="input w-full text-center text-3xl font-bold tracking-[0.3em] focus:border-amber-500"
+          />
+          <p className="mt-2 text-center text-xs text-gray-400">
+            PIN diberikan oleh mandor/supervisor kamu
           </p>
         </div>
 
@@ -83,7 +109,7 @@ export default function TukangLoginPage() {
         )}
 
         <button
-          disabled={loading || code.length !== 5}
+          disabled={loading || code.length !== 4 || pin.length !== 4}
           className="btn-primary btn-lg w-full disabled:opacity-50"
         >
           {loading ? "Memproses..." : "MASUK"}

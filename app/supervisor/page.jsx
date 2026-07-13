@@ -10,9 +10,20 @@ export default async function DashboardSupervisor() {
   const { user, profile, supabase } = await getSessionProfile();
 
   const jam = Number(
-    new Intl.DateTimeFormat("id-ID", { hour: "numeric", hour12: false, timeZone: "Asia/Jakarta" }).format(new Date())
+    new Intl.DateTimeFormat("id-ID", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: "Asia/Jakarta",
+    }).format(new Date()),
   );
-  const sapa = jam < 11 ? "Selamat Pagi" : jam < 15 ? "Selamat Siang" : jam < 19 ? "Selamat Sore" : "Selamat Malam";
+  const sapa =
+    jam < 11
+      ? "Selamat Pagi"
+      : jam < 15
+        ? "Selamat Siang"
+        : jam < 19
+          ? "Selamat Sore"
+          : "Selamat Malam";
 
   const { data: proyek } = await supabase
     .from("proyek")
@@ -20,22 +31,54 @@ export default async function DashboardSupervisor() {
     .eq("is_active", true);
 
   const today = new Date();
-  const bulanIni = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+  const bulanIni = new Date(today.getFullYear(), today.getMonth(), 1)
+    .toISOString()
+    .slice(0, 10);
 
   const chatId = String(profile.telegram_chat_id ?? "");
 
-  const [{ count: l }, { count: k }, { count: m }, { count: pb }, { data: potongan }, { data: checkin }] = await Promise.all([
-    supabase.from("lembur").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
-    supabase.from("keuangan").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
-    supabase.from("masalah").select("id", { count: "exact", head: true }).neq("status", "DONE"),
-    supabase.from("checklist_perbaikan").select("id", { count: "exact", head: true }).neq("status", "DONE"),
-    supabase.from("potongan_gaji").select("id, tanggal, persentase").eq("chat_id", chatId).gte("tanggal", bulanIni).order("tanggal"),
-    supabase.from("checkin_harian").select("tanggal").eq("chat_id", chatId).gte("tanggal", bulanIni),
+  const [
+    { count: l },
+    { count: k },
+    { count: m },
+    { count: pb },
+    { data: potongan },
+    { data: checkin },
+  ] = await Promise.all([
+    supabase
+      .from("lembur")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "PENDING"),
+    supabase
+      .from("keuangan")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "PENDING"),
+    supabase
+      .from("masalah")
+      .select("id", { count: "exact", head: true })
+      .neq("status", "DONE"),
+    supabase
+      .from("checklist_perbaikan")
+      .select("id", { count: "exact", head: true })
+      .neq("status", "DONE"),
+    supabase
+      .from("potongan_gaji")
+      .select("id, tanggal, persentase")
+      .eq("chat_id", chatId)
+      .gte("tanggal", bulanIni)
+      .order("tanggal"),
+    supabase
+      .from("checkin_harian")
+      .select("tanggal")
+      .eq("chat_id", chatId)
+      .gte("tanggal", bulanIni),
   ]);
   const pending = (l || 0) + (k || 0);
   const masalahAktif = m || 0;
   const perbaikanAktif = pb || 0;
-  const todayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const todayStr = today.toLocaleDateString("en-CA", {
+    timeZone: "Asia/Jakarta",
+  });
   const sudahLaporan = (checkin || []).some((c) => c.tanggal === todayStr);
   const isWeekend = today.getDay() === 0; // Minggu = libur, supervisor kerja Senin–Sabtu
 
@@ -45,7 +88,9 @@ export default async function DashboardSupervisor() {
       <header className="flex shrink-0 items-center justify-between">
         <div>
           <p className="text-xs font-medium text-brand">Supervisor</p>
-          <h1 className="text-lg font-bold tracking-tight">{sapa}, {profile.name}!</h1>
+          <h1 className="text-lg font-bold tracking-tight">
+            {sapa}, {profile.name}!
+          </h1>
         </div>
       </header>
 
@@ -61,17 +106,26 @@ export default async function DashboardSupervisor() {
               : "border-amber-200 bg-amber-50 active:bg-amber-100"
           }`}
         >
-          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm ${sudahLaporan ? "bg-emerald-100" : "bg-amber-100"}`}>
+          <span
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm ${sudahLaporan ? "bg-emerald-100" : "bg-amber-100"}`}
+          >
             {sudahLaporan ? "✅" : "📋"}
           </span>
-          <p className={`flex-1 min-w-0 text-xs font-bold ${sudahLaporan ? "text-emerald-700" : "text-amber-800"}`}>
-            {sudahLaporan ? "Laporan hari ini sudah dikirim" : "Laporan harian belum dibuat — ketuk untuk buka Telegram"}
+          <p
+            className={`flex-1 min-w-0 text-xs font-bold ${sudahLaporan ? "text-emerald-700" : "text-amber-800"}`}
+          >
+            {sudahLaporan
+              ? "Laporan hari ini sudah dikirim"
+              : "Laporan harian belum dibuat — ketuk untuk buka Telegram"}
           </p>
         </a>
       )}
 
       {/* Hero: menunggu persetujuan */}
-      <Link href="/supervisor/persetujuan" className="hero shrink-0 flex items-center gap-3 py-3 px-4">
+      <Link
+        href="/supervisor/persetujuan"
+        className="hero shrink-0 flex items-center gap-3 py-3 px-4"
+      >
         <span className="icon-tile bg-white/15 text-white">
           <Icon name="inbox" />
         </span>
@@ -85,21 +139,36 @@ export default async function DashboardSupervisor() {
       {/* Aksi Cepat */}
       <div className="shrink-0">
         <div className="grid grid-cols-4 gap-y-3">
-          <a href="https://t.me/TaracoBot" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 active:opacity-70">
+          <a
+            href="https://t.me/TaracoBot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 active:opacity-70"
+          >
             <span className="icon-tile !rounded-full bg-sky-100 text-sky-600">
               <Icon name="clipboard" />
             </span>
-            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Laporan Harian</p>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Laporan Harian
+            </p>
           </a>
 
-          <Link href="/supervisor/absensi" className="flex flex-col items-center gap-1 active:opacity-70">
+          <Link
+            href="/supervisor/absensi"
+            className="flex flex-col items-center gap-1 active:opacity-70"
+          >
             <span className="icon-tile !rounded-full bg-green-100 text-green-600">
               <Icon name="users" />
             </span>
-            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Absensi Tukang</p>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Absensi Tukang
+            </p>
           </Link>
 
-          <Link href="/supervisor/masalah" className="relative flex flex-col items-center gap-1 active:opacity-70">
+          <Link
+            href="/supervisor/masalah"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
+          >
             <span className="icon-tile !rounded-full bg-red-100 text-red-600">
               <Icon name="alert-triangle" />
             </span>
@@ -108,17 +177,27 @@ export default async function DashboardSupervisor() {
                 {masalahAktif}
               </span>
             )}
-            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Kurang Material</p>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Kurang Material
+            </p>
           </Link>
 
-          <Link href="/supervisor/gaji" className="flex flex-col items-center gap-1 active:opacity-70">
+          <Link
+            href="/supervisor/gaji"
+            className="flex flex-col items-center gap-1 active:opacity-70"
+          >
             <span className="icon-tile !rounded-full bg-emerald-100 text-emerald-600">
               <Icon name="wallet" />
             </span>
-            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Rekap Gaji</p>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Rekap Gaji
+            </p>
           </Link>
 
-          <Link href="/supervisor/perbaikan" className="relative flex flex-col items-center gap-1 active:opacity-70">
+          <Link
+            href="/supervisor/perbaikan"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
+          >
             <span className="icon-tile !rounded-full bg-indigo-100 text-indigo-600">
               <Icon name="wrench" />
             </span>
@@ -127,7 +206,21 @@ export default async function DashboardSupervisor() {
                 {perbaikanAktif}
               </span>
             )}
-            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Checklist Perbaikan</p>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Checklist Perbaikan
+            </p>
+          </Link>
+
+          <Link
+            href="/supervisor/tukang-harian"
+            className="flex flex-col items-center gap-1 active:opacity-70"
+          >
+            <span className="icon-tile !rounded-full bg-cyan-100 text-cyan-600">
+              <Icon name="hard-hat" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Tambah Tukang Harian
+            </p>
           </Link>
         </div>
       </div>
@@ -140,7 +233,9 @@ export default async function DashboardSupervisor() {
       {/* Proyek */}
       <div className="card flex flex-col">
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
-          <h2 className="font-bold text-gray-700 text-sm">Proyek Saya ({proyek?.length || 0})</h2>
+          <h2 className="font-bold text-gray-700 text-sm">
+            Proyek Saya ({proyek?.length || 0})
+          </h2>
           <Link
             href="/supervisor/proyek/baru"
             className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white shadow-brand active:bg-brand-800"
@@ -160,14 +255,17 @@ export default async function DashboardSupervisor() {
               </span>
               <div className="flex-1">
                 <p className="font-semibold text-sm">{p.nama}</p>
-                <p className="text-xs text-gray-500">{p.lokasi} · {p.mandor?.name || "-"}</p>
+                <p className="text-xs text-gray-500">
+                  {p.lokasi} · {p.mandor?.name || "-"}
+                </p>
               </div>
               <Icon name="chevron-right" className="h-4 w-4 text-gray-300" />
             </Link>
           ))}
           {(proyek || []).length === 0 && (
             <div className="p-6 text-center text-sm text-gray-400">
-              Belum ada proyek. Ketuk <span className="font-semibold">+ Proyek Baru</span>.
+              Belum ada proyek. Ketuk{" "}
+              <span className="font-semibold">+ Proyek Baru</span>.
             </div>
           )}
         </div>

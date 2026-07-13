@@ -52,7 +52,7 @@ export default async function DashboardTukangHarian() {
         .from("checklist_perbaikan")
         .select("id", { count: "exact", head: true })
         .eq("proyek_id", proyek.id)
-        .eq("dibaca_mandor", false),
+        .eq("dibaca_tukang_harian", false),
     ]);
     pendingApr = (l || 0) + (k || 0);
     perbaikanBaru = pb || 0;

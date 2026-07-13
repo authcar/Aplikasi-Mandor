@@ -22,7 +22,7 @@ export default async function PerbaikanTukangHarianPage() {
   if (proyek) {
     const { data: rows } = await supabase
       .from("checklist_perbaikan")
-      .select("id, no, uraian, foto_url, periode, status, dibaca_mandor, created_at")
+      .select("id, no, uraian, foto_url, periode, status, dibaca_tukang_harian, created_at")
       .eq("proyek_id", proyek.id)
       .order("no", { ascending: true });
 
@@ -37,12 +37,13 @@ export default async function PerbaikanTukangHarianPage() {
       items.push({ ...r, foto });
     }
 
-    // Tandai sudah dibaca supaya badge notifikasi di dashboard hilang.
-    const belumDibaca = items.filter((i) => !i.dibaca_mandor).map((i) => i.id);
+    // Tandai sudah dibaca (khusus Tukang Harian) supaya badge notifikasi di
+    // dashboard-nya hilang — terpisah dari dibaca_mandor milik Mandor.
+    const belumDibaca = items.filter((i) => !i.dibaca_tukang_harian).map((i) => i.id);
     if (belumDibaca.length > 0) {
       await supabase
         .from("checklist_perbaikan")
-        .update({ dibaca_mandor: true })
+        .update({ dibaca_tukang_harian: true })
         .in("id", belumDibaca);
     }
   }

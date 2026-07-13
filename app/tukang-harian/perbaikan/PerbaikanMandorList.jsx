@@ -46,7 +46,7 @@ export default function PerbaikanMandorList({ items = [] }) {
             <div className="mb-2 flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
                 <p className="text-xs font-semibold text-gray-400">No. {it.no}</p>
-                {!it.dibaca_mandor && (
+                {!it.dibaca_tukang_harian && (
                   <span className="badge bg-red-100 text-red-600">Baru</span>
                 )}
               </div>

@@ -7,52 +7,59 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-// Cari tukang harian berdasarkan 5 digit awal nomor HP
-export async function POST(req) {
-  const { digits } = await req.json();
+const GENERIC_AUTH_ERROR = "Nomor HP atau PIN salah. Hubungi mandor.";
 
-  if (!digits || digits.length !== 5 || !/^\d{5}$/.test(digits)) {
+// Cari tukang harian berdasarkan 4 digit terakhir nomor HP, lalu wajib
+// cocok dengan PIN rahasia sebelum sesi login dibuat.
+export async function POST(req) {
+  const { digits, pin } = await req.json();
+
+  if (!digits || digits.length !== 4 || !/^\d{4}$/.test(digits)) {
     return NextResponse.json(
-      { error: "Masukkan tepat 5 digit nomor HP." },
+      { error: "Masukkan tepat 4 digit terakhir nomor HP." },
       { status: 400 }
     );
   }
 
-  // Cari semua tukang harian yang nomornya diawali 5 digit ini
+  if (!pin || !/^\d{4}$/.test(pin)) {
+    return NextResponse.json(
+      { error: "Masukkan PIN 4 digit." },
+      { status: 400 }
+    );
+  }
+
+  // Cari semua tukang harian yang nomornya berakhiran 4 digit ini
   const { data: rows, error } = await supabaseAdmin
     .from("profiles")
-    .select("id, name, phone")
+    .select("id, name, phone, pin")
     .eq("role", "TUKANG_HARIAN");
 
   if (error) {
     return NextResponse.json({ error: "Gagal mengakses data." }, { status: 500 });
   }
 
-  // Filter berdasarkan 5 digit awal
-  const matches = (rows || []).filter((r) => {
-    const phone = (r.phone || "").replace(/\D/g, "");
-    // Normalisasi: 08xxx → strip jadi digits aja, cek prefix
-    const normalized = phone.startsWith("62")
-      ? "0" + phone.slice(2)
-      : phone;
-    return normalized.startsWith(digits) || phone.startsWith(digits);
-  });
+  const matches = (rows || []).filter((r) =>
+    (r.phone || "").replace(/\D/g, "").endsWith(digits)
+  );
 
   if (matches.length === 0) {
-    return NextResponse.json(
-      { error: "Nomor tidak ditemukan. Hubungi mandor." },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: GENERIC_AUTH_ERROR }, { status: 404 });
   }
 
   if (matches.length > 1) {
     return NextResponse.json(
-      { error: "Nomor ambigu, ada lebih dari satu tukang dengan awalan ini. Hubungi mandor." },
+      { error: "Nomor ambigu, ada lebih dari satu tukang dengan akhiran ini. Hubungi mandor." },
       { status: 409 }
     );
   }
 
   const profile = matches[0];
+
+  // PIN wajib cocok. Kalau akun belum punya PIN sama sekali, tetap ditolak
+  // (bukan di-skip) supaya mandor sadar harus di-set dulu.
+  if (!profile.pin || profile.pin !== pin) {
+    return NextResponse.json({ error: GENERIC_AUTH_ERROR }, { status: 401 });
+  }
 
   const {
     data: { user },
