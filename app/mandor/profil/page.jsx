@@ -1,5 +1,6 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
+import EditableNama from "@/components/EditableNama";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function ProfilMandorPage() {
       </div>
 
       <div className="card divide-y divide-gray-100 mb-4">
-        <Row label="Nama" value={profile.name} />
+        <EditableNama id={profile.id} initialName={profile.name} />
         <Row label="Telepon" value={profile.phone || "—"} />
       </div>
 

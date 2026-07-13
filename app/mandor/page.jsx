@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import { rupiah, tglID } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import ProyekSwitcher from "./ProyekSwitcher";
@@ -11,6 +12,9 @@ export const dynamic = "force-dynamic";
 export default async function DashboardMandor({ searchParams }) {
   const { profile, supabase } = await getSessionProfile();
   const today = new Date().toISOString().slice(0, 10);
+
+  // Semua proyek disinkronkan otomatis dari Taraco (satu-satunya sumber data proyek).
+  await syncProyekFromTaraco();
 
   const jam = Number(
     new Intl.DateTimeFormat("id-ID", { hour: "numeric", hour12: false, timeZone: "Asia/Jakarta" }).format(new Date())

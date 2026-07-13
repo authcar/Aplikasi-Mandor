@@ -9,13 +9,16 @@ export default async function ProyekDetailPage({ params }) {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: proyek }, { data: mandors }, { data: absensi }] = await Promise.all([
-    supabase.from("proyek").select("id, nama, lokasi, icon, mandor_id").eq("id", id).single(),
-    supabase.from("profiles").select("id, name").eq("role", "MANDOR").order("name"),
+  const [{ data: proyek }, { data: absensi }] = await Promise.all([
+    supabase
+      .from("proyek")
+      .select("id, nama, lokasi, icon, mandor:mandor_id(name)")
+      .eq("id", id)
+      .single(),
     supabase.from("absensi_ringkas").select("jumlah_hadir").eq("proyek_id", id).eq("tanggal", today).maybeSingle(),
   ]);
 
   if (!proyek) return <p className="p-6">Proyek tidak ditemukan.</p>;
 
-  return <ProyekDetail proyek={proyek} mandors={mandors || []} jumlahHadir={absensi?.jumlah_hadir ?? null} />;
+  return <ProyekDetail proyek={proyek} jumlahHadir={absensi?.jumlah_hadir ?? null} />;
 }

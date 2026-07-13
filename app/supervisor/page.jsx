@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
 import StreakWidget from "@/components/StreakWidget";
@@ -8,6 +9,9 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardSupervisor() {
   const { user, profile, supabase } = await getSessionProfile();
+
+  // Semua proyek disinkronkan otomatis dari Taraco (satu-satunya sumber data proyek).
+  await syncProyekFromTaraco();
 
   const jam = Number(
     new Intl.DateTimeFormat("id-ID", {
@@ -248,12 +252,6 @@ export default async function DashboardSupervisor() {
           <h2 className="font-bold text-gray-700 text-sm">
             Proyek Saya ({proyek?.length || 0})
           </h2>
-          <Link
-            href="/supervisor/proyek/baru"
-            className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white shadow-brand active:bg-brand-800"
-          >
-            + Proyek Baru
-          </Link>
         </div>
         <div className="divide-y divide-gray-100">
           {(proyek || []).map((p) => (
@@ -276,8 +274,7 @@ export default async function DashboardSupervisor() {
           ))}
           {(proyek || []).length === 0 && (
             <div className="p-6 text-center text-sm text-gray-400">
-              Belum ada proyek. Ketuk{" "}
-              <span className="font-semibold">+ Proyek Baru</span>.
+              Belum ada proyek dari Taraco.
             </div>
           )}
         </div>

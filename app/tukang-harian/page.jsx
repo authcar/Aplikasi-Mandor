@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import { tglID } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
@@ -11,6 +12,9 @@ export const dynamic = "force-dynamic";
 export default async function DashboardTukangHarian() {
   const { profile, supabase } = await getSessionProfile();
   const today = new Date().toISOString().slice(0, 10);
+
+  // Semua proyek disinkronkan otomatis dari Taraco (satu-satunya sumber data proyek).
+  await syncProyekFromTaraco();
 
   const chatId = String(profile.telegram_chat_id ?? profile.id ?? "");
   const [{ data: proyek }, { data: checkinHari }] = await Promise.all([

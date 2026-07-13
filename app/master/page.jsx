@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
-import { tglID, rupiah } from "@/lib/format";
+import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
+import { rupiah } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
 
@@ -17,6 +18,9 @@ export default async function DashboardMaster() {
   const today = new Date();
   const bulanIni = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
   const chatId = String(profile.telegram_chat_id ?? "");
+
+  // Semua proyek disinkronkan otomatis dari Taraco (satu-satunya sumber data proyek).
+  await syncProyekFromTaraco();
 
   // Master melihat semua proyek aktif (tidak difilter supervisor_id)
   const { data: proyek } = await supabase
@@ -91,10 +95,6 @@ export default async function DashboardMaster() {
       <div className="card flex flex-col">
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
           <h2 className="font-bold text-gray-700 text-sm">Proyek Saya ({proyek?.length || 0})</h2>
-          <Link href="/master/proyek/baru"
-            className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white shadow-brand active:bg-brand-800">
-            + Proyek Baru
-          </Link>
         </div>
         <div className="divide-y divide-gray-100">
           {(proyek || []).map((p) => (
@@ -112,7 +112,7 @@ export default async function DashboardMaster() {
           ))}
           {(proyek || []).length === 0 && (
             <div className="p-6 text-center text-sm text-gray-400">
-              Belum ada proyek. Ketuk <span className="font-semibold">+ Proyek Baru</span>.
+              Belum ada proyek dari Taraco.
             </div>
           )}
         </div>
