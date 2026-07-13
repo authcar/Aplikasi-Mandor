@@ -222,6 +222,18 @@ export default async function DashboardSupervisor() {
               Tambah Tukang Harian
             </p>
           </Link>
+
+          <Link
+            href="/supervisor/mandor"
+            className="flex flex-col items-center gap-1 active:opacity-70"
+          >
+            <span className="icon-tile !rounded-full bg-teal-100 text-teal-600">
+              <Icon name="hard-hat" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Mandor
+            </p>
+          </Link>
         </div>
       </div>
 

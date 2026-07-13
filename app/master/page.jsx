@@ -81,6 +81,11 @@ export default async function DashboardMaster() {
             {totalNilaiProyek > 0 ? rupiah(totalNilaiProyek) : "—"}
           </p>
         </Link>
+        <Link href="/master/mandor" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+          <span className="icon-tile bg-teal-100 text-teal-600 !w-8 !h-8"><Icon name="hard-hat" /></span>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Mandor</p>
+          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
+        </Link>
       </div>
 
       <div className="card flex flex-col">
