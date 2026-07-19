@@ -1,10 +1,28 @@
 import { rupiah } from "@/lib/format";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
+import RiwayatLaporanHarianCard from "@/app/supervisor/laporan-harian/RiwayatLaporanHarianCard";
+
+// Sama dengan STATUS_BADGE di app/supervisor/laporan-harian/RiwayatLaporanHarianCard.jsx
+const STATUS_BADGE = {
+  ON_PROGRESS: { label: "Sedang Dikerjakan", cls: "bg-blue-100 text-blue-700" },
+  DONE: { label: "Selesai", cls: "bg-green-100 text-green-700" },
+  PERBAIKAN: { label: "Perlu Perbaikan", cls: "bg-red-100 text-red-700" },
+};
+
+const labelTanggal = (tgl) =>
+  new Date(`${tgl}T00:00:00`).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 
 // Read-only — data proyek datang dari Taraco (satu-satunya sumber),
-// tidak bisa diedit lagi di Aplikasi Mandor.
-export default function ProyekDetail({ proyek, jumlahHadir }) {
+// tidak bisa diedit lagi di Aplikasi Mandor. `riwayat` dari laporan_harian
+// (laporan manual Supervisor), terurut terbaru dulu.
+export default function ProyekDetail({ proyek, jumlahHadir, riwayat = [] }) {
+  const laporanTerakhir = riwayat[0] || null;
+
   return (
     <main className="p-4 pb-8">
       <BackButton href="/master" />
@@ -49,6 +67,27 @@ export default function ProyekDetail({ proyek, jumlahHadir }) {
           <p className="text-lg font-semibold">{proyek.mandor?.name || "— Belum ditetapkan —"}</p>
         </div>
       </div>
+
+      <div className="card p-4 mb-5 space-y-2">
+        <p className="font-bold text-gray-700 text-sm">Laporan Terakhir</p>
+        {laporanTerakhir ? (
+          <>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm capitalize text-gray-500">{labelTanggal(laporanTerakhir.tanggal)}</p>
+              <span
+                className={`badge shrink-0 !text-[11px] ${(STATUS_BADGE[laporanTerakhir.status] || STATUS_BADGE.ON_PROGRESS).cls}`}
+              >
+                {(STATUS_BADGE[laporanTerakhir.status] || STATUS_BADGE.ON_PROGRESS).label}
+              </span>
+            </div>
+            <p className="line-clamp-2 text-sm text-gray-600">{laporanTerakhir.deskripsi}</p>
+          </>
+        ) : (
+          <p className="text-sm text-gray-400">Belum ada laporan harian dari Supervisor untuk proyek ini.</p>
+        )}
+      </div>
+
+      <RiwayatLaporanHarianCard riwayat={riwayat} />
     </main>
   );
 }

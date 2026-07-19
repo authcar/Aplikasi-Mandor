@@ -7,9 +7,27 @@ import KameraModal from "@/components/KameraModal";
 import RiwayatLaporanHarianCard from "./RiwayatLaporanHarianCard";
 
 const STATUS_OPTIONS = [
-  { value: "ON_PROGRESS", label: "Sedang Dikerjakan" },
-  { value: "DONE", label: "Selesai" },
-  { value: "PERBAIKAN", label: "Perlu Perbaikan" },
+  {
+    value: "ON_PROGRESS",
+    label: "Dikerjakan",
+    icon: "clock",
+    activeCls: "border-blue-400 bg-blue-50 text-blue-700",
+    iconActiveCls: "bg-blue-500 text-white",
+  },
+  {
+    value: "DONE",
+    label: "Selesai",
+    icon: "check-circle",
+    activeCls: "border-green-400 bg-green-50 text-green-700",
+    iconActiveCls: "bg-green-500 text-white",
+  },
+  {
+    value: "PERBAIKAN",
+    label: "Perbaikan",
+    icon: "alert-triangle",
+    activeCls: "border-red-400 bg-red-50 text-red-700",
+    iconActiveCls: "bg-red-500 text-white",
+  },
 ];
 
 const ENTRI_KOSONG = () => ({
@@ -139,15 +157,30 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [] }) {
                 </div>
 
                 <Field label="Status">
-                  <select
-                    value={en.status}
-                    onChange={(e) => setEntri(en.key, { status: e.target.value })}
-                    className="input text-lg"
-                  >
-                    {STATUS_OPTIONS.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-3 gap-2">
+                    {STATUS_OPTIONS.map((s) => {
+                      const active = en.status === s.value;
+                      return (
+                        <button
+                          key={s.value}
+                          type="button"
+                          onClick={() => setEntri(en.key, { status: s.value })}
+                          className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-2.5 text-xs font-semibold transition-colors ${
+                            active ? s.activeCls : "border-gray-200 bg-white text-gray-400 active:bg-gray-50"
+                          }`}
+                        >
+                          <span
+                            className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
+                              active ? s.iconActiveCls : "bg-gray-100 text-gray-400"
+                            }`}
+                          >
+                            <Icon name={s.icon} className="h-4 w-4" />
+                          </span>
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </Field>
 
                 <Field label="Deskripsi Kegiatan">
