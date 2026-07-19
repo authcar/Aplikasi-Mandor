@@ -6,7 +6,10 @@
 -- sistem potongan gaji berbasis checkin_harian (diisi bot Telegram) TIDAK
 -- otomatis ikut terisi dari laporan baru ini.
 
-create type laporan_status as enum ('ON_PROGRESS', 'DONE', 'PERBAIKAN');
+do $$ begin
+  create type laporan_status as enum ('ON_PROGRESS', 'DONE', 'PERBAIKAN');
+exception when duplicate_object then null;
+end $$;
 
 create table if not exists laporan_harian (
   id         uuid primary key default gen_random_uuid(),
