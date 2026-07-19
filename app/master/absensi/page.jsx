@@ -155,7 +155,7 @@ export default async function AbsensiMasterPage() {
         </>
       )}
 
-      <RiwayatLaporanCard riwayat={riwayat} />
+      <RiwayatLaporanCard riwayat={riwayat} defaultOpen />
     </main>
   );
 }

@@ -5,8 +5,8 @@ import { laporanTeks, totalOrangTim, tglLaporanID } from "@/lib/format";
 
 // Card riwayat laporan absensi harian, bisa di-dropdown.
 // riwayat: [{ tanggal: "2026-07-08", tims: [{ nama, lines: [{jumlah, kegiatan}] }] }]
-export default function RiwayatLaporanCard({ riwayat = [] }) {
-  const [open, setOpen] = useState(false);
+export default function RiwayatLaporanCard({ riwayat = [], defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [expanded, setExpanded] = useState(null);
   const [salinAt, setSalinAt] = useState(null);
 

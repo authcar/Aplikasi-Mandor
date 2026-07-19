@@ -73,37 +73,35 @@ export default async function DashboardMaster() {
         </div>
       </header>
 
-      {/* Notifikasi: proyek yang belum absen / belum lapor hari ini */}
+      {/* Notifikasi: proyek yang belum absen / belum lapor hari ini — nama
+          proyek cuma cuplikan singkat (bukan daftar penuh) supaya tetap ringkas
+          walau proyek aktifnya banyak. */}
       {proyekBelumAbsen.length > 0 && (
-        <div className="shrink-0 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-          <p className="flex items-center gap-2 text-xs font-bold text-amber-800">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm">👷</span>
-            {proyekBelumAbsen.length} proyek belum absen hari ini
-          </p>
-          <p className="mt-1 pl-8 text-xs leading-relaxed text-amber-700">
-            {proyekBelumAbsen.map((p, i) => (
-              <Link key={p.id} href={`/master/proyek/${p.id}`} className="underline underline-offset-2 active:text-amber-900">
-                {p.nama}
-                {i < proyekBelumAbsen.length - 1 ? ", " : ""}
-              </Link>
-            ))}
-          </p>
-        </div>
+        <Link
+          href="/master/absensi"
+          className="shrink-0 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 active:bg-amber-100"
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm">👷</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-amber-800">{proyekBelumAbsen.length} proyek belum absen hari ini</p>
+            <p className="truncate text-[11px] text-amber-600">
+              {proyekBelumAbsen.slice(0, 3).map((p) => p.nama).join(", ")}
+              {proyekBelumAbsen.length > 3 ? ` +${proyekBelumAbsen.length - 3} lainnya` : ""}
+            </p>
+          </div>
+          <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-amber-400" />
+        </Link>
       )}
       {proyekBelumLapor.length > 0 && (
-        <div className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
-          <p className="flex items-center gap-2 text-xs font-bold text-red-800">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-sm">📝</span>
-            {proyekBelumLapor.length} proyek belum buat laporan harian hari ini
-          </p>
-          <p className="mt-1 pl-8 text-xs leading-relaxed text-red-700">
-            {proyekBelumLapor.map((p, i) => (
-              <Link key={p.id} href={`/master/proyek/${p.id}`} className="underline underline-offset-2 active:text-red-900">
-                {p.nama}
-                {i < proyekBelumLapor.length - 1 ? ", " : ""}
-              </Link>
-            ))}
-          </p>
+        <div className="shrink-0 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-sm">📝</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-red-800">{proyekBelumLapor.length} proyek belum buat laporan harian hari ini</p>
+            <p className="truncate text-[11px] text-red-600">
+              {proyekBelumLapor.slice(0, 3).map((p) => p.nama).join(", ")}
+              {proyekBelumLapor.length > 3 ? ` +${proyekBelumLapor.length - 3} lainnya` : ""}
+            </p>
+          </div>
         </div>
       )}
 
