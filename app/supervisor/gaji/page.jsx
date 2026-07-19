@@ -63,6 +63,23 @@ const { data: proyek } = await supabase
 
   const totalKasbon = sum(kasbonRows, (k) => k.nominal);
 
+  // Potongan versi laporan manual: 0.5% per hari kerja (Senin-Sabtu) bulan ini
+  // yang belum ada laporan_harian — menggantikan potongan_gaji (sistem lama,
+  // berbasis bot Telegram) untuk hero gaji & kartu Performa di bawah. Data
+  // potongan_gaji asli (variabel `potongan` & `checkin` di atas) tetap
+  // dipakai untuk CalendarPotongan sebagai fallback, tidak dihapus.
+  const wibTodayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const [wy, wm, wd] = wibTodayStr.split("-").map(Number);
+  const laporanDatesSet = new Set((laporanBulanIni || []).map((r) => r.tanggal));
+  const potonganManual = [];
+  for (let i = 1; i <= wd; i++) {
+    if (new Date(wy, wm - 1, i).getDay() === 0) continue; // Minggu libur
+    const tgl = `${wy}-${String(wm).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+    if (!laporanDatesSet.has(tgl)) {
+      potonganManual.push({ id: tgl, tanggal: tgl, persentase: 0.5 });
+    }
+  }
+
   // Hitung rekap tiap proyek secara paralel.
   const rekap = await Promise.all(
     (proyek || []).map(async (p) => {
@@ -106,7 +123,7 @@ const { data: proyek } = await supabase
 
       <GajiSupervisorHero
         gajiPokok={profile.gaji_pokok || 0}
-        potongan={potongan || []}
+        potongan={potonganManual}
         kasbon={totalKasbon}
       />
 
@@ -121,7 +138,7 @@ const { data: proyek } = await supabase
           />
 
           <h2 className="mt-5 mb-3 font-bold text-gray-700">Performa {profile.name}</h2>
-          <PotonganCard rows={potongan || []} gajiPokok={profile.gaji_pokok || 0} kasbon={totalKasbon} />
+          <PotonganCard rows={potonganManual} gajiPokok={profile.gaji_pokok || 0} kasbon={totalKasbon} />
         </>
       ) : (
         <div className="card mt-6 border-amber-200 bg-amber-50 p-4 text-amber-800">

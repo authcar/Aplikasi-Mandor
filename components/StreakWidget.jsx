@@ -2,10 +2,22 @@ export default function StreakWidget({ potongan = [], checkin = [], laporanHaria
   // Hari kerja supervisor (Senin–Sabtu) bulan ini sampai hari ini, zona WIB
   const wibStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const [y, m, d] = wibStr.split("-").map(Number);
+  const laporanDateSet = laporanHarian ? new Set(laporanHarian.map((r) => r.tanggal)) : null;
+
+  // hariKerja: jumlah hari Senin-Sabtu bulan ini s/d hari ini.
+  // hariKerjaLapor: dari hariKerja itu, berapa yang sudah ada laporan manual
+  // (laporan yang diisi di hari Minggu/libur sengaja tidak dihitung di sini,
+  // karena tidak "menutupi" kewajiban laporan hari kerja lain).
   let hariKerja = 0;
+  let hariKerjaLapor = 0;
   for (let i = 1; i <= d; i++) {
     const day = new Date(y, m - 1, i).getDay();
-    if (day !== 0) hariKerja++;
+    if (day === 0) continue;
+    hariKerja++;
+    if (laporanDateSet) {
+      const tgl = `${y}-${String(m).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+      if (laporanDateSet.has(tgl)) hariKerjaLapor++;
+    }
   }
 
   // totalAbsenLama & totalPersenLama: sistem lama (potongan_gaji, berbasis bot
@@ -14,24 +26,26 @@ export default function StreakWidget({ potongan = [], checkin = [], laporanHaria
   const totalAbsenLama = potongan.length;
   const totalPersenLama = potongan.reduce((s, r) => s + Number(r.persentase), 0);
 
-  // Sumber utama "rajin lapor" & "sudah lapor": laporan harian manual di web
-  // app (satu proyek bisa dilapor >1x sehari, jadi dihitung per tanggal unik).
-  // Kalau prop laporanHarian tidak dikirim (null), fallback ke checkin_harian
-  // (sistem lama berbasis bot Telegram) — jaga-jaga kalau perlu balik pakai itu.
-  const sudahLapor = laporanHarian
-    ? new Set(laporanHarian.map((r) => r.tanggal)).size
-    : checkin.length;
+  // Sumber utama "sudah lapor": jumlah tanggal unik di laporan_harian bulan
+  // ini (termasuk kalau ada yang dilapor di hari libur — ini angka aktivitas,
+  // beda dengan hariKerjaLapor yang khusus hari kerja). Kalau laporanHarian
+  // tidak dikirim (null), fallback ke checkin_harian (sistem lama Telegram).
+  const sudahLapor = laporanDateSet ? laporanDateSet.size : checkin.length;
 
-  // "Hari absen" sekarang = hari kerja yang belum ada laporan manual. Fallback
-  // ke totalAbsenLama (potongan_gaji) kalau laporanHarian tidak dikirim.
-  const totalAbsen = laporanHarian ? Math.max(0, hariKerja - sudahLapor) : totalAbsenLama;
+  // "Hari absen" = hari kerja yang belum ada laporan manual. Fallback ke
+  // totalAbsenLama (potongan_gaji) kalau laporanHarian tidak dikirim.
+  const totalAbsen = laporanDateSet ? hariKerja - hariKerjaLapor : totalAbsenLama;
 
-  // "Potongan %" sekarang ikut pola lama (0.5% per hari absen), tapi dihitung
-  // dari hari absen versi laporan manual di atas. Fallback ke totalPersenLama
-  // (jumlah persentase asli dari potongan_gaji) kalau laporanHarian tidak dikirim.
-  const totalPersen = laporanHarian ? totalAbsen * 0.5 : totalPersenLama;
+  // "Potongan %" ikut pola lama (0.5% per hari absen), dihitung dari hari
+  // absen versi laporan manual di atas. Fallback ke totalPersenLama (jumlah
+  // persentase asli dari potongan_gaji) kalau laporanHarian tidak dikirim.
+  const totalPersen = laporanDateSet ? totalAbsen * 0.5 : totalPersenLama;
 
-  const persen = hariKerja ? Math.min(100, Math.round((sudahLapor / hariKerja) * 100)) : 100;
+  // "Rajin lapor %" pakai hariKerjaLapor (bukan sudahLapor) supaya konsisten
+  // dengan "hari absen" — sama-sama berbasis cakupan hari kerja.
+  const persen = hariKerja
+    ? Math.min(100, Math.round(((laporanDateSet ? hariKerjaLapor : sudahLapor) / hariKerja) * 100))
+    : 100;
   // Emot mood: makin rajin lapor, makin senang 😄
   const level =
     persen >= 100
