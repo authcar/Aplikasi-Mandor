@@ -26,7 +26,7 @@ const { data: proyek } = await supabase
 
   const chatId = profile.telegram_chat_id ? String(profile.telegram_chat_id) : null;
 
-  const [{ data: potongan }, { data: checkin }, { data: kasbonRows }] = await Promise.all([
+  const [{ data: potongan }, { data: checkin }, { data: kasbonRows }, { data: laporanBulanIni }] = await Promise.all([
     chatId
       ? supabase
           .from("potongan_gaji")
@@ -35,6 +35,8 @@ const { data: proyek } = await supabase
           .gte("tanggal", iso(bulanIni))
           .order("tanggal")
       : Promise.resolve({ data: [] }),
+    // checkin_harian: sumber lama (bot Telegram), tetap diambil & dikirim ke
+    // CalendarPotongan sebagai fallback, tidak dipakai lagi untuk tampilan utama.
     chatId
       ? supabase
           .from("checkin_harian")
@@ -50,6 +52,13 @@ const { data: proyek } = await supabase
       .eq("created_by", profile.id)
       .eq("status", "APPROVED")
       .gte("created_at", iso(bulanIni)),
+    // Laporan harian manual milik supervisor ini, bulan berjalan — sumber
+    // utama untuk kalender "Kalender Laporan Harian".
+    supabase
+      .from("laporan_harian")
+      .select("tanggal")
+      .eq("created_by", profile.id)
+      .gte("tanggal", iso(bulanIni)),
   ]);
 
   const totalKasbon = sum(kasbonRows, (k) => k.nominal);
@@ -108,6 +117,7 @@ const { data: proyek } = await supabase
             chatId={chatId}
             initialPotongan={potongan || []}
             initialCheckin={checkin || []}
+            initialLaporan={laporanBulanIni || []}
           />
 
           <h2 className="mt-5 mb-3 font-bold text-gray-700">Performa {profile.name}</h2>

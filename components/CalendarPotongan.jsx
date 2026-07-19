@@ -27,6 +27,7 @@ export default function CalendarPotongan({
   chatId,
   initialPotongan = [],
   initialCheckin = [],
+  initialLaporan = null,
 }) {
   const today = new Date();
   const initialMonth = today.getMonth();
@@ -37,20 +38,34 @@ export default function CalendarPotongan({
   const [absenDates, setAbsenDates] = useState(
     new Set(initialPotongan.map((r) => r.tanggal)),
   );
-  const [hadirDates, setHadirDates] = useState(
+  // checkinDates: sumber lama (bot Telegram), disimpan sebagai fallback.
+  const [checkinDates, setCheckinDates] = useState(
     new Set(initialCheckin.map((r) => r.tanggal)),
+  );
+  // laporanDates: sumber utama sekarang (laporan harian manual di web app).
+  // null berarti belum ada data laporan_harian dikirim → pakai checkinDates.
+  const [laporanDates, setLaporanDates] = useState(
+    initialLaporan ? new Set(initialLaporan.map((r) => r.tanggal)) : null,
   );
   const [loading, setLoading] = useState(false);
 
+  const hadirDates = laporanDates ?? checkinDates;
+
   const streak = useMemo(
-    () => hitungStreak(new Set(initialCheckin.map((r) => r.tanggal))),
-    [initialCheckin],
+    () =>
+      hitungStreak(
+        initialLaporan
+          ? new Set(initialLaporan.map((r) => r.tanggal))
+          : new Set(initialCheckin.map((r) => r.tanggal)),
+      ),
+    [initialLaporan, initialCheckin],
   );
 
   useEffect(() => {
     if (year === initialYear && month === initialMonth) {
       setAbsenDates(new Set(initialPotongan.map((r) => r.tanggal)));
-      setHadirDates(new Set(initialCheckin.map((r) => r.tanggal)));
+      setCheckinDates(new Set(initialCheckin.map((r) => r.tanggal)));
+      setLaporanDates(initialLaporan ? new Set(initialLaporan.map((r) => r.tanggal)) : null);
       return;
     }
     const bulanStr = `${year}-${String(month + 1).padStart(2, "0")}`;
@@ -59,7 +74,8 @@ export default function CalendarPotongan({
       .then((r) => r.json())
       .then((data) => {
         setAbsenDates(new Set((data.potongan || []).map((r) => r.tanggal)));
-        setHadirDates(new Set((data.checkin || []).map((r) => r.tanggal)));
+        setCheckinDates(new Set((data.checkin || []).map((r) => r.tanggal)));
+        setLaporanDates(data.laporan ? new Set(data.laporan.map((r) => r.tanggal)) : null);
         setLoading(false);
       });
   }, [year, month]);

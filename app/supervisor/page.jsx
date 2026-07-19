@@ -53,6 +53,7 @@ export default async function DashboardSupervisor() {
     { data: potongan },
     { data: checkin },
     { data: laporanHariIni },
+    { data: laporanBulanIni },
   ] = await Promise.all([
     supabase
       .from("lembur")
@@ -70,12 +71,18 @@ export default async function DashboardSupervisor() {
       .from("checklist_perbaikan")
       .select("id", { count: "exact", head: true })
       .neq("status", "DONE"),
+    // Potongan gaji: masih dari sistem lama (Telegram/n8n), belum sinkron
+    // dengan laporan harian manual di web app — lihat catatan di
+    // supabase/add_laporan_harian.sql.
     supabase
       .from("potongan_gaji")
       .select("id, tanggal, persentase")
       .eq("chat_id", chatId)
       .gte("tanggal", bulanIni)
       .order("tanggal"),
+    // checkin_harian: sumber lama untuk "rajin lapor" (diisi bot Telegram).
+    // Tetap diambil & dikirim ke StreakWidget sebagai fallback, tidak dipakai
+    // lagi untuk perhitungan utama sekarang laporan_harian sudah ada.
     supabase
       .from("checkin_harian")
       .select("tanggal")
@@ -84,6 +91,13 @@ export default async function DashboardSupervisor() {
     proyekIds.length
       ? supabase.from("laporan_harian").select("proyek_id").eq("tanggal", todayStr).in("proyek_id", proyekIds)
       : Promise.resolve({ data: [] }),
+    // Laporan harian manual milik supervisor ini, bulan berjalan — sumber
+    // utama untuk "rajin lapor" & "sudah lapor" di StreakWidget.
+    supabase
+      .from("laporan_harian")
+      .select("tanggal")
+      .eq("created_by", profile.id)
+      .gte("tanggal", bulanIni),
   ]);
   const pending = (l || 0) + (k || 0);
   const masalahAktif = m || 0;
@@ -222,7 +236,11 @@ export default async function DashboardSupervisor() {
 
       {/* Streak widget */}
       <div className="shrink-0">
-        <StreakWidget potongan={potongan || []} checkin={checkin || []} />
+        <StreakWidget
+          potongan={potongan || []}
+          checkin={checkin || []}
+          laporanHarian={laporanBulanIni || []}
+        />
       </div>
 
       {/* Proyek */}

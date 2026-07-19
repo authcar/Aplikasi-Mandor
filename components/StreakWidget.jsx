@@ -1,4 +1,4 @@
-export default function StreakWidget({ potongan = [], checkin = [] }) {
+export default function StreakWidget({ potongan = [], checkin = [], laporanHarian = null }) {
   // Hari kerja supervisor (Senin–Sabtu) bulan ini sampai hari ini, zona WIB
   const wibStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const [y, m, d] = wibStr.split("-").map(Number);
@@ -8,9 +8,28 @@ export default function StreakWidget({ potongan = [], checkin = [] }) {
     if (day !== 0) hariKerja++;
   }
 
-  const totalAbsen = potongan.length;
-  const totalPersen = potongan.reduce((s, r) => s + Number(r.persentase), 0);
-  const sudahLapor = checkin.length;
+  // totalAbsenLama & totalPersenLama: sistem lama (potongan_gaji, berbasis bot
+  // Telegram) — disimpan sebagai fallback, tidak dipakai lagi untuk tampilan
+  // utama sekarang "hari absen" & "potongan" dihitung dari laporan manual.
+  const totalAbsenLama = potongan.length;
+  const totalPersenLama = potongan.reduce((s, r) => s + Number(r.persentase), 0);
+
+  // Sumber utama "rajin lapor" & "sudah lapor": laporan harian manual di web
+  // app (satu proyek bisa dilapor >1x sehari, jadi dihitung per tanggal unik).
+  // Kalau prop laporanHarian tidak dikirim (null), fallback ke checkin_harian
+  // (sistem lama berbasis bot Telegram) — jaga-jaga kalau perlu balik pakai itu.
+  const sudahLapor = laporanHarian
+    ? new Set(laporanHarian.map((r) => r.tanggal)).size
+    : checkin.length;
+
+  // "Hari absen" sekarang = hari kerja yang belum ada laporan manual. Fallback
+  // ke totalAbsenLama (potongan_gaji) kalau laporanHarian tidak dikirim.
+  const totalAbsen = laporanHarian ? Math.max(0, hariKerja - sudahLapor) : totalAbsenLama;
+
+  // "Potongan %" sekarang ikut pola lama (0.5% per hari absen), tapi dihitung
+  // dari hari absen versi laporan manual di atas. Fallback ke totalPersenLama
+  // (jumlah persentase asli dari potongan_gaji) kalau laporanHarian tidak dikirim.
+  const totalPersen = laporanHarian ? totalAbsen * 0.5 : totalPersenLama;
 
   const persen = hariKerja ? Math.min(100, Math.round((sudahLapor / hariKerja) * 100)) : 100;
   // Emot mood: makin rajin lapor, makin senang 😄
