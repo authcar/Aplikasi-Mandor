@@ -34,7 +34,6 @@ export default function ProyekDetail({ proyek, jumlahHadir }) {
       </div>
 
       <div className="card p-4 mb-5 space-y-3">
-        <p className="font-bold text-gray-700 text-sm">Info Proyek (dari Taraco)</p>
         <div>
           <p className="label">Nilai Jasa Tukang</p>
           <p className="text-lg font-semibold">

@@ -30,15 +30,39 @@ export default async function DashboardMaster() {
 
   const totalNilaiProyek = (proyek || []).reduce((sum, p) => sum + (p.nilai_proyek || 0), 0);
 
-  const [{ count: l }, { count: k }, { count: m }, { data: potongan }] = await Promise.all([
+  const todayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const proyekIds = (proyek || []).map((p) => p.id);
+
+  const [
+    { count: l },
+    { count: k },
+    { count: m },
+    { data: potongan },
+    { data: laporanHariIniRows },
+    { data: absensiHariIniRows },
+  ] = await Promise.all([
     supabase.from("lembur").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
     supabase.from("keuangan").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
     supabase.from("masalah").select("id", { count: "exact", head: true }).neq("status", "DONE"),
     supabase.from("potongan_gaji").select("id, tanggal, persentase").eq("chat_id", chatId).gte("tanggal", bulanIni).order("tanggal"),
+    // Proyek yang sudah ada laporan_harian hari ini — dipakai buat notifikasi
+    // "belum lapor" di bawah, jadi Master gak perlu cek manual satu-satu.
+    proyekIds.length
+      ? supabase.from("laporan_harian").select("proyek_id").eq("tanggal", todayStr).in("proyek_id", proyekIds)
+      : Promise.resolve({ data: [] }),
+    // Proyek yang sudah ada absensi_tim hari ini — buat notifikasi "belum absen".
+    proyekIds.length
+      ? supabase.from("absensi_tim").select("proyek_id").eq("tanggal", todayStr).in("proyek_id", proyekIds)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const pending = (l || 0) + (k || 0);
   const masalahAktif = m || 0;
+
+  const proyekSudahLaporSet = new Set((laporanHariIniRows || []).map((r) => r.proyek_id));
+  const proyekSudahAbsenSet = new Set((absensiHariIniRows || []).map((r) => r.proyek_id));
+  const proyekBelumLapor = (proyek || []).filter((p) => !proyekSudahLaporSet.has(p.id));
+  const proyekBelumAbsen = (proyek || []).filter((p) => !proyekSudahAbsenSet.has(p.id));
 
   return (
     <main className="flex min-h-dvh flex-col p-4 gap-3">
@@ -49,6 +73,39 @@ export default async function DashboardMaster() {
         </div>
       </header>
 
+      {/* Notifikasi: proyek yang belum absen / belum lapor hari ini */}
+      {proyekBelumAbsen.length > 0 && (
+        <div className="shrink-0 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+          <p className="flex items-center gap-2 text-xs font-bold text-amber-800">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm">👷</span>
+            {proyekBelumAbsen.length} proyek belum absen hari ini
+          </p>
+          <p className="mt-1 pl-8 text-xs leading-relaxed text-amber-700">
+            {proyekBelumAbsen.map((p, i) => (
+              <Link key={p.id} href={`/master/proyek/${p.id}`} className="underline underline-offset-2 active:text-amber-900">
+                {p.nama}
+                {i < proyekBelumAbsen.length - 1 ? ", " : ""}
+              </Link>
+            ))}
+          </p>
+        </div>
+      )}
+      {proyekBelumLapor.length > 0 && (
+        <div className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+          <p className="flex items-center gap-2 text-xs font-bold text-red-800">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-sm">📝</span>
+            {proyekBelumLapor.length} proyek belum buat laporan harian hari ini
+          </p>
+          <p className="mt-1 pl-8 text-xs leading-relaxed text-red-700">
+            {proyekBelumLapor.map((p, i) => (
+              <Link key={p.id} href={`/master/proyek/${p.id}`} className="underline underline-offset-2 active:text-red-900">
+                {p.nama}
+                {i < proyekBelumLapor.length - 1 ? ", " : ""}
+              </Link>
+            ))}
+          </p>
+        </div>
+      )}
 
       <Link href="/master/persetujuan" className="hero shrink-0 flex items-center gap-3 py-3 px-4">
         <span className="icon-tile bg-white/15 text-white">

@@ -72,7 +72,6 @@ export default async function DashboardMandor({ searchParams }) {
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600" },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
     { href: `/mandor/perbaikan${q}`, label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
-    { href: `/mandor/tukang-harian`, label: "Tambah Tukang Harian", icon: "hard-hat", tile: "bg-cyan-100 text-cyan-600" },
   ];
 
   return (
