@@ -97,7 +97,7 @@ export default function MasalahList({ items }) {
                 onClick={() => ubah(it.id, "OPEN")}
                 className="btn-outline w-full text-gray-500"
               >
-                Buka Lagi
+                Cancel
               </button>
             )}
           </div>

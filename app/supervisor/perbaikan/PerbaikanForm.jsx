@@ -216,7 +216,7 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
                         onClick={() => ubahStatus(it.id, "OPEN")}
                         className="btn-outline text-gray-500"
                       >
-                        Buka Lagi
+                        Cancel
                       </button>
                     ) : (
                       <div className="flex gap-2">

@@ -26,7 +26,7 @@ export default function RiwayatLaporanCard({ riwayat = [], defaultOpen = false }
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between px-4 py-3"
       >
-        <span className="font-bold text-gray-700 text-sm">Riwayat Laporan</span>
+        <span className="font-bold text-gray-700 text-sm">Riwayat Absensi</span>
         <span className="flex items-center gap-2 text-gray-400">
           {riwayat.length > 0 && (
             <span className="text-xs font-medium">{riwayat.length} hari</span>
