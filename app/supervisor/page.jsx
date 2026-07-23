@@ -64,7 +64,8 @@ export default async function DashboardSupervisor() {
     supabase
       .from("keuangan")
       .select("id", { count: "exact", head: true })
-      .eq("status", "PENDING"),
+      .eq("status", "PENDING")
+      .neq("jenis", "KASBON"),
     supabase
       .from("masalah")
       .select("id", { count: "exact", head: true })
