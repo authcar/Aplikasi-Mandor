@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Icon from "@/components/Icon";
 
-// Dipakai di /master/mandor dan /supervisor/mandor.
+// Dipakai di /master/kelola-akun dan /supervisor/mandor.
 export default function MandorManager({ initialMandors }) {
   const [mandors, setMandors] = useState(initialMandors);
   const [showForm, setShowForm] = useState(false);

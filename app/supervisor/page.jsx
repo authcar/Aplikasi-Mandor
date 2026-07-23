@@ -50,6 +50,8 @@ export default async function DashboardSupervisor() {
     { count: k },
     { count: m },
     { count: pb },
+    { count: kb },
+    { count: pgb },
     { data: potongan },
     { data: checkin },
     { data: laporanHariIni },
@@ -71,6 +73,21 @@ export default async function DashboardSupervisor() {
       .from("checklist_perbaikan")
       .select("id", { count: "exact", head: true })
       .neq("status", "DONE"),
+    // Hasil approve/reject kasbon milik SPV ini yang belum dilihat.
+    supabase
+      .from("keuangan")
+      .select("id", { count: "exact", head: true })
+      .eq("jenis", "KASBON")
+      .eq("created_by", profile.id)
+      .eq("dibaca_pemohon", false),
+    // Potongan gaji baru (bot Telegram/n8n) yang belum dilihat Supervisor.
+    chatId
+      ? supabase
+          .from("potongan_gaji")
+          .select("id", { count: "exact", head: true })
+          .eq("chat_id", chatId)
+          .eq("dibaca_supervisor", false)
+      : Promise.resolve({ count: 0 }),
     // Potongan gaji: masih dari sistem lama (Telegram/n8n), belum sinkron
     // dengan laporan harian manual di web app — lihat catatan di
     // supabase/add_laporan_harian.sql.
@@ -102,6 +119,8 @@ export default async function DashboardSupervisor() {
   const pending = (l || 0) + (k || 0);
   const masalahAktif = m || 0;
   const perbaikanAktif = pb || 0;
+  const kasbonBaru = kb || 0;
+  const potonganBaru = pgb || 0;
   const proyekSudahLapor = new Set((laporanHariIni || []).map((r) => r.proyek_id)).size;
   const totalProyekAktif = proyekIds.length;
 
@@ -193,11 +212,16 @@ export default async function DashboardSupervisor() {
 
           <Link
             href="/supervisor/gaji"
-            className="flex flex-col items-center gap-1 active:opacity-70"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
           >
             <span className="icon-tile !rounded-full bg-emerald-100 text-emerald-600">
               <Icon name="wallet" />
             </span>
+            {potonganBaru > 0 && (
+              <span className="absolute right-2 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                {potonganBaru}
+              </span>
+            )}
             <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
               Rekap Gaji
             </p>
@@ -222,11 +246,16 @@ export default async function DashboardSupervisor() {
 
           <Link
             href="/supervisor/kasbon"
-            className="flex flex-col items-center gap-1 active:opacity-70"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
           >
             <span className="icon-tile !rounded-full bg-orange-100 text-orange-600">
               <Icon name="wallet" />
             </span>
+            {kasbonBaru > 0 && (
+              <span className="absolute right-2 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                {kasbonBaru}
+              </span>
+            )}
             <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
               Kasbon
             </p>

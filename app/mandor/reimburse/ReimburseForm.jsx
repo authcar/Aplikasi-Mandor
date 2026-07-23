@@ -15,9 +15,10 @@ const STATUS_BADGE = {
 
 const HALAMAN = 10;
 
-export default function ReimburseForm({ proyek, riwayat = [] }) {
+export default function ReimburseForm({ proyeks = [], riwayat = [] }) {
   const router = useRouter();
   const supabase = createClient();
+  const [proyekId, setProyekId] = useState(proyeks[0]?.id || "");
   const [nominal, setNominal] = useState("");
   const [ket, setKet] = useState("");
   const [nota, setNota] = useState(null);
@@ -44,11 +45,12 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!proyekId) return;
     setBusy(true);
     setErr("");
     try {
       const fd = new FormData();
-      fd.append("proyek_id", proyek.id);
+      fd.append("proyek_id", proyekId);
       fd.append("jenis", "REIMBURSE");
       fd.append("nominal", nominal);
       fd.append("keterangan", ket);
@@ -58,7 +60,7 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
         const json = await res.json().catch(() => ({}));
         throw new Error(json.error || "Gagal mengirim. Coba lagi.");
       }
-      router.push(`/mandor?proyek=${proyek.id}`);
+      router.push(`/mandor?proyek=${proyekId}`);
     } catch (e) {
       setErr(
         e instanceof TypeError
@@ -74,18 +76,18 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
     const uid = (await supabase.auth.getUser()).data.user.id;
     const { data: rows } = await supabase
       .from("keuangan")
-      .select("id, nominal, keterangan, status, created_at")
-      .eq("proyek_id", proyek.id)
+      .select("id, nominal, keterangan, status, created_at, proyek:proyek_id(nama)")
       .eq("jenis", "REIMBURSE")
       .eq("created_by", uid)
       .order("created_at", { ascending: false })
       .range(daftar.length, daftar.length + HALAMAN - 1);
-    setDaftar((d) => [...d, ...(rows || [])]);
-    setHasMore((rows || []).length === HALAMAN);
+    const next = (rows || []).map((r) => ({ ...r, proyek: r.proyek?.nama || null }));
+    setDaftar((d) => [...d, ...next]);
+    setHasMore(next.length === HALAMAN);
     setLoadingMore(false);
   };
 
-  if (!proyek) return <p className="p-6">Belum ada proyek aktif.</p>;
+  if (proyeks.length === 0) return <p className="p-6 text-gray-500">Belum ada proyek aktif.</p>;
 
   return (
     <>
@@ -97,10 +99,22 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
         />
       )}
       <main className="p-4">
-        <BackButton href={`/mandor?proyek=${proyek.id}`} />
+        <BackButton href={`/mandor${proyekId ? `?proyek=${proyekId}` : ""}`} />
         <h1 className="text-xl font-bold tracking-tight">Reimburse / Klaim</h1>
-        <p className="mb-4 text-sm text-gray-500">{proyek.nama}</p>
+        <p className="mb-4 text-sm text-gray-500">Kirim klaim biaya ke Supervisor</p>
         <form onSubmit={submit} className="space-y-4">
+          <Field label="Proyek">
+            <select
+              value={proyekId}
+              onChange={(e) => setProyekId(e.target.value)}
+              className="input"
+              required
+            >
+              {proyeks.map((p) => (
+                <option key={p.id} value={p.id}>{p.nama}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="Nominal (Rp)">
             <input
               inputMode="numeric"
@@ -179,6 +193,9 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
                     </div>
                     {it.keterangan && (
                       <p className="mt-0.5 text-sm text-gray-500">{it.keterangan}</p>
+                    )}
+                    {it.proyek && (
+                      <p className="mt-0.5 text-xs text-gray-400">{it.proyek}</p>
                     )}
                     <p className="mt-1 text-xs text-gray-400">
                       {new Date(it.created_at).toLocaleDateString("id-ID", {

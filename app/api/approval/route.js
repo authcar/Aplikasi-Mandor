@@ -25,13 +25,18 @@ export async function POST(req) {
       return NextResponse.json({ error: "Kasbon hanya bisa disetujui Master." }, { status: 403 });
   }
 
+  const updatePayload = {
+    status: aksi,
+    reviewed_by: profile.id,
+    reviewed_at: new Date().toISOString(),
+  };
+  // Nyalakan badge "hasil baru" di dashboard pemohon (SPV utk kasbon,
+  // mandor/tukang harian utk reimburse) — bukan di lembur, kolomnya gak ada.
+  if (tipe === "keuangan") updatePayload.dibaca_pemohon = false;
+
   const { data, error } = await supabase
     .from(tipe)
-    .update({
-      status: aksi,
-      reviewed_by: profile.id,
-      reviewed_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", id)
     .eq("status", "PENDING") // cegah double-review
     .select()

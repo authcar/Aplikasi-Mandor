@@ -30,7 +30,7 @@ const { data: proyek } = await supabase
     chatId
       ? supabase
           .from("potongan_gaji")
-          .select("id, tanggal, persentase")
+          .select("id, tanggal, persentase, dibaca_supervisor")
           .eq("chat_id", chatId)
           .gte("tanggal", iso(bulanIni))
           .order("tanggal")
@@ -60,6 +60,12 @@ const { data: proyek } = await supabase
       .eq("created_by", profile.id)
       .gte("tanggal", iso(bulanIni)),
   ]);
+
+  // Tandai potongan baru sudah dilihat supaya badge di dashboard hilang.
+  const potonganBelumDibaca = (potongan || []).filter((p) => !p.dibaca_supervisor).map((p) => p.id);
+  if (potonganBelumDibaca.length > 0) {
+    await supabase.from("potongan_gaji").update({ dibaca_supervisor: true }).in("id", potonganBelumDibaca);
+  }
 
   const totalKasbon = sum(kasbonRows, (k) => k.nominal);
 

@@ -1,5 +1,5 @@
-import { FormSkeleton } from "@/components/Skeleton";
+import { ListSkeleton } from "@/components/Skeleton";
 
 export default function Loading() {
-  return <FormSkeleton fields={3} />;
+  return <ListSkeleton items={3} />;
 }

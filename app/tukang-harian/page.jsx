@@ -38,10 +38,12 @@ export default async function DashboardTukangHarian() {
   const sudahCheckout = !!checkinHari?.checkout_at;
 
   let pendingApr = 0,
-    perbaikanBaru = 0;
+    perbaikanBaru = 0,
+    reimburseBaru = 0,
+    masalahBaru = 0;
 
   if (proyek) {
-    const [{ count: l }, { count: k }, { count: pb }] = await Promise.all([
+    const [{ count: l }, { count: k }, { count: pb }, { count: rb }, { count: mb }] = await Promise.all([
       supabase
         .from("lembur")
         .select("id", { count: "exact", head: true })
@@ -57,9 +59,26 @@ export default async function DashboardTukangHarian() {
         .select("id", { count: "exact", head: true })
         .eq("proyek_id", proyek.id)
         .eq("dibaca_tukang_harian", false),
+      // Hasil approve/reject reimburse milik tukang harian ini yang belum dilihat.
+      supabase
+        .from("keuangan")
+        .select("id", { count: "exact", head: true })
+        .eq("proyek_id", proyek.id)
+        .eq("jenis", "REIMBURSE")
+        .eq("created_by", profile.id)
+        .eq("dibaca_pemohon", false),
+      // Perubahan status laporan masalah milik tukang harian ini yang belum dilihat.
+      supabase
+        .from("masalah")
+        .select("id", { count: "exact", head: true })
+        .eq("proyek_id", proyek.id)
+        .eq("created_by", profile.id)
+        .eq("dibaca_pelapor", false),
     ]);
     pendingApr = (l || 0) + (k || 0);
     perbaikanBaru = pb || 0;
+    reimburseBaru = rb || 0;
+    masalahBaru = mb || 0;
   }
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
@@ -81,12 +100,14 @@ export default async function DashboardTukangHarian() {
       label: "Reimburse",
       icon: "receipt",
       tile: "bg-purple-100 text-purple-600",
+      badge: reimburseBaru,
     },
     {
       href: `/tukang-harian/masalah${q}`,
       label: "Kurang Material",
       icon: "alert-triangle",
       tile: "bg-amber-100 text-amber-600",
+      badge: masalahBaru,
     },
     {
       href: `/tukang-harian/perbaikan${q}`,

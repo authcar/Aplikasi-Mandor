@@ -13,9 +13,17 @@ export default async function PersetujuanMasterPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("keuangan")
-      .select("id, jenis, nominal, keterangan, nota_url, status, created_at, proyek(nama), creator:created_by(name)")
+      .select("id, jenis, nominal, keterangan, nota_url, status, created_at, dibaca_master, proyek(nama), creator:created_by(name)")
       .order("created_at", { ascending: false }),
   ]);
+
+  // Tandai kasbon baru sudah dilihat Master supaya badge di dashboard hilang.
+  const kasbonBelumDibaca = (keuangan || [])
+    .filter((k) => k.jenis === "KASBON" && !k.dibaca_master)
+    .map((k) => k.id);
+  if (kasbonBelumDibaca.length > 0) {
+    await supabase.from("keuangan").update({ dibaca_master: true }).in("id", kasbonBelumDibaca);
+  }
 
   const items = [];
 

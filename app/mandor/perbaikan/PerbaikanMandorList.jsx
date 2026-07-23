@@ -10,6 +10,7 @@ const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
   IN_PROGRESS: { label: "Diproses", cls: "text-amber-500" },
   DONE: { label: "Selesai", cls: "text-green-500" },
+  CANCELLED: { label: "Dibatalkan", cls: "text-red-500" },
 };
 
 export default function PerbaikanMandorList({ items = [] }) {
@@ -61,7 +62,7 @@ export default function PerbaikanMandorList({ items = [] }) {
             )}
             <div className="mt-3 flex items-center justify-between">
               <span className={`text-xs font-semibold ${st.cls}`}>{st.label}</span>
-              {it.status !== "DONE" && (
+              {it.status !== "DONE" && it.status !== "CANCELLED" && (
                 <button
                   disabled={busy === it.id}
                   onClick={() => tandaiSelesai(it.id)}

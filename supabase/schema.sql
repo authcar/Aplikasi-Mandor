@@ -52,6 +52,10 @@ do $$ begin
   create type status_mslh as enum ('OPEN', 'IN_PROGRESS', 'DONE');
 exception when duplicate_object then null; end $$;
 
+-- CANCELLED dipakai oleh checklist_perbaikan (Supervisor membatalkan item;
+-- item tetap tampil ke Mandor/Tukang Harian berlabel "Dibatalkan").
+alter type status_mslh add value if not exists 'CANCELLED';
+
 -- =====================================================================
 -- PROFILES (terhubung ke auth.users)
 -- =====================================================================
@@ -196,6 +200,11 @@ create table if not exists keuangan (
 );
 create index if not exists idx_keuangan_proyek_status on keuangan(proyek_id, status);
 
+-- Badge notifikasi: KASBON baru belum dilihat Master; hasil approve/reject
+-- belum dilihat pemohon (SPV utk kasbon, mandor/tukang harian utk reimburse).
+alter table keuangan add column if not exists dibaca_master boolean not null default false;
+alter table keuangan add column if not exists dibaca_pemohon boolean not null default true;
+
 -- =====================================================================
 -- MASALAH / KENDALA LAPANGAN (kurang material dll)
 -- =====================================================================
@@ -217,6 +226,10 @@ alter table masalah add column if not exists material text;
 alter table masalah add column if not exists jumlah numeric;
 alter table masalah add column if not exists satuan text;
 alter table masalah add column if not exists urgensi text; -- 'Mendesak'|'Sedang'|'Rendah'
+
+-- Badge notifikasi: perubahan status oleh Supervisor/Master belum dilihat
+-- pelapor (mandor/tukang harian yang membuat laporan masalah ini).
+alter table masalah add column if not exists dibaca_pelapor boolean not null default true;
 
 -- =====================================================================
 -- CHECKLIST PERBAIKAN (defect list — Supervisor lapor ke Mandor/Tukang
@@ -318,6 +331,10 @@ create table if not exists potongan_gaji (
   persentase  numeric not null default 0,
   created_at  timestamptz default now()
 );
+
+-- Badge notifikasi: potongan baru (diisi bot Telegram/n8n) belum dilihat
+-- Supervisor di halaman Rekap Gaji.
+alter table potongan_gaji add column if not exists dibaca_supervisor boolean not null default false;
 
 -- =====================================================================
 -- HELPER: ambil role user yang sedang login (hindari rekursi RLS)

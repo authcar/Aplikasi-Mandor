@@ -23,6 +23,11 @@ create table if not exists laporan_harian (
 );
 create index if not exists idx_laporan_harian_proyek_tgl on laporan_harian(proyek_id, tanggal desc);
 
+-- Badge notifikasi: laporan baru belum dilihat Master (lihat
+-- supabase/add_notifikasi_badges.sql untuk instalasi terpisah kalau tabel ini
+-- sudah lebih dulu ada di database).
+alter table laporan_harian add column if not exists dibaca_master boolean not null default false;
+
 alter table laporan_harian enable row level security;
 
 drop policy if exists laporan_harian_read on laporan_harian;

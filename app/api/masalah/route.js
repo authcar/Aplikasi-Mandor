@@ -17,7 +17,7 @@ export async function POST(req) {
 
   const { data, error } = await supabase
     .from("masalah")
-    .update({ status })
+    .update({ status, dibaca_pelapor: false })
     .eq("id", id)
     .select()
     .single();

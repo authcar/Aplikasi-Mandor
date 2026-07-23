@@ -11,6 +11,7 @@ const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
   IN_PROGRESS: { label: "Diproses", cls: "text-amber-500" },
   DONE: { label: "Selesai", cls: "text-green-500" },
+  CANCELLED: { label: "Dibatalkan", cls: "text-red-500" },
 };
 
 export default function PerbaikanForm({ proyeks = [], items = [] }) {
@@ -210,20 +211,28 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
                   )}
                   <div className="mt-3 flex items-center justify-between">
                     <span className={`text-xs font-semibold ${st.cls}`}>{st.label}</span>
-                    {it.status !== "DONE" ? (
-                      <button
-                        onClick={() => ubahStatus(it.id, "DONE")}
-                        className="btn-success"
-                      >
-                        Tandai Selesai
-                      </button>
-                    ) : (
+                    {it.status === "DONE" || it.status === "CANCELLED" ? (
                       <button
                         onClick={() => ubahStatus(it.id, "OPEN")}
                         className="btn-outline text-gray-500"
                       >
                         Buka Lagi
                       </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => ubahStatus(it.id, "CANCELLED")}
+                          className="btn-outline text-red-500"
+                        >
+                          Batalkan
+                        </button>
+                        <button
+                          onClick={() => ubahStatus(it.id, "DONE")}
+                          className="btn-success"
+                        >
+                          Tandai Selesai
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -34,10 +34,12 @@ export default async function DashboardMandor({ searchParams }) {
 
   let hadir = 0,
     pendingApr = 0,
-    perbaikanBaru = 0;
+    perbaikanBaru = 0,
+    reimburseBaru = 0,
+    masalahBaru = 0;
 
   if (proyek) {
-    const [{ data: ringkas }, { count: l }, { count: k }, { count: pb }] = await Promise.all([
+    const [{ data: ringkas }, { count: l }, { count: k }, { count: pb }, { count: rb }, { count: mb }] = await Promise.all([
       supabase
         .from("absensi_ringkas")
         .select("jumlah_hadir")
@@ -59,18 +61,35 @@ export default async function DashboardMandor({ searchParams }) {
         .select("id", { count: "exact", head: true })
         .eq("proyek_id", proyek.id)
         .eq("dibaca_mandor", false),
+      // Hasil approve/reject reimburse milik mandor ini yang belum dilihat.
+      supabase
+        .from("keuangan")
+        .select("id", { count: "exact", head: true })
+        .eq("proyek_id", proyek.id)
+        .eq("jenis", "REIMBURSE")
+        .eq("created_by", profile.id)
+        .eq("dibaca_pemohon", false),
+      // Perubahan status laporan masalah milik mandor ini yang belum dilihat.
+      supabase
+        .from("masalah")
+        .select("id", { count: "exact", head: true })
+        .eq("proyek_id", proyek.id)
+        .eq("created_by", profile.id)
+        .eq("dibaca_pelapor", false),
     ]);
     hadir = ringkas?.jumlah_hadir ?? 0;
     pendingApr = (l || 0) + (k || 0);
     perbaikanBaru = pb || 0;
+    reimburseBaru = rb || 0;
+    masalahBaru = mb || 0;
   }
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
   const actions = [
     { href: `/mandor/absensi${q}`, label: "Absensi", icon: "users", tile: "bg-green-100 text-green-600" },
     { href: `/mandor/lembur${q}`, label: "Lembur", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
-    { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600" },
-    { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600" },
+    { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru },
+    { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
     { href: `/mandor/perbaikan${q}`, label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
   ];
 

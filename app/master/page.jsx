@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
-import { rupiah } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
 
@@ -25,10 +24,8 @@ export default async function DashboardMaster() {
   // Master melihat semua proyek aktif (tidak difilter supervisor_id)
   const { data: proyek } = await supabase
     .from("proyek")
-    .select("id, nama, lokasi, icon, nilai_proyek, mandor:mandor_id(name)")
+    .select("id, nama, lokasi, icon, mandor:mandor_id(name)")
     .eq("is_active", true);
-
-  const totalNilaiProyek = (proyek || []).reduce((sum, p) => sum + (p.nilai_proyek || 0), 0);
 
   const todayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const proyekIds = (proyek || []).map((p) => p.id);
@@ -36,14 +33,18 @@ export default async function DashboardMaster() {
   const [
     { count: l },
     { count: k },
-    { count: m },
+    { count: kasbonBaru },
+    { count: laporanBaru },
     { data: potongan },
     { data: laporanHariIniRows },
     { data: absensiHariIniRows },
   ] = await Promise.all([
     supabase.from("lembur").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
     supabase.from("keuangan").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
-    supabase.from("masalah").select("id", { count: "exact", head: true }).neq("status", "DONE"),
+    // Pengajuan KASBON baru dari Supervisor yang belum dilihat Master.
+    supabase.from("keuangan").select("id", { count: "exact", head: true }).eq("jenis", "KASBON").eq("dibaca_master", false),
+    // Laporan harian baru dari Supervisor yang belum dilihat Master.
+    supabase.from("laporan_harian").select("id", { count: "exact", head: true }).eq("dibaca_master", false),
     supabase.from("potongan_gaji").select("id, tanggal, persentase").eq("chat_id", chatId).gte("tanggal", bulanIni).order("tanggal"),
     // Proyek yang sudah ada laporan_harian hari ini — dipakai buat notifikasi
     // "belum lapor" di bawah, jadi Master gak perlu cek manual satu-satu.
@@ -57,7 +58,8 @@ export default async function DashboardMaster() {
   ]);
 
   const pending = (l || 0) + (k || 0);
-  const masalahAktif = m || 0;
+  const kasbonBaruCount = kasbonBaru || 0;
+  const laporanBaruCount = laporanBaru || 0;
 
   const proyekSudahLaporSet = new Set((laporanHariIniRows || []).map((r) => r.proyek_id));
   const proyekSudahAbsenSet = new Set((absensiHariIniRows || []).map((r) => r.proyek_id));
@@ -110,8 +112,13 @@ export default async function DashboardMaster() {
       )}
 
       <Link href="/master/persetujuan" className="hero shrink-0 flex items-center gap-3 py-3 px-4">
-        <span className="icon-tile bg-white/15 text-white">
+        <span className="relative icon-tile bg-white/15 text-white">
           <Icon name="inbox" />
+          {kasbonBaruCount > 0 && (
+            <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {kasbonBaruCount}
+            </span>
+          )}
         </span>
         <div className="flex-1">
           <p className="text-xs text-white/80">Menunggu Persetujuan</p>
@@ -132,31 +139,19 @@ export default async function DashboardMaster() {
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Progres Harian</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
-        <Link href="/master/laporan-harian" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+        <Link href="/master/laporan-harian" className="relative card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-rose-100 text-rose-600 !w-8 !h-8"><Icon name="clipboard" /></span>
+          {laporanBaruCount > 0 && (
+            <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {laporanBaruCount}
+            </span>
+          )}
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Laporan Harian</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
-        <Link href="/master/masalah" className="card-tap flex flex-col items-center justify-center gap-0.5 p-3">
-          <span className="icon-tile bg-red-100 text-red-600 !w-8 !h-8"><Icon name="alert-triangle" /></span>
-          <p className="text-[11px] font-semibold text-gray-600">Kurang Material</p>
-          <p className="text-xl font-bold text-red-500 leading-tight">{masalahAktif}</p>
-        </Link>
-        <Link href="/master/gaji" className="card-tap flex flex-col items-center justify-center gap-0.5 p-3">
-          <span className="icon-tile bg-emerald-100 text-emerald-600 !w-8 !h-8"><Icon name="wallet" /></span>
-          <p className="text-[11px] font-semibold text-gray-600">Total Nilai Jasa</p>
-          <p className="text-[10px] font-bold text-emerald-600 leading-tight text-center">
-            {totalNilaiProyek > 0 ? rupiah(totalNilaiProyek) : "—"}
-          </p>
-        </Link>
-        <Link href="/master/mandor" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+        <Link href="/master/kelola-akun" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-teal-100 text-teal-600 !w-8 !h-8"><Icon name="hard-hat" /></span>
-          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Mandor</p>
-          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
-        </Link>
-        <Link href="/master/tukang-harian" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
-          <span className="icon-tile bg-cyan-100 text-cyan-600 !w-8 !h-8"><Icon name="hard-hat" /></span>
-          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Tambah Tukang Harian</p>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Kelola Akun</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
       </div>
