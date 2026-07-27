@@ -18,7 +18,7 @@ const STATUS_LABEL = {
 // Alur: Mandor menandai selesai DENGAN foto bukti pengerjaan -> status jadi
 // PENDING_REVIEW -> Supervisor menyetujui (DONE) atau menolak (balik ke OPEN,
 // lihat app/supervisor/perbaikan/PerbaikanForm.jsx).
-export default function PerbaikanMandorList({ items = [], proyekId }) {
+export default function PerbaikanMandorList({ items = [] }) {
   const router = useRouter();
   const supabase = createClient();
   const [list, setList] = useState(items);
@@ -58,11 +58,12 @@ export default function PerbaikanMandorList({ items = [], proyekId }) {
 
   const kirimBukti = async (id) => {
     if (!foto) return setErr("Foto bukti pengerjaan wajib dilampirkan.");
+    const item = list.find((x) => x.id === id);
     setBusy(true);
     setErr("");
     try {
       const ext = foto.name.split(".").pop();
-      const path = `${proyekId}/bukti-${id}-${Date.now()}.${ext}`;
+      const path = `${item.proyek_id}/bukti-${id}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("perbaikan").upload(path, foto);
       if (upErr) throw new Error("Gagal unggah foto: " + upErr.message);
 
@@ -98,6 +99,11 @@ export default function PerbaikanMandorList({ items = [], proyekId }) {
       </div>
     );
 
+  // Selesai/Tidak Disetujui pindah ke section "Riwayat Perbaikan" di bawah
+  // supaya daftar utama cuma berisi yang masih perlu ditindaklanjuti.
+  const aktif = list.filter((it) => it.status !== "DONE" && it.status !== "CANCELLED");
+  const riwayat = list.filter((it) => it.status === "DONE" || it.status === "CANCELLED");
+
   return (
     <div className="space-y-3">
       {kameraOpen && (
@@ -107,14 +113,20 @@ export default function PerbaikanMandorList({ items = [], proyekId }) {
           onClose={() => setKameraOpen(false)}
         />
       )}
-      {list.map((it) => {
+      {aktif.length === 0 && (
+        <div className="card flex flex-col items-center gap-2 border-green-200 bg-green-50 p-6 text-center text-green-700">
+          <Icon name="check-circle" className="h-8 w-8" />
+          <p className="text-sm font-semibold">Tidak ada perbaikan yang perlu dikerjakan.</p>
+        </div>
+      )}
+      {aktif.map((it) => {
         const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
         const bisaKerjakan = it.status !== "DONE" && it.status !== "CANCELLED" && it.status !== "PENDING_REVIEW";
         return (
           <div key={it.id} className="card p-4">
             <div className="mb-2 flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-gray-400">No. {it.no}</p>
+                <p className="text-xs font-semibold text-gray-400">{it.proyek}</p>
                 {!it.dibaca_mandor && (
                   <span className="badge bg-red-100 text-red-600">Baru</span>
                 )}
@@ -187,6 +199,45 @@ export default function PerbaikanMandorList({ items = [], proyekId }) {
           </div>
         );
       })}
+
+      {riwayat.length > 0 && (
+        <section className="pt-1">
+          <h2 className="mb-2 text-sm font-bold text-gray-500">Riwayat Perbaikan</h2>
+          <div className="space-y-2">
+            {riwayat.map((it) => {
+              const st = STATUS_LABEL[it.status] || STATUS_LABEL.DONE;
+              return (
+                <div key={it.id} className="card p-3">
+                  <div className="mb-1 flex items-start justify-between gap-2">
+                    <p className="text-[11px] font-semibold text-gray-400 truncate">
+                      {it.proyek}{it.periode ? ` · Periode ${it.periode}` : ""}
+                    </p>
+                    <p className="shrink-0 text-[11px] text-gray-400">{tglID(it.created_at)}</p>
+                  </div>
+                  <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
+                  {(it.foto || it.fotoBukti) && (
+                    <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                      {it.foto && (
+                        <FotoLightbox src={it.foto} caption={it.uraian}>
+                          <img src={it.foto} alt="dokumentasi temuan" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
+                          <p className="mt-0.5 text-[10px] text-gray-400">Temuan</p>
+                        </FotoLightbox>
+                      )}
+                      {it.fotoBukti && (
+                        <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
+                          <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
+                          <p className="mt-0.5 text-[10px] text-gray-400">Bukti Anda</p>
+                        </FotoLightbox>
+                      )}
+                    </div>
+                  )}
+                  <p className={`mt-2 text-[11px] font-semibold ${st.cls}`}>{st.label}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

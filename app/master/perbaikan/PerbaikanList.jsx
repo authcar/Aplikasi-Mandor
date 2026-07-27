@@ -28,9 +28,7 @@ export default function PerbaikanList({ items = [] }) {
         return (
           <div key={it.id} className="card p-4">
             <div className="mb-2 flex items-start justify-between gap-3">
-              <p className="text-xs font-semibold text-gray-400">
-                No. {it.no} · {it.proyek}
-              </p>
+              <p className="text-xs font-semibold text-gray-400">{it.proyek}</p>
               <p className="shrink-0 text-xs text-gray-400">{tglID(it.created_at)}</p>
             </div>
             <p className="font-semibold">{it.uraian}</p>

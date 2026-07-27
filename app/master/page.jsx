@@ -69,6 +69,12 @@ export default async function DashboardMaster() {
   const proyekSudahAbsenSet = new Set((absensiHariIniRows || []).map((r) => r.proyek_id));
   const proyekBelumLapor = (proyek || []).filter((p) => !proyekSudahLaporSet.has(p.id));
   const proyekBelumAbsen = (proyek || []).filter((p) => !proyekSudahAbsenSet.has(p.id));
+  // Proyek yang mandor_id-nya NULL — biasanya karena nama mandor di Taraco
+  // tidak cocok persis dengan nama akun MANDOR di sini (lihat
+  // lib/supabase/syncProyek.js). Selama begini, hampir semua fitur berbasis
+  // proyek (absensi, checklist perbaikan, dll) tidak akan muncul ke Mandor
+  // manapun untuk proyek ini.
+  const proyekTanpaMandor = (proyek || []).filter((p) => !p.mandor);
 
   return (
     <main className="flex min-h-dvh flex-col p-4 gap-3">
@@ -112,6 +118,22 @@ export default async function DashboardMaster() {
             </p>
           </div>
           <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-red-400" />
+        </Link>
+      )}
+      {proyekTanpaMandor.length > 0 && (
+        <Link
+          href={`/master/proyek/${proyekTanpaMandor[0].id}`}
+          className="shrink-0 flex items-center gap-2.5 rounded-xl border border-gray-300 bg-gray-100 px-3 py-2.5 active:bg-gray-200"
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm">⚠️</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-gray-700">{proyekTanpaMandor.length} proyek belum ada Mandor yang ke-assign</p>
+            <p className="truncate text-[11px] text-gray-500">
+              {proyekTanpaMandor.slice(0, 3).map((p) => p.nama).join(", ")}
+              {proyekTanpaMandor.length > 3 ? ` +${proyekTanpaMandor.length - 3} lainnya` : ""} — cek nama mandor di Taraco
+            </p>
+          </div>
+          <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-gray-400" />
         </Link>
       )}
 

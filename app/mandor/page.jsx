@@ -39,6 +39,14 @@ export default async function DashboardMandor({ searchParams }) {
     masalahBaru = 0;
 
   if (proyek) {
+    // Perbaikan sekarang ditampilkan lintas semua proyek mandor sekaligus,
+    // termasuk item yang di-assign manual lewat assigned_mandor_id (lihat
+    // app/mandor/perbaikan & add_checklist_assigned_mandor.sql) — badge-nya
+    // ikut menghitung itu, bukan cuma proyek resmi yang lagi dipilih.
+    const proyekIds = list.map((p) => p.id);
+    const perbaikanOr =
+      (proyekIds.length > 0 ? `proyek_id.in.(${proyekIds.join(",")}),` : "") +
+      `assigned_mandor_id.eq.${profile.id}`;
     const [{ count: k }, { count: pb }, { count: rb }, { count: kb }, { count: mb }] = await Promise.all([
       supabase
         .from("keuangan")
@@ -48,8 +56,8 @@ export default async function DashboardMandor({ searchParams }) {
       supabase
         .from("checklist_perbaikan")
         .select("id", { count: "exact", head: true })
-        .eq("proyek_id", proyek.id)
-        .eq("dibaca_mandor", false),
+        .eq("dibaca_mandor", false)
+        .or(perbaikanOr),
       // Hasil approve/reject reimburse milik mandor ini yang belum dilihat.
       supabase
         .from("keuangan")
@@ -86,7 +94,7 @@ export default async function DashboardMandor({ searchParams }) {
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru },
     { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
-    { href: `/mandor/perbaikan${q}`, label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
+    { href: "/mandor/perbaikan", label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
   ];
 
   return (
@@ -120,7 +128,7 @@ export default async function DashboardMandor({ searchParams }) {
           {/* Notifikasi checklist perbaikan baru dari Supervisor */}
           {perbaikanBaru > 0 && (
             <Link
-              href={`/mandor/perbaikan${q}`}
+              href="/mandor/perbaikan"
               className="mb-3 flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 active:bg-rose-100"
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
