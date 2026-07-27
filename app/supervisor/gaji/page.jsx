@@ -61,10 +61,15 @@ const { data: proyek } = await supabase
       .gte("tanggal", iso(bulanIni)),
   ]);
 
-  // Tandai potongan baru sudah dilihat supaya badge di dashboard hilang.
-  const potonganBelumDibaca = (potongan || []).filter((p) => !p.dibaca_supervisor).map((p) => p.id);
-  if (potonganBelumDibaca.length > 0) {
-    await supabase.from("potongan_gaji").update({ dibaca_supervisor: true }).in("id", potonganBelumDibaca);
+  // Tandai SEMUA potongan_gaji milik akun ini yang belum dibaca (bukan cuma
+  // bulan berjalan, karena badge di dashboard menghitung all-time) supaya
+  // badge di dashboard hilang.
+  if (chatId) {
+    await supabase
+      .from("potongan_gaji")
+      .update({ dibaca_supervisor: true })
+      .eq("chat_id", chatId)
+      .eq("dibaca_supervisor", false);
   }
 
   const totalKasbon = sum(kasbonRows, (k) => k.nominal);
