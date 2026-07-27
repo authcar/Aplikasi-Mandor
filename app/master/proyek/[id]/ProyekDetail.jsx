@@ -21,7 +21,7 @@ const labelTanggal = (tgl) =>
 // read-only di sini — kecuali nilai_proyek (Nilai Jasa Tukang) yang bisa
 // diinput manual oleh Master lewat NilaiJasaForm. `riwayat` dari
 // laporan_harian (laporan manual Supervisor), terurut terbaru dulu.
-export default function ProyekDetail({ proyek, jumlahHadir, riwayat = [] }) {
+export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riwayat = [] }) {
   const laporanTerakhir = riwayat[0] || null;
 
   return (

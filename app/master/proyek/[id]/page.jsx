@@ -9,15 +9,18 @@ export default async function ProyekDetailMasterPage({ params }) {
   const { supabase } = await getSessionProfile();
   const { id } = params;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-  const [{ data: proyek }, { data: absensi }, { data: riwayatRows }] = await Promise.all([
+  const [{ data: proyek }, { data: absensiTim }, { data: riwayatRows }] = await Promise.all([
     supabase
       .from("proyek")
       .select("id, nama, lokasi, icon, nilai_proyek, mandor:mandor_id(name), supervisor:supervisor_id(name)")
       .eq("id", id)
       .single(),
-    supabase.from("absensi_ringkas").select("jumlah_hadir").eq("proyek_id", id).eq("tanggal", today).maybeSingle(),
+    // Absensi tukang harian yang diisi Supervisor (lihat app/supervisor/absensi),
+    // disaring ke proyek ini saja — menggantikan absensi_ringkas yang tidak
+    // pernah terisi lagi sejak alur absensi_tim dipakai.
+    supabase.from("absensi_tim").select("tim, jumlah").eq("proyek_id", id).eq("tanggal", today),
     supabase
       .from("laporan_harian")
       .select("id, tanggal, deskripsi, status, foto_url, created_at")
@@ -28,6 +31,13 @@ export default async function ProyekDetailMasterPage({ params }) {
   ]);
 
   if (!proyek) return <p className="p-6">Proyek tidak ditemukan.</p>;
+
+  // Baris bernama (jumlah null) dihitung 1 orang — sama seperti master/absensi.
+  const jumlahHadir = (absensiTim || []).reduce(
+    (s, r) => s + (Number(r.jumlah) > 0 ? Number(r.jumlah) : 1),
+    0
+  );
+  const jumlahTim = new Set((absensiTim || []).map((r) => r.tim)).size;
 
   const paths = (riwayatRows || []).filter((r) => r.foto_url).map((r) => r.foto_url);
   const { data: signed } = paths.length
@@ -46,7 +56,8 @@ export default async function ProyekDetailMasterPage({ params }) {
   return (
     <ProyekDetail
       proyek={proyek}
-      jumlahHadir={absensi?.jumlah_hadir ?? null}
+      jumlahHadir={jumlahTim > 0 ? jumlahHadir : null}
+      jumlahTim={jumlahTim}
       riwayat={riwayat}
     />
   );
