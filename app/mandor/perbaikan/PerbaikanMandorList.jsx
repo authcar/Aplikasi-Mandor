@@ -12,7 +12,7 @@ const STATUS_LABEL = {
   IN_PROGRESS: { label: "Diproses", cls: "text-amber-500" },
   PENDING_REVIEW: { label: "Menunggu Persetujuan Supervisor", cls: "text-amber-500" },
   DONE: { label: "Selesai", cls: "text-green-500" },
-  CANCELLED: { label: "Dibatalkan", cls: "text-red-500" },
+  CANCELLED: { label: "Tidak Disetujui", cls: "text-red-500" },
 };
 
 // Alur: Mandor menandai selesai DENGAN foto bukti pengerjaan -> status jadi

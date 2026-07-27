@@ -10,7 +10,7 @@ const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
   IN_PROGRESS: { label: "Diproses", cls: "text-amber-500" },
   DONE: { label: "Selesai", cls: "text-green-500" },
-  CANCELLED: { label: "Dibatalkan", cls: "text-red-500" },
+  CANCELLED: { label: "Tidak Disetujui", cls: "text-red-500" },
 };
 
 export default function PerbaikanMandorList({ items = [] }) {

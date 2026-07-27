@@ -12,7 +12,7 @@ const STATUS_LABEL = {
   IN_PROGRESS: { label: "Diproses", cls: "text-amber-500" },
   PENDING_REVIEW: { label: "Menunggu Persetujuan Anda", cls: "text-amber-500" },
   DONE: { label: "Selesai", cls: "text-green-500" },
-  CANCELLED: { label: "Dibatalkan", cls: "text-red-500" },
+  CANCELLED: { label: "Tidak Disetujui", cls: "text-red-500" },
 };
 
 export default function PerbaikanForm({ proyeks = [], items = [] }) {
@@ -265,7 +265,7 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
                           onClick={() => ubahStatus(it.id, "CANCELLED")}
                           className="btn-outline text-red-500"
                         >
-                          Batalkan
+                          Tidak Disetujui
                         </button>
                         <button
                           onClick={() => ubahStatus(it.id, "DONE")}
