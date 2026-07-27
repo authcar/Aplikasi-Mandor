@@ -22,7 +22,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], mandors = [] }
   const [proyekId, setProyekId] = useState(proyeks[0]?.id || "");
   const [uraian, setUraian] = useState("");
   const [periode, setPeriode] = useState("1");
-  const [assignedMandorId, setAssignedMandorId] = useState("");
   const [foto, setFoto] = useState(null);
   const [preview, setPreview] = useState(null);
   const [kameraOpen, setKameraOpen] = useState(false);
@@ -70,7 +69,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], mandors = [] }
       periode,
       foto_url,
       created_by: uid,
-      assigned_mandor_id: assignedMandorId || null,
     });
     setBusy(false);
     if (error) {
@@ -81,7 +79,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], mandors = [] }
     setUraian("");
     setFoto(null);
     setPreview(null);
-    setAssignedMandorId("");
   };
 
   // Tugaskan/ubah Mandor penanggung jawab item ini secara manual — dipakai
@@ -220,23 +217,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], mandors = [] }
               placeholder="1"
               className="input"
             />
-          </div>
-
-          <div>
-            <label className="label">Tugaskan ke Mandor (opsional)</label>
-            <select
-              value={assignedMandorId}
-              onChange={(e) => setAssignedMandorId(e.target.value)}
-              className="input"
-            >
-              <option value="">— Ikuti mandor proyek —</option>
-              {mandors.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-400">
-              Isi kalau mandor proyek ini belum ke-assign (mis. sync Taraco gagal) atau item ini perlu ditangani mandor lain.
-            </p>
           </div>
 
           <div>
