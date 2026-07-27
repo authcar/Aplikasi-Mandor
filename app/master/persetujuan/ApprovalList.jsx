@@ -30,16 +30,20 @@ export default function ApprovalList({ items: initialItems }) {
   const [items, setItems] = useState(initialItems);
   const [nota, setNota] = useState(null);
   const [unduh, setUnduh] = useState(false);
+  const [tolakFor, setTolakFor] = useState(null);
+  const [alasanTolak, setAlasanTolak] = useState("");
+  const [errTolak, setErrTolak] = useState("");
 
   const filtered = tab === "SEMUA" ? items : items.filter((i) => i._status === tab);
 
-  const review = async (tipe, id, aksi) => {
+  const review = async (tipe, id, aksi, catatan) => {
     setBusy(id);
     const res = await fetch("/api/approval", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tipe, id, aksi }),
+      body: JSON.stringify({ tipe, id, aksi, catatan }),
     });
+    const json = await res.json().catch(() => ({}));
     setBusy(null);
     if (res.ok) {
       setItems((prev) =>
@@ -47,10 +51,32 @@ export default function ApprovalList({ items: initialItems }) {
           x.id === id ? { ...x, _status: aksi === "APPROVED" ? "APPROVED" : "REJECTED" } : x
         )
       );
+      batalTolak();
       router.refresh();
-    } else {
-      alert("Gagal memproses. Coba lagi.");
+      return true;
     }
+    alert(json.error || "Gagal memproses. Coba lagi.");
+    return false;
+  };
+
+  const mulaiTolak = (id) => {
+    setTolakFor(id);
+    setAlasanTolak("");
+    setErrTolak("");
+  };
+
+  const batalTolak = () => {
+    setTolakFor(null);
+    setAlasanTolak("");
+    setErrTolak("");
+  };
+
+  // Kasbon/Reimburse yang ditolak wajib disertai alasan (lembur tidak,
+  // lihat catatan di app/api/approval/route.js).
+  const kirimTolak = async (tipe, id) => {
+    if (tipe === "keuangan" && !alasanTolak.trim())
+      return setErrTolak("Alasan penolakan wajib diisi.");
+    await review(tipe, id, "REJECTED", alasanTolak.trim());
   };
 
   const unduhNota = async () => {
@@ -148,11 +174,47 @@ export default function ApprovalList({ items: initialItems }) {
                 </button>
               )}
 
-              {it._status === "PENDING" && (
+              {it._status === "REJECTED" && it._catatanTolak && (
+                <div className="mt-2 rounded-lg bg-red-50 px-3 py-2">
+                  <p className="text-xs font-bold text-red-700">Alasan Penolakan</p>
+                  <p className="text-sm text-red-600">{it._catatanTolak}</p>
+                </div>
+              )}
+
+              {it._status === "PENDING" && tolakFor === it.id && (
+                <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+                  <label className="label">Alasan Penolakan</label>
+                  <textarea
+                    value={alasanTolak}
+                    onChange={(e) => setAlasanTolak(e.target.value)}
+                    placeholder="Contoh: Nota tidak sesuai, keterangan kurang jelas..."
+                    rows={2}
+                    className="input"
+                    autoFocus
+                  />
+                  {errTolak && <p className="text-sm font-medium text-red-600">{errTolak}</p>}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={batalTolak} disabled={busy === it.id} className="btn-outline text-gray-500">
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => kirimTolak(it._tipe, it.id)}
+                      disabled={busy === it.id}
+                      className="btn-danger"
+                    >
+                      {busy === it.id ? "Mengirim..." : "Kirim Penolakan"}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {it._status === "PENDING" && tolakFor !== it.id && (
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   <button
                     disabled={busy === it.id}
-                    onClick={() => review(it._tipe, it.id, "REJECTED")}
+                    onClick={() =>
+                      it._tipe === "keuangan" ? mulaiTolak(it.id) : review(it._tipe, it.id, "REJECTED")
+                    }
                     className="btn-danger"
                   >
                     Tolak

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 
 // POST /api/approval
-// body: { tipe: 'lembur'|'keuangan', id: uuid, aksi: 'APPROVED'|'REJECTED' }
+// body: { tipe: 'lembur'|'keuangan', id: uuid, aksi: 'APPROVED'|'REJECTED', catatan? }
 // SUPERVISOR & MASTER. RLS di DB jadi lapis pertahanan kedua.
 export async function POST(req) {
   const { profile, supabase } = await getSessionProfile();
@@ -10,7 +10,7 @@ export async function POST(req) {
   if (!["SUPERVISOR", "MASTER"].includes(profile.role))
     return NextResponse.json({ error: "Hanya Supervisor/Master" }, { status: 403 });
 
-  const { tipe, id, aksi } = await req.json();
+  const { tipe, id, aksi, catatan } = await req.json();
   if (!["lembur", "keuangan"].includes(tipe) || !id)
     return NextResponse.json({ error: "Param salah" }, { status: 400 });
   if (!["APPROVED", "REJECTED"].includes(aksi))
@@ -26,6 +26,11 @@ export async function POST(req) {
       return NextResponse.json({ error: "Hanya bisa disetujui Master." }, { status: 403 });
   }
 
+  // Kasbon/Reimburse yang ditolak wajib disertai alasan, supaya pengaju tahu
+  // apa yang perlu diperbaiki — sama pola dengan penolakan bukti perbaikan.
+  if (tipe === "keuangan" && aksi === "REJECTED" && !catatan?.trim())
+    return NextResponse.json({ error: "Alasan penolakan wajib diisi." }, { status: 400 });
+
   const updatePayload = {
     status: aksi,
     reviewed_by: profile.id,
@@ -33,7 +38,10 @@ export async function POST(req) {
   };
   // Nyalakan badge "hasil baru" di dashboard pemohon (SPV utk kasbon,
   // mandor/tukang harian utk reimburse) — bukan di lembur, kolomnya gak ada.
-  if (tipe === "keuangan") updatePayload.dibaca_pemohon = false;
+  if (tipe === "keuangan") {
+    updatePayload.dibaca_pemohon = false;
+    updatePayload.catatan_tolak = aksi === "REJECTED" ? catatan.trim() : null;
+  }
 
   const { data, error } = await supabase
     .from(tipe)

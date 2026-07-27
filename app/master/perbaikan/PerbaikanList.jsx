@@ -53,6 +53,12 @@ export default function PerbaikanList({ items = [] }) {
                 </FotoLightbox>
               </div>
             )}
+            {it.catatan_tolak && (
+              <div className="mt-2 rounded-lg bg-red-50 px-3 py-2">
+                <p className="text-xs font-bold text-red-700">Ditolak Supervisor</p>
+                <p className="text-sm text-red-600">{it.catatan_tolak}</p>
+              </div>
+            )}
             <p className={`mt-3 text-xs font-semibold ${st.cls}`}>{st.label}</p>
           </div>
         );

@@ -74,7 +74,7 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
     const uid = (await supabase.auth.getUser()).data.user.id;
     const { data: rows } = await supabase
       .from("keuangan")
-      .select("id, nominal, keterangan, status, created_at")
+      .select("id, nominal, keterangan, status, catatan_tolak, created_at")
       .eq("proyek_id", proyek.id)
       .eq("jenis", "REIMBURSE")
       .eq("created_by", uid)
@@ -179,6 +179,12 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
                     </div>
                     {it.keterangan && (
                       <p className="mt-0.5 text-sm text-gray-500">{it.keterangan}</p>
+                    )}
+                    {it.status === "REJECTED" && it.catatan_tolak && (
+                      <div className="mt-2 rounded-lg bg-red-50 px-3 py-2">
+                        <p className="text-xs font-bold text-red-700">Alasan Penolakan</p>
+                        <p className="text-sm text-red-600">{it.catatan_tolak}</p>
+                      </div>
                     )}
                     <p className="mt-1 text-xs text-gray-400">
                       {new Date(it.created_at).toLocaleDateString("id-ID", {

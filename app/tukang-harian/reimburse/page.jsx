@@ -18,7 +18,7 @@ export default async function ReimbursePage() {
   const { data: riwayat } = proyek
     ? await supabase
         .from("keuangan")
-        .select("id, nominal, keterangan, status, created_at, dibaca_pemohon")
+        .select("id, nominal, keterangan, status, catatan_tolak, created_at, dibaca_pemohon")
         .eq("proyek_id", proyek.id)
         .eq("jenis", "REIMBURSE")
         .eq("created_by", profile.id)

@@ -119,6 +119,12 @@ export default function KasbonForm({ proyekList = [], riwayat = [] }) {
                   {it.keterangan && (
                     <p className="mt-0.5 text-sm text-gray-500">{it.keterangan}</p>
                   )}
+                  {it.status === "REJECTED" && it.catatan_tolak && (
+                    <div className="mt-2 rounded-lg bg-red-50 px-3 py-2">
+                      <p className="text-xs font-bold text-red-700">Alasan Penolakan</p>
+                      <p className="text-sm text-red-600">{it.catatan_tolak}</p>
+                    </div>
+                  )}
                   <p className="mt-1 text-xs text-gray-400">
                     {new Date(it.created_at).toLocaleDateString("id-ID", {
                       weekday: "short",

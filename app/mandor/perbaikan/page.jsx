@@ -23,7 +23,7 @@ export default async function PerbaikanMandorPage({ searchParams }) {
   if (proyek) {
     const { data: rows } = await supabase
       .from("checklist_perbaikan")
-      .select("id, no, uraian, foto_url, foto_bukti_url, periode, status, dibaca_mandor, created_at")
+      .select("id, no, uraian, foto_url, foto_bukti_url, periode, status, dibaca_mandor, catatan_tolak, created_at")
       .eq("proyek_id", proyek.id)
       .order("no", { ascending: true });
 

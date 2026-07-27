@@ -27,6 +27,9 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
   const [kameraOpen, setKameraOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState(items);
+  const [tolakFor, setTolakFor] = useState(null);
+  const [alasanTolak, setAlasanTolak] = useState("");
+  const [errTolak, setErrTolak] = useState("");
 
   const pilihFoto = (e) => {
     const file = e.target.files?.[0];
@@ -87,20 +90,47 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
     router.refresh();
   };
 
-  // Setujui/tolak bukti pengerjaan yang dikirim Mandor (status PENDING_REVIEW).
+  // Setujui bukti pengerjaan yang dikirim Mandor (status PENDING_REVIEW).
   // dibaca_mandor direset ke false supaya Mandor melihat badge "Baru" —
   // hasil review ini muncul lagi di checklist-nya.
-  const reviewBukti = async (id, disetujui) => {
-    const status = disetujui ? "DONE" : "OPEN";
-    setList((l) => l.map((x) => (x.id === id ? { ...x, status } : x)));
+  const setujuiBukti = async (id) => {
+    setList((l) => l.map((x) => (x.id === id ? { ...x, status: "DONE" } : x)));
+    await supabase
+      .from("checklist_perbaikan")
+      .update({ status: "DONE", selesai_at: new Date().toISOString(), dibaca_mandor: false })
+      .eq("id", id);
+    router.refresh();
+  };
+
+  const mulaiTolak = (id) => {
+    setTolakFor(id);
+    setAlasanTolak("");
+    setErrTolak("");
+  };
+
+  const batalTolak = () => {
+    setTolakFor(null);
+    setAlasanTolak("");
+    setErrTolak("");
+  };
+
+  // Tolak bukti pengerjaan — wajib isi alasan supaya Mandor tahu apa yang
+  // perlu diperbaiki, bukan cuma disuruh ulang tanpa konteks.
+  const kirimTolak = async (id) => {
+    if (!alasanTolak.trim()) return setErrTolak("Alasan penolakan wajib diisi.");
+    setBusy(true);
+    setList((l) => l.map((x) => (x.id === id ? { ...x, status: "OPEN" } : x)));
     await supabase
       .from("checklist_perbaikan")
       .update({
-        status,
-        selesai_at: disetujui ? new Date().toISOString() : null,
+        status: "OPEN",
+        selesai_at: null,
         dibaca_mandor: false,
+        catatan_tolak: alasanTolak.trim(),
       })
       .eq("id", id);
+    setBusy(false);
+    batalTolak();
     router.refresh();
   };
 
@@ -235,23 +265,47 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
                       </FotoLightbox>
                     </div>
                   )}
+                  {it.status === "PENDING_REVIEW" && tolakFor === it.id && (
+                    <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+                      <label className="label">Alasan Penolakan</label>
+                      <textarea
+                        value={alasanTolak}
+                        onChange={(e) => setAlasanTolak(e.target.value)}
+                        placeholder="Contoh: Foto belum menunjukkan area yang diperbaiki..."
+                        rows={2}
+                        className="input"
+                        autoFocus
+                      />
+                      {errTolak && <p className="text-sm font-medium text-red-600">{errTolak}</p>}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" onClick={batalTolak} disabled={busy} className="btn-outline text-gray-500">
+                          Batal
+                        </button>
+                        <button type="button" onClick={() => kirimTolak(it.id)} disabled={busy} className="btn-danger">
+                          {busy ? "Mengirim..." : "Kirim Penolakan"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <div className="mt-3 flex items-center justify-between">
                     <span className={`text-xs font-semibold ${st.cls}`}>{st.label}</span>
                     {it.status === "PENDING_REVIEW" ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => reviewBukti(it.id, false)}
-                          className="btn-outline text-red-500"
-                        >
-                          Tolak
-                        </button>
-                        <button
-                          onClick={() => reviewBukti(it.id, true)}
-                          className="btn-success"
-                        >
-                          Setujui
-                        </button>
-                      </div>
+                      tolakFor !== it.id && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => mulaiTolak(it.id)}
+                            className="btn-outline text-red-500"
+                          >
+                            Tolak
+                          </button>
+                          <button
+                            onClick={() => setujuiBukti(it.id)}
+                            className="btn-success"
+                          >
+                            Setujui
+                          </button>
+                        </div>
+                      )
                     ) : it.status === "DONE" || it.status === "CANCELLED" ? (
                       <button
                         onClick={() => ubahStatus(it.id, "OPEN")}

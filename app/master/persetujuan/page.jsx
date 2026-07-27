@@ -13,7 +13,7 @@ export default async function PersetujuanMasterPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("keuangan")
-      .select("id, jenis, nominal, keterangan, nota_url, status, created_at, dibaca_master, proyek(nama), creator:created_by(name)")
+      .select("id, jenis, nominal, keterangan, nota_url, status, catatan_tolak, created_at, dibaca_master, proyek(nama), creator:created_by(name)")
       .order("created_at", { ascending: false }),
   ]);
 
@@ -65,6 +65,7 @@ export default async function PersetujuanMasterPage() {
       _jam: null,
       _tanggal: k.created_at?.slice(0, 10),
       _status: k.status,
+      _catatanTolak: k.catatan_tolak,
       _nota: nota,
     });
   }

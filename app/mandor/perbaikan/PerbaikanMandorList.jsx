@@ -70,13 +70,15 @@ export default function PerbaikanMandorList({ items = [], proyekId }) {
 
       const { error } = await supabase
         .from("checklist_perbaikan")
-        .update({ status: "PENDING_REVIEW", foto_bukti_url: path, dibaca_supervisor: false })
+        .update({ status: "PENDING_REVIEW", foto_bukti_url: path, dibaca_supervisor: false, catatan_tolak: null })
         .eq("id", id);
       if (error) throw new Error("Gagal mengirim: " + error.message);
 
       setList((l) =>
         l.map((x) =>
-          x.id === id ? { ...x, status: "PENDING_REVIEW", fotoBukti: signed?.signedUrl || null } : x
+          x.id === id
+            ? { ...x, status: "PENDING_REVIEW", fotoBukti: signed?.signedUrl || null, catatan_tolak: null }
+            : x
         )
       );
       batalUpload();
@@ -132,6 +134,12 @@ export default function PerbaikanMandorList({ items = [], proyekId }) {
                 <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
                   <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-28 w-full rounded-xl border border-gray-200 object-cover" />
                 </FotoLightbox>
+              </div>
+            )}
+            {it.status === "OPEN" && it.catatan_tolak && (
+              <div className="mt-2 rounded-lg bg-red-50 px-3 py-2">
+                <p className="text-xs font-bold text-red-700">Ditolak Supervisor</p>
+                <p className="text-sm text-red-600">{it.catatan_tolak}</p>
               </div>
             )}
 

@@ -13,7 +13,7 @@ export default async function PerbaikanMasterPage() {
   const { data: rows } = await supabase
     .from("checklist_perbaikan")
     .select(
-      "id, no, uraian, foto_url, foto_bukti_url, periode, status, created_at, selesai_at, proyek(nama), creator:created_by(name)"
+      "id, no, uraian, foto_url, foto_bukti_url, periode, status, catatan_tolak, created_at, selesai_at, proyek(nama), creator:created_by(name)"
     )
     .order("created_at", { ascending: false });
 
@@ -35,6 +35,7 @@ export default async function PerbaikanMasterPage() {
       uraian: r.uraian,
       periode: r.periode,
       status: r.status,
+      catatan_tolak: r.catatan_tolak,
       created_at: r.created_at,
       selesai_at: r.selesai_at,
       proyek: r.proyek?.nama || "-",
