@@ -14,16 +14,6 @@ const TABS = [
     ),
   },
   {
-    href: "/mandor/lembur",
-    label: "Lembur",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 6v6l4 2" />
-      </svg>
-    ),
-  },
-  {
     href: "/mandor/profil",
     label: "Profil",
     icon: (
@@ -45,7 +35,7 @@ export default function MandorNavbar() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md border-t border-gray-200 bg-white/95 backdrop-blur">
-      <div className="grid grid-cols-3">
+      <div className="grid grid-cols-2">
         {TABS.map((tab) => {
           const active = isActive(tab.href);
           return (

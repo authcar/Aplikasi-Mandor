@@ -61,11 +61,13 @@ export default async function DashboardSupervisor() {
       .from("lembur")
       .select("id", { count: "exact", head: true })
       .eq("status", "PENDING"),
+    // Kasbon & Reimburse cuma disetujui Master, jadi tidak dihitung di sini.
     supabase
       .from("keuangan")
       .select("id", { count: "exact", head: true })
       .eq("status", "PENDING")
-      .neq("jenis", "KASBON"),
+      .neq("jenis", "KASBON")
+      .neq("jenis", "REIMBURSE"),
     supabase
       .from("masalah")
       .select("id", { count: "exact", head: true })

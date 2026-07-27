@@ -35,6 +35,7 @@ export default async function DashboardMaster() {
     { count: k },
     { count: kasbonBaru },
     { count: laporanBaru },
+    { count: perbaikanMenunggu },
     { data: potongan },
     { data: laporanHariIniRows },
     { data: absensiHariIniRows },
@@ -45,6 +46,8 @@ export default async function DashboardMaster() {
     supabase.from("keuangan").select("id", { count: "exact", head: true }).eq("jenis", "KASBON").eq("dibaca_master", false),
     // Laporan harian baru dari Supervisor yang belum dilihat Master.
     supabase.from("laporan_harian").select("id", { count: "exact", head: true }).eq("dibaca_master", false),
+    // Bukti pengerjaan checklist perbaikan yang menunggu review Supervisor.
+    supabase.from("checklist_perbaikan").select("id", { count: "exact", head: true }).eq("status", "PENDING_REVIEW"),
     supabase.from("potongan_gaji").select("id, tanggal, persentase").eq("chat_id", chatId).gte("tanggal", bulanIni).order("tanggal"),
     // Proyek yang sudah ada laporan_harian hari ini — dipakai buat notifikasi
     // "belum lapor" di bawah, jadi Master gak perlu cek manual satu-satu.
@@ -60,6 +63,7 @@ export default async function DashboardMaster() {
   const pending = (l || 0) + (k || 0);
   const kasbonBaruCount = kasbonBaru || 0;
   const laporanBaruCount = laporanBaru || 0;
+  const perbaikanMenungguCount = perbaikanMenunggu || 0;
 
   const proyekSudahLaporSet = new Set((laporanHariIniRows || []).map((r) => r.proyek_id));
   const proyekSudahAbsenSet = new Set((absensiHariIniRows || []).map((r) => r.proyek_id));
@@ -147,6 +151,16 @@ export default async function DashboardMaster() {
             </span>
           )}
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Laporan Harian</p>
+          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
+        </Link>
+        <Link href="/master/perbaikan" className="relative card-tap flex flex-col items-center justify-center gap-1 p-3">
+          <span className="icon-tile bg-orange-100 text-orange-600 !w-8 !h-8"><Icon name="wrench" /></span>
+          {perbaikanMenungguCount > 0 && (
+            <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {perbaikanMenungguCount}
+            </span>
+          )}
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Checklist Perbaikan</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
         <Link href="/master/kelola-akun" className="card-tap flex flex-col items-center justify-center gap-1 p-3">

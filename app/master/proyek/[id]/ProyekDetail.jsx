@@ -1,7 +1,7 @@
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import RiwayatLaporanHarianCard from "@/app/supervisor/laporan-harian/RiwayatLaporanHarianCard";
-import NilaiJasaForm from "./NilaiJasaForm";
+import EditableAngkaField from "./EditableAngkaField";
 
 // Sama dengan STATUS_BADGE di app/supervisor/laporan-harian/RiwayatLaporanHarianCard.jsx
 const STATUS_BADGE = {
@@ -18,9 +18,9 @@ const labelTanggal = (tgl) =>
   });
 
 // Sebagian besar data proyek datang dari Taraco (satu-satunya sumber) dan
-// read-only di sini — kecuali nilai_proyek (Nilai Jasa Tukang) yang bisa
-// diinput manual oleh Master lewat NilaiJasaForm. `riwayat` dari
-// laporan_harian (laporan manual Supervisor), terurut terbaru dulu.
+// read-only di sini — kecuali nilai_proyek (Nilai Jasa Tukang) & sisa_budget
+// (Sisa Budget) yang bisa diinput manual oleh Master lewat EditableAngkaField.
+// `riwayat` dari laporan_harian (laporan manual Supervisor), terurut terbaru dulu.
 export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riwayat = [] }) {
   const laporanTerakhir = riwayat[0] || null;
 
@@ -53,7 +53,8 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
       </div>
 
       <div className="card p-4 mb-5 space-y-3">
-        <NilaiJasaForm proyekId={proyek.id} nilaiAwal={proyek.nilai_proyek} />
+        <EditableAngkaField proyekId={proyek.id} field="nilai_proyek" label="Nilai Jasa Tukang" nilaiAwal={proyek.nilai_proyek} />
+        <EditableAngkaField proyekId={proyek.id} field="sisa_budget" label="Sisa Budget" nilaiAwal={proyek.sisa_budget} />
         <div>
           <p className="label">Supervisor</p>
           <p className="text-lg font-semibold">{proyek.supervisor?.name || "— Belum ditetapkan —"}</p>

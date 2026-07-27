@@ -23,7 +23,7 @@ export default async function PerbaikanMandorPage({ searchParams }) {
   if (proyek) {
     const { data: rows } = await supabase
       .from("checklist_perbaikan")
-      .select("id, no, uraian, foto_url, periode, status, dibaca_mandor, created_at")
+      .select("id, no, uraian, foto_url, foto_bukti_url, periode, status, dibaca_mandor, created_at")
       .eq("proyek_id", proyek.id)
       .order("no", { ascending: true });
 
@@ -35,7 +35,14 @@ export default async function PerbaikanMandorPage({ searchParams }) {
           .createSignedUrl(r.foto_url, 3600);
         foto = data?.signedUrl || null;
       }
-      items.push({ ...r, foto });
+      let fotoBukti = null;
+      if (r.foto_bukti_url) {
+        const { data } = await supabase.storage
+          .from("perbaikan")
+          .createSignedUrl(r.foto_bukti_url, 3600);
+        fotoBukti = data?.signedUrl || null;
+      }
+      items.push({ ...r, foto, fotoBukti });
     }
 
     // Tandai sudah dibaca supaya badge notifikasi di dashboard hilang.
@@ -59,7 +66,7 @@ export default async function PerbaikanMandorPage({ searchParams }) {
       {!proyek ? (
         <p className="p-6 text-center text-gray-500">Belum ada proyek aktif.</p>
       ) : (
-        <PerbaikanMandorList items={items} />
+        <PerbaikanMandorList items={items} proyekId={proyek.id} />
       )}
     </main>
   );

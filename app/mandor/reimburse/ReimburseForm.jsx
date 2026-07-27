@@ -101,7 +101,7 @@ export default function ReimburseForm({ proyeks = [], riwayat = [] }) {
       <main className="p-4">
         <BackButton href={`/mandor${proyekId ? `?proyek=${proyekId}` : ""}`} />
         <h1 className="text-xl font-bold tracking-tight">Reimburse / Klaim</h1>
-        <p className="mb-4 text-sm text-gray-500">Kirim klaim biaya ke Supervisor</p>
+        <p className="mb-4 text-sm text-gray-500">Kirim klaim biaya ke Master</p>
         <form onSubmit={submit} className="space-y-4">
           <Field label="Proyek">
             <select
@@ -174,7 +174,7 @@ export default function ReimburseForm({ proyeks = [], riwayat = [] }) {
           )}
 
           <button disabled={busy} className="btn-primary btn-lg w-full">
-            {busy ? "Mengirim..." : "KIRIM KE SUPERVISOR"}
+            {busy ? "Mengirim..." : "KIRIM KE MASTER"}
           </button>
         </form>
 

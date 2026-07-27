@@ -160,7 +160,7 @@ export default function ReimburseForm({ proyek, riwayat = [] }) {
           )}
 
           <button disabled={busy} className="btn-primary btn-lg w-full">
-            {busy ? "Mengirim..." : "KIRIM KE SUPERVISOR"}
+            {busy ? "Mengirim..." : "KIRIM KE MASTER"}
           </button>
         </form>
 

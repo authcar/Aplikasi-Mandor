@@ -11,10 +11,12 @@ export default async function PersetujuanPage() {
       .from("lembur")
       .select("id, jam, total, catatan, tanggal, foto_url, status, created_at, proyek(nama), creator:created_by(name)")
       .order("created_at", { ascending: false }),
+    // Kasbon & Reimburse cuma disetujui Master (lihat app/api/approval/route.js).
     supabase
       .from("keuangan")
       .select("id, jenis, nominal, keterangan, nota_url, status, created_at, proyek(nama), creator:created_by(name)")
       .neq("jenis", "KASBON")
+      .neq("jenis", "REIMBURSE")
       .order("created_at", { ascending: false }),
   ]);
 

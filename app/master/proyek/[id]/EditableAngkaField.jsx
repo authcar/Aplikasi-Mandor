@@ -3,9 +3,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { rupiah } from "@/lib/format";
 
-// Master menginput/mengubah Nilai Jasa Tukang per proyek secara manual.
-// Field ini tidak lagi disinkron dari Taraco — lihat lib/supabase/syncProyek.js.
-export default function NilaiJasaForm({ proyekId, nilaiAwal }) {
+// Master menginput/mengubah field angka manual proyek (Nilai Jasa Tukang,
+// Sisa Budget) lewat app/api/proyek/route.js. Field ini tidak disinkron
+// dari Taraco — lihat lib/supabase/syncProyek.js.
+export default function EditableAngkaField({ proyekId, field, label, nilaiAwal }) {
   const router = useRouter();
   const [edit, setEdit] = useState(false);
   const [nilai, setNilai] = useState(nilaiAwal ?? "");
@@ -25,7 +26,7 @@ export default function NilaiJasaForm({ proyekId, nilaiAwal }) {
       const res = await fetch("/api/proyek", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: proyekId, nilai_proyek: nilai }),
+        body: JSON.stringify({ id: proyekId, field, value: nilai }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal menyimpan.");
@@ -42,7 +43,7 @@ export default function NilaiJasaForm({ proyekId, nilaiAwal }) {
     return (
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="label">Nilai Jasa Tukang</p>
+          <p className="label">{label}</p>
           <p className="text-lg font-semibold">
             {nilaiAwal ? rupiah(nilaiAwal) : "—"}
           </p>
@@ -60,7 +61,7 @@ export default function NilaiJasaForm({ proyekId, nilaiAwal }) {
 
   return (
     <div>
-      <p className="label">Nilai Jasa Tukang</p>
+      <p className="label">{label}</p>
       <div className="flex items-center gap-2">
         <input
           type="number"

@@ -10,6 +10,7 @@ import FotoLightbox from "@/components/FotoLightbox";
 const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
   IN_PROGRESS: { label: "Diproses", cls: "text-amber-500" },
+  PENDING_REVIEW: { label: "Menunggu Persetujuan Anda", cls: "text-amber-500" },
   DONE: { label: "Selesai", cls: "text-green-500" },
   CANCELLED: { label: "Dibatalkan", cls: "text-red-500" },
 };
@@ -82,6 +83,23 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
     await supabase
       .from("checklist_perbaikan")
       .update({ status, selesai_at: status === "DONE" ? new Date().toISOString() : null })
+      .eq("id", id);
+    router.refresh();
+  };
+
+  // Setujui/tolak bukti pengerjaan yang dikirim Mandor (status PENDING_REVIEW).
+  // dibaca_mandor direset ke false supaya Mandor melihat badge "Baru" —
+  // hasil review ini muncul lagi di checklist-nya.
+  const reviewBukti = async (id, disetujui) => {
+    const status = disetujui ? "DONE" : "OPEN";
+    setList((l) => l.map((x) => (x.id === id ? { ...x, status } : x)));
+    await supabase
+      .from("checklist_perbaikan")
+      .update({
+        status,
+        selesai_at: disetujui ? new Date().toISOString() : null,
+        dibaca_mandor: false,
+      })
       .eq("id", id);
     router.refresh();
   };
@@ -209,9 +227,32 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
                       <img src={it.foto} alt="dokumentasi" className="h-28 w-full rounded-xl border border-gray-200 object-cover" />
                     </FotoLightbox>
                   )}
+                  {it.fotoBukti && (
+                    <div className="mt-2">
+                      <p className="mb-1 text-xs font-semibold text-gray-500">Foto Bukti Pengerjaan Mandor</p>
+                      <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
+                        <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-28 w-full rounded-xl border border-gray-200 object-cover" />
+                      </FotoLightbox>
+                    </div>
+                  )}
                   <div className="mt-3 flex items-center justify-between">
                     <span className={`text-xs font-semibold ${st.cls}`}>{st.label}</span>
-                    {it.status === "DONE" || it.status === "CANCELLED" ? (
+                    {it.status === "PENDING_REVIEW" ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => reviewBukti(it.id, false)}
+                          className="btn-outline text-red-500"
+                        >
+                          Tolak
+                        </button>
+                        <button
+                          onClick={() => reviewBukti(it.id, true)}
+                          className="btn-success"
+                        >
+                          Setujui
+                        </button>
+                      </div>
+                    ) : it.status === "DONE" || it.status === "CANCELLED" ? (
                       <button
                         onClick={() => ubahStatus(it.id, "OPEN")}
                         className="btn-outline text-gray-500"

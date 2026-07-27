@@ -23,7 +23,7 @@ export default async function DashboardMandor({ searchParams }) {
 
   const { data: proyekList } = await supabase
     .from("proyek")
-    .select("id, nama, lokasi, nilai_proyek")
+    .select("id, nama, lokasi, nilai_proyek, sisa_budget")
     .eq("mandor_id", profile.id)
     .eq("is_active", true)
     .order("nama");
@@ -32,25 +32,14 @@ export default async function DashboardMandor({ searchParams }) {
   // Proyek terpilih: dari ?proyek=, jika tidak valid pakai yang pertama.
   const proyek = list.find((p) => p.id === searchParams?.proyek) || list[0] || null;
 
-  let hadir = 0,
-    pendingApr = 0,
+  let pendingApr = 0,
     perbaikanBaru = 0,
     reimburseBaru = 0,
+    kasbonBaru = 0,
     masalahBaru = 0;
 
   if (proyek) {
-    const [{ data: ringkas }, { count: l }, { count: k }, { count: pb }, { count: rb }, { count: mb }] = await Promise.all([
-      supabase
-        .from("absensi_ringkas")
-        .select("jumlah_hadir")
-        .eq("proyek_id", proyek.id)
-        .eq("tanggal", today)
-        .maybeSingle(),
-      supabase
-        .from("lembur")
-        .select("id", { count: "exact", head: true })
-        .eq("proyek_id", proyek.id)
-        .eq("status", "PENDING"),
+    const [{ count: k }, { count: pb }, { count: rb }, { count: kb }, { count: mb }] = await Promise.all([
       supabase
         .from("keuangan")
         .select("id", { count: "exact", head: true })
@@ -69,6 +58,14 @@ export default async function DashboardMandor({ searchParams }) {
         .eq("jenis", "REIMBURSE")
         .eq("created_by", profile.id)
         .eq("dibaca_pemohon", false),
+      // Hasil approve/reject kasbon milik mandor ini yang belum dilihat.
+      supabase
+        .from("keuangan")
+        .select("id", { count: "exact", head: true })
+        .eq("proyek_id", proyek.id)
+        .eq("jenis", "KASBON")
+        .eq("created_by", profile.id)
+        .eq("dibaca_pemohon", false),
       // Perubahan status laporan masalah milik mandor ini yang belum dilihat.
       supabase
         .from("masalah")
@@ -77,18 +74,17 @@ export default async function DashboardMandor({ searchParams }) {
         .eq("created_by", profile.id)
         .eq("dibaca_pelapor", false),
     ]);
-    hadir = ringkas?.jumlah_hadir ?? 0;
-    pendingApr = (l || 0) + (k || 0);
+    pendingApr = k || 0;
     perbaikanBaru = pb || 0;
     reimburseBaru = rb || 0;
+    kasbonBaru = kb || 0;
     masalahBaru = mb || 0;
   }
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
   const actions = [
-    { href: `/mandor/absensi${q}`, label: "Absensi", icon: "users", tile: "bg-green-100 text-green-600" },
-    { href: `/mandor/lembur${q}`, label: "Lembur", icon: "clock", tile: "bg-indigo-100 text-indigo-600" },
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru },
+    { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
     { href: `/mandor/perbaikan${q}`, label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
   ];
@@ -150,8 +146,8 @@ export default async function DashboardMandor({ searchParams }) {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2.5">
-              <Stat big={`${hadir} org`} label="Hadir hari ini" />
               <Stat big={proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"} label="Nilai Jasa Tukang" />
+              <Stat big={proyek.sisa_budget != null ? rupiah(proyek.sisa_budget) : "—"} label="Sisa Budget" />
             </div>
           </div>
 
@@ -179,7 +175,7 @@ export default async function DashboardMandor({ searchParams }) {
                 <Icon name="clock" className="h-3.5 w-3.5" />
               </span>
               <p className="text-xs font-semibold text-gray-600">
-                {pendingApr} pengajuan menunggu persetujuan Supervisor
+                {pendingApr} pengajuan menunggu persetujuan Master
               </p>
             </div>
           )}

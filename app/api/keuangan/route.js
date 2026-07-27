@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
-import { notifySupervisor, notifyMaster } from "@/lib/notify";
+import { notifyMaster } from "@/lib/notify";
+
+const KASBON_ROLES = ["SUPERVISOR", "MANDOR"];
 
 // POST /api/keuangan — Input Reimburse (siapa saja) atau Kasbon (khusus
-// Supervisor, disetujui Master, lihat /api/approval). Menerima
-// multipart/form-data:
+// Supervisor/Mandor). Keduanya disetujui Master, bukan Supervisor — lihat
+// /api/approval. Menerima multipart/form-data:
 //   proyek_id, jenis(REIMBURSE|KASBON), nominal, keterangan, tukang_id?, nota(File?)
 export async function POST(req) {
   const { profile, supabase } = await getSessionProfile();
@@ -20,8 +22,8 @@ export async function POST(req) {
 
   if (!proyek_id || !["REIMBURSE", "KASBON"].includes(jenis) || !nominal)
     return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
-  if (jenis === "KASBON" && profile.role !== "SUPERVISOR")
-    return NextResponse.json({ error: "Kasbon hanya bisa diajukan Supervisor." }, { status: 403 });
+  if (jenis === "KASBON" && !KASBON_ROLES.includes(profile.role))
+    return NextResponse.json({ error: "Kasbon hanya bisa diajukan Supervisor/Mandor." }, { status: 403 });
 
   let nota_url = null;
   if (nota && typeof nota === "object" && nota.size > 0) {
@@ -49,21 +51,11 @@ export async function POST(req) {
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  if (jenis === "KASBON") {
-    await notifyMaster({
-      tipe: "kasbon",
-      namaPengaju: profile.name,
-      ringkasan: `${keterangan || "Kasbon"} — Rp${nominal.toLocaleString("id-ID")}`,
-    }).catch(() => {});
-  } else {
-    await notifySupervisor({
-      supabase,
-      proyek_id,
-      tipe: "keuangan",
-      namaPengaju: profile.name,
-      ringkasan: `${keterangan || "Reimburse"} — Rp${nominal.toLocaleString("id-ID")}`,
-    }).catch(() => {});
-  }
+  await notifyMaster({
+    tipe: jenis === "KASBON" ? "kasbon" : "keuangan",
+    namaPengaju: profile.name,
+    ringkasan: `${keterangan || (jenis === "KASBON" ? "Kasbon" : "Reimburse")} — Rp${nominal.toLocaleString("id-ID")}`,
+  }).catch(() => {});
 
   return NextResponse.json({ ok: true, data });
 }
