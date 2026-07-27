@@ -1,7 +1,7 @@
-import { rupiah } from "@/lib/format";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import RiwayatLaporanHarianCard from "@/app/supervisor/laporan-harian/RiwayatLaporanHarianCard";
+import NilaiJasaForm from "./NilaiJasaForm";
 
 // Sama dengan STATUS_BADGE di app/supervisor/laporan-harian/RiwayatLaporanHarianCard.jsx
 const STATUS_BADGE = {
@@ -17,9 +17,10 @@ const labelTanggal = (tgl) =>
     month: "long",
   });
 
-// Read-only — data proyek datang dari Taraco (satu-satunya sumber),
-// tidak bisa diedit lagi di Aplikasi Mandor. `riwayat` dari laporan_harian
-// (laporan manual Supervisor), terurut terbaru dulu.
+// Sebagian besar data proyek datang dari Taraco (satu-satunya sumber) dan
+// read-only di sini — kecuali nilai_proyek (Nilai Jasa Tukang) yang bisa
+// diinput manual oleh Master lewat NilaiJasaForm. `riwayat` dari
+// laporan_harian (laporan manual Supervisor), terurut terbaru dulu.
 export default function ProyekDetail({ proyek, jumlahHadir, riwayat = [] }) {
   const laporanTerakhir = riwayat[0] || null;
 
@@ -52,12 +53,7 @@ export default function ProyekDetail({ proyek, jumlahHadir, riwayat = [] }) {
       </div>
 
       <div className="card p-4 mb-5 space-y-3">
-        <div>
-          <p className="label">Nilai Jasa Tukang</p>
-          <p className="text-lg font-semibold">
-            {proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"}
-          </p>
-        </div>
+        <NilaiJasaForm proyekId={proyek.id} nilaiAwal={proyek.nilai_proyek} />
         <div>
           <p className="label">Supervisor</p>
           <p className="text-lg font-semibold">{proyek.supervisor?.name || "— Belum ditetapkan —"}</p>
