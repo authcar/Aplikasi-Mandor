@@ -3,12 +3,13 @@ import { getSessionProfile } from "@/lib/supabase/server";
 
 // POST /api/approval
 // body: { tipe: 'lembur'|'keuangan', id: uuid, aksi: 'APPROVED'|'REJECTED', catatan? }
-// SUPERVISOR & MASTER. RLS di DB jadi lapis pertahanan kedua.
+// SUPERVISOR, MASTER & FINANCE (wewenang Finance sama seperti Master). RLS
+// di DB jadi lapis pertahanan kedua.
 export async function POST(req) {
   const { profile, supabase } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!["SUPERVISOR", "MASTER"].includes(profile.role))
-    return NextResponse.json({ error: "Hanya Supervisor/Master" }, { status: 403 });
+  if (!["SUPERVISOR", "MASTER", "FINANCE"].includes(profile.role))
+    return NextResponse.json({ error: "Hanya Supervisor/Master/Finance" }, { status: 403 });
 
   const { tipe, id, aksi, catatan } = await req.json();
   if (!["lembur", "keuangan"].includes(tipe) || !id)
@@ -16,14 +17,14 @@ export async function POST(req) {
   if (!["APPROVED", "REJECTED"].includes(aksi))
     return NextResponse.json({ error: "Aksi salah" }, { status: 400 });
 
-  // Kasbon & Reimburse cuma boleh disetujui Master — biar Supervisor tidak
-  // menyetujui pengajuan kasbon miliknya sendiri (walau RLS keuangan_review
-  // teknisnya mengizinkan, dia pemilik proyek), dan reimburse sekarang
-  // memang harus dikonfirmasi Master, bukan Supervisor.
+  // Kasbon & Reimburse cuma boleh disetujui Master/Finance — biar Supervisor
+  // tidak menyetujui pengajuan kasbon miliknya sendiri (walau RLS
+  // keuangan_review teknisnya mengizinkan, dia pemilik proyek), dan
+  // reimburse sekarang memang harus dikonfirmasi Master/Finance, bukan Supervisor.
   if (tipe === "keuangan") {
     const { data: row } = await supabase.from("keuangan").select("jenis").eq("id", id).maybeSingle();
-    if (["KASBON", "REIMBURSE"].includes(row?.jenis) && profile.role !== "MASTER")
-      return NextResponse.json({ error: "Hanya bisa disetujui Master." }, { status: 403 });
+    if (["KASBON", "REIMBURSE"].includes(row?.jenis) && !["MASTER", "FINANCE"].includes(profile.role))
+      return NextResponse.json({ error: "Hanya bisa disetujui Master/Finance." }, { status: 403 });
   }
 
   // Kasbon/Reimburse yang ditolak wajib disertai alasan, supaya pengaju tahu

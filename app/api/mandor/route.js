@@ -8,7 +8,7 @@ const supabaseAdmin = createAdminClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-const ALLOWED_ROLES = ["SUPERVISOR", "MASTER"];
+const ALLOWED_ROLES = ["SUPERVISOR", "MASTER", "FINANCE"];
 
 function randomPassword() {
   // 10 karakter acak, mudah diketik ulang (tanpa simbol yang gampang salah baca).

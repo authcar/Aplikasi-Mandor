@@ -9,6 +9,7 @@ export default async function Home() {
   const role = profile?.role;
   if (role === "SUPERVISOR") redirect("/supervisor");
   if (role === "MASTER") redirect("/master");
+  if (role === "FINANCE") redirect("/finance");
   if (role === "TUKANG_HARIAN") redirect("/tukang-harian");
   redirect("/mandor");
 }

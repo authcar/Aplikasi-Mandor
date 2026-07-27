@@ -1,22 +1,23 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 
-// Kolom proyek yang boleh diinput manual Master lewat endpoint ini.
+// Kolom proyek yang boleh diinput manual Finance lewat endpoint ini.
 const EDITABLE_FIELDS = {
   nilai_proyek: "Nilai jasa tukang",
   sisa_budget: "Sisa budget",
 };
 
-// PATCH /api/proyek — Master mengubah nilai_proyek (Nilai Jasa Tukang) atau
+// PATCH /api/proyek — Finance mengubah nilai_proyek (Nilai Jasa Tukang) atau
 // sisa_budget (Sisa Budget) proyek. Keduanya field manual, tidak disinkron
-// dari Taraco — lihat lib/supabase/syncProyek.js.
+// dari Taraco — lihat lib/supabase/syncProyek.js. Khusus role FINANCE —
+// Master TIDAK lagi boleh mengubah field ini (dipisah sejak role FINANCE
+// dibuat, lihat supabase/add_finance_role.sql).
 // body: { id, field: 'nilai_proyek'|'sisa_budget', value }
-// Pakai client ber-session (bukan service-role) supaya tunduk RLS proyek_write
-// (my_role() = 'MASTER') — sama pola dengan app/api/mandor/route.js PATCH.
+// Pakai client ber-session (bukan service-role) supaya tunduk RLS proyek_write.
 export async function PATCH(req) {
   const { profile, supabase } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (profile.role !== "MASTER")
+  if (profile.role !== "FINANCE")
     return NextResponse.json({ error: "Tidak diizinkan." }, { status: 403 });
 
   const { id, field, value } = await req.json();

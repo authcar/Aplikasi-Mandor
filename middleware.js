@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 
-const ROLE_HOME = { MANDOR: "/mandor", SUPERVISOR: "/supervisor", MASTER: "/master", TUKANG_HARIAN: "/tukang-harian" };
+const ROLE_HOME = { MANDOR: "/mandor", SUPERVISOR: "/supervisor", MASTER: "/master", FINANCE: "/finance", TUKANG_HARIAN: "/tukang-harian" };
 
 export async function middleware(request) {
   let response = NextResponse.next({ request });
@@ -30,6 +30,7 @@ export async function middleware(request) {
     path.startsWith("/mandor") ||
     path.startsWith("/supervisor") ||
     path.startsWith("/master") ||
+    path.startsWith("/finance") ||
     path.startsWith("/tukang-harian");
 
   if (!user && isProtected) {
@@ -51,6 +52,8 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL(home, request.url));
     if (path.startsWith("/master") && role !== "MASTER")
       return NextResponse.redirect(new URL(home, request.url));
+    if (path.startsWith("/finance") && role !== "FINANCE")
+      return NextResponse.redirect(new URL(home, request.url));
     if (path.startsWith("/tukang-harian") && role !== "TUKANG_HARIAN")
       return NextResponse.redirect(new URL(home, request.url));
   }
@@ -59,5 +62,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/mandor/:path*", "/supervisor/:path*", "/master/:path*", "/tukang-harian/:path*"],
+  matcher: ["/mandor/:path*", "/supervisor/:path*", "/master/:path*", "/finance/:path*", "/tukang-harian/:path*"],
 };

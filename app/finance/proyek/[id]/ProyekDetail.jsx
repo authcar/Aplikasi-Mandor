@@ -1,7 +1,7 @@
-import { rupiah } from "@/lib/format";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import RiwayatLaporanHarianCard from "@/app/supervisor/laporan-harian/RiwayatLaporanHarianCard";
+import EditableAngkaField from "./EditableAngkaField";
 
 // Sama dengan STATUS_BADGE di app/supervisor/laporan-harian/RiwayatLaporanHarianCard.jsx
 const STATUS_BADGE = {
@@ -17,16 +17,16 @@ const labelTanggal = (tgl) =>
     month: "long",
   });
 
-// Read-only bagi Master — data proyek datang dari Taraco, dan Nilai Jasa
-// Tukang / Sisa Budget sekarang diinput manual oleh role FINANCE (lihat
-// app/finance/proyek/[id]/ProyekDetail.jsx), bukan Master lagi. `riwayat`
-// dari laporan_harian (laporan manual Supervisor), terurut terbaru dulu.
+// Sebagian besar data proyek datang dari Taraco (satu-satunya sumber) dan
+// read-only di sini — kecuali nilai_proyek (Nilai Jasa Tukang) & sisa_budget
+// (Sisa Budget) yang bisa diinput manual oleh Finance lewat EditableAngkaField.
+// `riwayat` dari laporan_harian (laporan manual Supervisor), terurut terbaru dulu.
 export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riwayat = [] }) {
   const laporanTerakhir = riwayat[0] || null;
 
   return (
     <main className="p-4 pb-8">
-      <BackButton href="/master" />
+      <BackButton href="/finance" />
       <header className="mb-5 flex items-center gap-3">
         <span className="icon-tile bg-brand-50 text-brand-600">
           <Icon name={proyek.icon || "building"} />
@@ -53,18 +53,8 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
       </div>
 
       <div className="card p-4 mb-5 space-y-3">
-        <div>
-          <p className="label">Nilai Jasa Tukang</p>
-          <p className="text-lg font-semibold">
-            {proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"}
-          </p>
-        </div>
-        <div>
-          <p className="label">Sisa Budget</p>
-          <p className="text-lg font-semibold">
-            {proyek.sisa_budget != null ? rupiah(proyek.sisa_budget) : "—"}
-          </p>
-        </div>
+        <EditableAngkaField proyekId={proyek.id} field="nilai_proyek" label="Nilai Jasa Tukang" nilaiAwal={proyek.nilai_proyek} />
+        <EditableAngkaField proyekId={proyek.id} field="sisa_budget" label="Sisa Budget" nilaiAwal={proyek.sisa_budget} />
         <div>
           <p className="label">Supervisor</p>
           <p className="text-lg font-semibold">{proyek.supervisor?.name || "— Belum ditetapkan —"}</p>

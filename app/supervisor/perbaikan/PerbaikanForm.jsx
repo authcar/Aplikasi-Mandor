@@ -358,14 +358,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], mandors = [] }
                           </button>
                         </div>
                       )
-                    ) : it.status === "DONE" ? (
-                      <button
-                        onClick={() => ubahStatus(it.id, "OPEN")}
-                        className="btn-outline !py-2 !text-xs text-gray-500"
-                      >
-                        Buka Lagi
-                      </button>
-                    ) : (
+                    ) : it.status === "DONE" ? null : (
                       <button
                         onClick={() => ubahStatus(it.id, "DONE")}
                         className="btn-success !py-2 !text-xs"

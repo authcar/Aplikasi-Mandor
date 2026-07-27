@@ -9,7 +9,7 @@ const supabaseAdmin = createAdminClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-const ALLOWED_ROLES = ["MANDOR", "SUPERVISOR", "MASTER"];
+const ALLOWED_ROLES = ["MANDOR", "SUPERVISOR", "MASTER", "FINANCE"];
 
 function randomPin() {
   return String(Math.floor(1000 + Math.random() * 9000));

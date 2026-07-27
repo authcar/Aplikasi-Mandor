@@ -3,12 +3,12 @@ import { getSessionProfile } from "@/lib/supabase/server";
 
 // POST /api/masalah
 // body: { id: uuid, status: 'OPEN'|'IN_PROGRESS'|'DONE' }
-// SUPERVISOR & MASTER. RLS di DB jadi lapis pertahanan kedua.
+// SUPERVISOR, MASTER & FINANCE. RLS di DB jadi lapis pertahanan kedua.
 export async function POST(req) {
   const { profile, supabase } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!["SUPERVISOR", "MASTER"].includes(profile.role))
-    return NextResponse.json({ error: "Hanya Supervisor/Master" }, { status: 403 });
+  if (!["SUPERVISOR", "MASTER", "FINANCE"].includes(profile.role))
+    return NextResponse.json({ error: "Hanya Supervisor/Master/Finance" }, { status: 403 });
 
   const { id, status } = await req.json();
   if (!id) return NextResponse.json({ error: "Param salah" }, { status: 400 });

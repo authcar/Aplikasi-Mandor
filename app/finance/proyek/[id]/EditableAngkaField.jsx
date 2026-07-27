@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { rupiah } from "@/lib/format";
 
-// Master menginput/mengubah field angka manual proyek (Nilai Jasa Tukang,
+// Finance menginput/mengubah field angka manual proyek (Nilai Jasa Tukang,
 // Sisa Budget) lewat app/api/proyek/route.js. Field ini tidak disinkron
 // dari Taraco — lihat lib/supabase/syncProyek.js.
 export default function EditableAngkaField({ proyekId, field, label, nilaiAwal }) {
