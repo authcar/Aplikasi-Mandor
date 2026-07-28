@@ -23,7 +23,6 @@ export default async function ProfilSupervisorPage() {
 
       <div className="card divide-y divide-gray-100 mb-4">
         <EditableNama id={profile.id} initialName={profile.name} />
-        <Row label="Telepon" value={profile.phone || "—"} />
         <Row label="Gaji Pokok" value={
           profile.gaji_pokok
             ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(profile.gaji_pokok)

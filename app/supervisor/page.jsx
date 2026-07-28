@@ -293,10 +293,15 @@ export default async function DashboardSupervisor() {
                 <Icon name={p.icon || "building"} />
               </span>
               <div className="flex-1">
-                <p className="font-semibold text-sm">{p.nama}</p>
-                <p className="text-xs text-gray-500">
-                  {p.lokasi} · {p.mandor?.name || "-"}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm">{p.nama}</p>
+                  {p.mandor?.name && (
+                    <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-600">
+                      {p.mandor.name}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">{p.lokasi}</p>
               </div>
               <Icon name="chevron-right" className="h-4 w-4 text-gray-300" />
             </Link>

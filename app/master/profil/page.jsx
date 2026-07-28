@@ -23,19 +23,9 @@ export default async function ProfilMasterPage() {
 
       <div className="card divide-y divide-gray-100 mb-4">
         <EditableNama id={profile.id} initialName={profile.name} />
-        <Row label="Telepon" value={profile.phone || "—"} />
       </div>
 
       <LogoutButton className="w-full" />
     </main>
-  );
-}
-
-function Row({ label, value }) {
-  return (
-    <div className="flex justify-between items-center px-4 py-3">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-sm font-semibold text-gray-800">{value}</p>
-    </div>
   );
 }
