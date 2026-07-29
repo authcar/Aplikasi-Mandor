@@ -143,11 +143,6 @@ export default async function DashboardMaster() {
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Lihat Absensi</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
-        <Link href="/master/progres" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
-          <span className="icon-tile bg-indigo-100 text-indigo-600 !w-8 !h-8"><Icon name="camera" /></span>
-          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Progres Harian</p>
-          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
-        </Link>
         <Link href="/master/laporan-harian" className="relative card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-rose-100 text-rose-600 !w-8 !h-8"><Icon name="clipboard" /></span>
           {laporanBaruCount > 0 && (

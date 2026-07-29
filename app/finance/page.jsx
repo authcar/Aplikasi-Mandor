@@ -85,56 +85,39 @@ export default async function DashboardFinance() {
         </div>
       </header>
 
-      {/* Notifikasi: proyek yang belum absen / belum lapor hari ini — nama
-          proyek cuma cuplikan singkat (bukan daftar penuh) supaya tetap ringkas
-          walau proyek aktifnya banyak. */}
-      {proyekBelumAbsen.length > 0 && (
-        <Link
-          href="/finance/absensi"
-          className="shrink-0 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 active:bg-amber-100"
-        >
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm">👷</span>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-amber-800">{proyekBelumAbsen.length} proyek belum absen hari ini</p>
-            <p className="truncate text-[11px] text-amber-600">
-              {proyekBelumAbsen.slice(0, 3).map((p) => p.nama).join(", ")}
-              {proyekBelumAbsen.length > 3 ? ` +${proyekBelumAbsen.length - 3} lainnya` : ""}
-            </p>
-          </div>
-          <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-amber-400" />
-        </Link>
-      )}
-      {proyekBelumLapor.length > 0 && (
-        <Link
-          href="/finance/laporan-harian"
-          className="shrink-0 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 active:bg-red-100"
-        >
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-sm">📝</span>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-red-800">{proyekBelumLapor.length} proyek belum buat laporan harian hari ini</p>
-            <p className="truncate text-[11px] text-red-600">
-              {proyekBelumLapor.slice(0, 3).map((p) => p.nama).join(", ")}
-              {proyekBelumLapor.length > 3 ? ` +${proyekBelumLapor.length - 3} lainnya` : ""}
-            </p>
-          </div>
-          <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-red-400" />
-        </Link>
-      )}
-      {proyekTanpaMandor.length > 0 && (
-        <Link
-          href={`/finance/proyek/${proyekTanpaMandor[0].id}`}
-          className="shrink-0 flex items-center gap-2.5 rounded-xl border border-gray-300 bg-gray-100 px-3 py-2.5 active:bg-gray-200"
-        >
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm">⚠️</span>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-gray-700">{proyekTanpaMandor.length} proyek belum ada Mandor yang ke-assign</p>
-            <p className="truncate text-[11px] text-gray-500">
-              {proyekTanpaMandor.slice(0, 3).map((p) => p.nama).join(", ")}
-              {proyekTanpaMandor.length > 3 ? ` +${proyekTanpaMandor.length - 3} lainnya` : ""} — cek nama mandor di Taraco
-            </p>
-          </div>
-          <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-gray-400" />
-        </Link>
+      {/* Notifikasi: proyek yang belum absen / belum lapor hari ini, digabung
+          jadi satu kartu, satu baris per notifikasi — cuma label + jumlah,
+          tanpa daftar nama proyek supaya tetap tenang dilihat. */}
+      {(proyekBelumAbsen.length > 0 || proyekBelumLapor.length > 0 || proyekTanpaMandor.length > 0) && (
+        <div className="card shrink-0 divide-y divide-gray-100">
+          {proyekBelumAbsen.length > 0 && (
+            <Link href="/finance/absensi" className="flex items-center justify-between gap-2 px-3.5 py-3 active:bg-gray-50">
+              <span className="text-sm font-medium text-gray-700">Belum absen</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-amber-600">{proyekBelumAbsen.length} proyek</span>
+                <Icon name="chevron-right" className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+              </span>
+            </Link>
+          )}
+          {proyekBelumLapor.length > 0 && (
+            <Link href="/finance/laporan-harian" className="flex items-center justify-between gap-2 px-3.5 py-3 active:bg-gray-50">
+              <span className="text-sm font-medium text-gray-700">Belum lapor harian</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-red-600">{proyekBelumLapor.length} proyek</span>
+                <Icon name="chevron-right" className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+              </span>
+            </Link>
+          )}
+          {proyekTanpaMandor.length > 0 && (
+            <Link href={`/finance/proyek/${proyekTanpaMandor[0].id}`} className="flex items-center justify-between gap-2 px-3.5 py-3 active:bg-gray-50">
+              <span className="text-sm font-medium text-gray-700">Belum ada Mandor</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-gray-500">{proyekTanpaMandor.length} proyek</span>
+                <Icon name="chevron-right" className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+              </span>
+            </Link>
+          )}
+        </div>
       )}
 
       <Link href="/finance/persetujuan" className="hero shrink-0 flex items-center gap-3 py-3 px-4">
@@ -160,11 +143,6 @@ export default async function DashboardFinance() {
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Lihat Absensi</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
-        <Link href="/finance/progres" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
-          <span className="icon-tile bg-indigo-100 text-indigo-600 !w-8 !h-8"><Icon name="camera" /></span>
-          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Progres Harian</p>
-          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
-        </Link>
         <Link href="/finance/laporan-harian" className="relative card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-rose-100 text-rose-600 !w-8 !h-8"><Icon name="clipboard" /></span>
           {laporanBaruCount > 0 && (
@@ -185,9 +163,9 @@ export default async function DashboardFinance() {
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Checklist Perbaikan</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
-        <Link href="/finance/kelola-akun" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
-          <span className="icon-tile bg-teal-100 text-teal-600 !w-8 !h-8"><Icon name="hard-hat" /></span>
-          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Kelola Akun</p>
+        <Link href="/finance/atur-budget" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+          <span className="icon-tile bg-emerald-100 text-emerald-600 !w-8 !h-8"><Icon name="wallet" /></span>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Atur Budget</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
       </div>
