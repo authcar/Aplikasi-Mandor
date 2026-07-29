@@ -72,10 +72,16 @@ export default async function DashboardSupervisor() {
       .from("masalah")
       .select("id", { count: "exact", head: true })
       .neq("status", "DONE"),
+    // Cuma bukti pengerjaan Mandor yang benar-benar menunggu keputusan
+    // Supervisor (Disetujui/Tidak Disetujui) — konsisten dengan badge yang
+    // sama di app/master/page.jsx. Sebelumnya .neq("status", "DONE") ikut
+    // menghitung item CANCELLED (sudah dibatalkan, tidak perlu ditindak) dan
+    // OPEN (masih tugas Mandor), bikin badge nempel angka besar padahal
+    // tidak ada yang perlu direspons Supervisor.
     supabase
       .from("checklist_perbaikan")
       .select("id", { count: "exact", head: true })
-      .neq("status", "DONE"),
+      .eq("status", "PENDING_REVIEW"),
     // Hasil approve/reject kasbon milik SPV ini yang belum dilihat.
     supabase
       .from("keuangan")
