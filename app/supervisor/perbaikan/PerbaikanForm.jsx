@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { tglID } from "@/lib/format";
@@ -20,65 +20,84 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
   const supabase = createClient();
 
   const [proyekId, setProyekId] = useState(proyeks[0]?.id || "");
-  const [uraian, setUraian] = useState("");
   const [periode, setPeriode] = useState("1");
-  const [foto, setFoto] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [kameraOpen, setKameraOpen] = useState(false);
+  const rowId = useRef(1);
+  const kosong = () => ({ id: rowId.current++, uraian: "", foto: null, preview: null });
+  const [rows, setRows] = useState(() => [kosong()]);
+  const [kameraForRowId, setKameraForRowId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState(items);
   const [tolakFor, setTolakFor] = useState(null);
   const [alasanTolak, setAlasanTolak] = useState("");
   const [errTolak, setErrTolak] = useState("");
 
-  const pilihFoto = (e) => {
+  const isiTerisi = rows.filter((r) => r.uraian.trim()).length;
+
+  const tambahRow = () => setRows((r) => [...r, kosong()]);
+  const hapusRow = (id) => setRows((r) => r.filter((row) => row.id !== id));
+  const ubahUraian = (id, value) =>
+    setRows((r) => r.map((row) => (row.id === id ? { ...row, uraian: value } : row)));
+  const hapusFotoRow = (id) =>
+    setRows((r) => r.map((row) => (row.id === id ? { ...row, foto: null, preview: null } : row)));
+
+  const pilihFotoRow = (id, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFoto(file);
-    setPreview(URL.createObjectURL(file));
+    setRows((r) => r.map((row) => (row.id === id ? { ...row, foto: file, preview: URL.createObjectURL(file) } : row)));
   };
 
-  const pakaiFoto = (file) => {
-    setFoto(file);
-    setPreview(URL.createObjectURL(file));
-    setKameraOpen(false);
+  const pakaiFotoRow = (file) => {
+    setRows((r) =>
+      r.map((row) => (row.id === kameraForRowId ? { ...row, foto: file, preview: URL.createObjectURL(file) } : row))
+    );
+    setKameraForRowId(null);
   };
 
+  // Simpan semua baris uraian sekaligus dalam satu proyek/periode — supaya
+  // Supervisor gak perlu pilih ulang proyek per temuan (lihat diskusi UX di
+  // percakapan ini). Upload foto dulu satu-satu, baru insert semua baris
+  // checklist dalam satu panggilan supaya nomor urut (`no`) konsisten.
   const submit = async (e) => {
     e.preventDefault();
-    if (!proyekId || !uraian) return;
+    const terisi = rows.filter((r) => r.uraian.trim());
+    if (!proyekId || terisi.length === 0) return;
     setBusy(true);
     const uid = (await supabase.auth.getUser()).data.user.id;
-    let foto_url = null;
-    if (foto) {
-      const ext = foto.name.split(".").pop();
-      const path = `${proyekId}/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("perbaikan").upload(path, foto);
-      if (uploadError) {
-        setBusy(false);
-        alert(`Gagal unggah foto: ${uploadError.message}`);
-        return;
+    const noBase = list.filter((i) => i.proyek_id === proyekId).length;
+
+    const inserts = [];
+    for (let i = 0; i < terisi.length; i++) {
+      const row = terisi[i];
+      let foto_url = null;
+      if (row.foto) {
+        const ext = row.foto.name.split(".").pop();
+        const path = `${proyekId}/${Date.now()}-${i}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("perbaikan").upload(path, row.foto);
+        if (uploadError) {
+          setBusy(false);
+          alert(`Gagal unggah foto item #${i + 1}: ${uploadError.message}`);
+          return;
+        }
+        foto_url = path;
       }
-      foto_url = path;
+      inserts.push({
+        proyek_id: proyekId,
+        no: noBase + i + 1,
+        uraian: row.uraian.trim(),
+        periode,
+        foto_url,
+        created_by: uid,
+      });
     }
-    const no = list.filter((i) => i.proyek_id === proyekId).length + 1;
-    const { error } = await supabase.from("checklist_perbaikan").insert({
-      proyek_id: proyekId,
-      no,
-      uraian,
-      periode,
-      foto_url,
-      created_by: uid,
-    });
+
+    const { error } = await supabase.from("checklist_perbaikan").insert(inserts);
     setBusy(false);
     if (error) {
       alert(`Gagal menyimpan: ${error.message}`);
       return;
     }
     router.refresh();
-    setUraian("");
-    setFoto(null);
-    setPreview(null);
+    setRows([kosong()]);
   };
 
   const ubahStatus = async (id, status) => {
@@ -153,11 +172,11 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
 
   return (
     <div className="space-y-6">
-      {kameraOpen && (
+      {kameraForRowId && (
         <KameraModal
           title="Foto Dokumentasi"
-          onCapture={pakaiFoto}
-          onClose={() => setKameraOpen(false)}
+          onCapture={pakaiFotoRow}
+          onClose={() => setKameraForRowId(null)}
         />
       )}
 
@@ -182,18 +201,6 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
           </div>
 
           <div>
-            <label className="label">Uraian Pekerjaan Perapihan</label>
-            <textarea
-              value={uraian}
-              onChange={(e) => setUraian(e.target.value)}
-              placeholder="Contoh: Ganti lampu outbow area kanopi balkon lt3..."
-              rows={3}
-              className="input"
-              required
-            />
-          </div>
-
-          <div>
             <label className="label">Periode</label>
             <input
               value={periode}
@@ -204,40 +211,89 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
           </div>
 
           <div>
-            <label className="label">Dokumentasi (opsional)</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setKameraOpen(true)}
-                className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50"
-              >
-                <Icon name="camera" className="h-5 w-5 text-gray-400" />
-                Kamera
-              </button>
-              <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50">
-                <Icon name="clipboard" className="h-5 w-5 text-gray-400" />
-                Galeri
-                <input type="file" accept="image/*" className="hidden" onChange={pilihFoto} />
-              </label>
+            <label className="label">Uraian Pekerjaan Perapihan</label>
+            <div className="space-y-2">
+              {rows.map((row, idx) => (
+                <div key={row.id} className="rounded-xl border border-gray-200 p-2.5">
+                  <div className="flex items-start gap-2">
+                    <textarea
+                      value={row.uraian}
+                      onChange={(e) => ubahUraian(row.id, e.target.value)}
+                      placeholder={
+                        idx === 0
+                          ? "Contoh: Ganti lampu outbow area kanopi balkon lt3..."
+                          : `Uraian item #${idx + 1}...`
+                      }
+                      rows={2}
+                      className="input flex-1 !text-sm resize-none"
+                    />
+                    {row.preview ? (
+                      <div className="relative shrink-0">
+                        <img
+                          src={row.preview}
+                          alt="preview"
+                          className="h-14 w-14 rounded-lg border border-gray-200 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => hapusFotoRow(row.id)}
+                          className="absolute -right-1.5 -top-1.5 rounded-full bg-black/60 p-0.5 text-white"
+                        >
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setKameraForRowId(row.id)}
+                          title="Kamera"
+                          className="flex h-14 w-9 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
+                        >
+                          <Icon name="camera" className="h-4 w-4" />
+                        </button>
+                        <label
+                          title="Galeri"
+                          className="flex h-14 w-9 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
+                        >
+                          <Icon name="clipboard" className="h-4 w-4" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => pilihFotoRow(row.id, e)}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                  {rows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => hapusRow(row.id)}
+                      className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-gray-400 active:text-red-500"
+                    >
+                      <Icon name="x-circle" className="h-3.5 w-3.5" />
+                      Hapus item ini
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-            {preview && (
-              <div className="relative mt-2">
-                <img src={preview} alt="preview" className="w-full rounded-xl border border-gray-200 object-cover max-h-52" />
-                <button
-                  type="button"
-                  onClick={() => { setFoto(null); setPreview(null); }}
-                  className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={tambahRow}
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm font-medium text-gray-500 active:bg-gray-50"
+            >
+              <Icon name="plus" className="h-4 w-4" />
+              Tambah Uraian Lain
+            </button>
           </div>
 
-          <button disabled={busy} className="btn-primary btn-lg w-full">
-            {busy ? "Menyimpan..." : "Tambah ke Checklist"}
+          <button disabled={busy || isiTerisi === 0} className="btn-primary btn-lg w-full">
+            {busy ? "Menyimpan..." : isiTerisi > 1 ? `Simpan Semua (${isiTerisi} item)` : "Tambah ke Checklist"}
           </button>
         </form>
       </div>
