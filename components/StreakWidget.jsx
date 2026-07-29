@@ -1,11 +1,26 @@
-export default function StreakWidget({ potongan = [], checkin = [], laporanHarian = null }) {
+export default function StreakWidget({ potongan = [], checkin = [], laporanHarian = null, totalProyek = 0 }) {
   // Hari kerja supervisor (Senin–Sabtu) bulan ini sampai hari ini, zona WIB
   const wibStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const [y, m, d] = wibStr.split("-").map(Number);
-  const laporanDateSet = laporanHarian ? new Set(laporanHarian.map((r) => r.tanggal)) : null;
+
+  // Map tanggal -> Set proyek_id yang sudah lapor di tanggal itu. Dipakai
+  // buat nentuin "lengkap" (bukan cuma "ada laporan") per tanggal.
+  const proyekPerTanggal = laporanHarian
+    ? laporanHarian.reduce((acc, r) => {
+        (acc[r.tanggal] ??= new Set()).add(r.proyek_id);
+        return acc;
+      }, {})
+    : null;
+
+  // Satu tanggal dianggap "lengkap lapor" kalau SEMUA proyek aktif supervisor
+  // sudah dilaporkan di tanggal itu — bukan cukup salah satu proyek saja.
+  // Kalau supervisor lagi tidak pegang proyek aktif (totalProyek 0), tidak
+  // ada kewajiban lapor sama sekali.
+  const isLengkap = (tgl) =>
+    totalProyek <= 0 || (proyekPerTanggal[tgl]?.size ?? 0) >= totalProyek;
 
   // hariKerja: jumlah hari Senin-Sabtu bulan ini s/d hari ini.
-  // hariKerjaLapor: dari hariKerja itu, berapa yang sudah ada laporan manual
+  // hariKerjaLapor: dari hariKerja itu, berapa yang laporannya sudah lengkap
   // (laporan yang diisi di hari Minggu/libur sengaja tidak dihitung di sini,
   // karena tidak "menutupi" kewajiban laporan hari kerja lain).
   let hariKerja = 0;
@@ -14,9 +29,9 @@ export default function StreakWidget({ potongan = [], checkin = [], laporanHaria
     const day = new Date(y, m - 1, i).getDay();
     if (day === 0) continue;
     hariKerja++;
-    if (laporanDateSet) {
+    if (proyekPerTanggal) {
       const tgl = `${y}-${String(m).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-      if (laporanDateSet.has(tgl)) hariKerjaLapor++;
+      if (isLengkap(tgl)) hariKerjaLapor++;
     }
   }
 
@@ -26,25 +41,27 @@ export default function StreakWidget({ potongan = [], checkin = [], laporanHaria
   const totalAbsenLama = potongan.length;
   const totalPersenLama = potongan.reduce((s, r) => s + Number(r.persentase), 0);
 
-  // Sumber utama "sudah lapor": jumlah tanggal unik di laporan_harian bulan
-  // ini (termasuk kalau ada yang dilapor di hari libur — ini angka aktivitas,
-  // beda dengan hariKerjaLapor yang khusus hari kerja). Kalau laporanHarian
-  // tidak dikirim (null), fallback ke checkin_harian (sistem lama Telegram).
-  const sudahLapor = laporanDateSet ? laporanDateSet.size : checkin.length;
+  // Sumber utama "sudah lapor": jumlah tanggal di bulan ini yang laporannya
+  // sudah lengkap (semua proyek dilaporkan di tanggal itu, termasuk kalau
+  // dilapor di hari libur). Kalau laporanHarian tidak dikirim (null),
+  // fallback ke checkin_harian (sistem lama Telegram).
+  const sudahLapor = proyekPerTanggal
+    ? Object.keys(proyekPerTanggal).filter(isLengkap).length
+    : checkin.length;
 
-  // "Hari absen" = hari kerja yang belum ada laporan manual. Fallback ke
+  // "Hari absen" = hari kerja yang laporannya belum lengkap. Fallback ke
   // totalAbsenLama (potongan_gaji) kalau laporanHarian tidak dikirim.
-  const totalAbsen = laporanDateSet ? hariKerja - hariKerjaLapor : totalAbsenLama;
+  const totalAbsen = proyekPerTanggal ? hariKerja - hariKerjaLapor : totalAbsenLama;
 
   // "Potongan %" ikut pola lama (0.5% per hari absen), dihitung dari hari
   // absen versi laporan manual di atas. Fallback ke totalPersenLama (jumlah
   // persentase asli dari potongan_gaji) kalau laporanHarian tidak dikirim.
-  const totalPersen = laporanDateSet ? totalAbsen * 0.5 : totalPersenLama;
+  const totalPersen = proyekPerTanggal ? totalAbsen * 0.5 : totalPersenLama;
 
   // "Rajin lapor %" pakai hariKerjaLapor (bukan sudahLapor) supaya konsisten
   // dengan "hari absen" — sama-sama berbasis cakupan hari kerja.
   const persen = hariKerja
-    ? Math.min(100, Math.round(((laporanDateSet ? hariKerjaLapor : sudahLapor) / hariKerja) * 100))
+    ? Math.min(100, Math.round(((proyekPerTanggal ? hariKerjaLapor : sudahLapor) / hariKerja) * 100))
     : 100;
   // Emot mood: makin rajin lapor, makin senang 😄
   const level =

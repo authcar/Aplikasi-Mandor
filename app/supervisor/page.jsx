@@ -111,13 +111,17 @@ export default async function DashboardSupervisor() {
     proyekIds.length
       ? supabase.from("laporan_harian").select("proyek_id").eq("tanggal", todayStr).in("proyek_id", proyekIds)
       : Promise.resolve({ data: [] }),
-    // Laporan harian manual milik supervisor ini, bulan berjalan — sumber
-    // utama untuk "rajin lapor" & "sudah lapor" di StreakWidget.
-    supabase
-      .from("laporan_harian")
-      .select("tanggal")
-      .eq("created_by", profile.id)
-      .gte("tanggal", bulanIni),
+    // Laporan harian bulan berjalan utk semua proyek aktif supervisor ini —
+    // sumber utama "rajin lapor" & "sudah lapor" di StreakWidget. Per proyek
+    // (bukan cuma created_by) supaya satu hari baru dianggap "lapor" kalau
+    // SEMUA proyeknya sudah dilaporkan, bukan cukup salah satu.
+    proyekIds.length
+      ? supabase
+          .from("laporan_harian")
+          .select("proyek_id, tanggal")
+          .in("proyek_id", proyekIds)
+          .gte("tanggal", bulanIni)
+      : Promise.resolve({ data: [] }),
   ]);
   const pending = (l || 0) + (k || 0);
   const masalahAktif = m || 0;
@@ -272,6 +276,7 @@ export default async function DashboardSupervisor() {
           potongan={potongan || []}
           checkin={checkin || []}
           laporanHarian={laporanBulanIni || []}
+          totalProyek={totalProyekAktif}
         />
       </div>
 
