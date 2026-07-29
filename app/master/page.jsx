@@ -109,7 +109,7 @@ export default async function DashboardMaster() {
             </Link>
           )}
           {proyekTanpaMandor.length > 0 && (
-            <Link href={`/master/proyek/${proyekTanpaMandor[0].id}`} className="flex items-center justify-between gap-2 px-3.5 py-3 active:bg-gray-50">
+            <Link href="/master/proyek-tanpa-mandor" className="flex items-center justify-between gap-2 px-3.5 py-3 active:bg-gray-50">
               <span className="text-sm font-medium text-gray-700">Belum ada Mandor</span>
               <span className="flex items-center gap-1.5">
                 <span className="text-xs font-bold text-gray-500">{proyekTanpaMandor.length} proyek</span>
@@ -160,7 +160,7 @@ export default async function DashboardMaster() {
               {perbaikanMenungguCount}
             </span>
           )}
-          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Checklist Perbaikan</p>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Defect List</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
         <Link href="/master/kelola-akun" className="card-tap flex flex-col items-center justify-center gap-1 p-3">

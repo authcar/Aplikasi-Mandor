@@ -78,7 +78,7 @@ export default async function PerbaikanMandorPage() {
     <main className="p-4 pb-10">
       <BackButton href="/mandor" />
       <header className="mb-1">
-        <h1 className="text-xl font-bold tracking-tight">Checklist Perbaikan</h1>
+        <h1 className="text-xl font-bold tracking-tight">Defect List</h1>
       </header>
       <p className="mb-4 text-sm text-gray-500">Semua proyek Anda</p>
 

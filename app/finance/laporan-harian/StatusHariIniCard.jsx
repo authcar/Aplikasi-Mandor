@@ -89,7 +89,7 @@ export default function StatusHariIniCard({ proyekList = [] }) {
                   />
                   {ada && p.items.length > 1 && (
                     <span className="shrink-0 rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-bold text-brand">
-                      {p.items.length}x
+                      {p.items.length} kegiatan
                     </span>
                   )}
                 </div>

@@ -247,7 +247,7 @@ export default async function DashboardSupervisor() {
               </span>
             )}
             <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
-              Checklist Perbaikan
+              Defect List
             </p>
           </Link>
 

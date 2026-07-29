@@ -51,7 +51,7 @@ export default async function PerbaikanFinancePage() {
     <main className="p-4 pb-10">
       <BackButton href="/finance" />
       <header className="mb-1">
-        <h1 className="text-xl font-bold tracking-tight">Checklist Perbaikan</h1>
+        <h1 className="text-xl font-bold tracking-tight">Defect List</h1>
       </header>
       <p className="mb-4 text-sm text-gray-500">
         {items.length} item · {menunggu} menunggu persetujuan Supervisor
