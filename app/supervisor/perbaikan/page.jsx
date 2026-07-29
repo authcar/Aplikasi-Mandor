@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function PerbaikanSupervisorPage() {
   const { supabase } = await getSessionProfile();
 
-  const [{ data: proyek }, { data: rows }, { data: mandors }] = await Promise.all([
+  const [{ data: proyek }, { data: rows }] = await Promise.all([
     supabase
       .from("proyek")
       .select("id, nama, mandor:mandor_id(name)")
@@ -20,14 +20,11 @@ export default async function PerbaikanSupervisorPage() {
     supabase
       .from("checklist_perbaikan")
       .select(
-        "id, proyek_id, no, uraian, foto_url, foto_bukti_url, periode, status, dibaca_supervisor, assigned_mandor_id, created_at, proyek(nama), assigned:assigned_mandor_id(name)"
+        "id, proyek_id, no, uraian, foto_url, foto_bukti_url, periode, status, dibaca_supervisor, created_at, proyek(nama)"
       )
       .neq("status", "CANCELLED")
       .order("proyek_id", { ascending: true })
       .order("no", { ascending: true }),
-    // Daftar Mandor buat dropdown "Tugaskan ke Mandor" — fallback kalau
-    // proyek.mandor_id kosong/salah (lihat add_checklist_assigned_mandor.sql).
-    supabase.from("profiles").select("id, name").eq("role", "MANDOR").order("name"),
   ]);
 
   const items = [];
@@ -56,8 +53,6 @@ export default async function PerbaikanSupervisorPage() {
       dibaca_supervisor: r.dibaca_supervisor,
       created_at: r.created_at,
       proyek: r.proyek?.nama || "-",
-      assignedMandorId: r.assigned_mandor_id,
-      assignedMandorName: r.assigned?.name || null,
       foto,
       fotoBukti,
     });
@@ -82,7 +77,7 @@ export default async function PerbaikanSupervisorPage() {
         {aktif} item belum selesai
         {menunggu > 0 ? ` · ${menunggu} menunggu persetujuan Anda` : ""}
       </p>
-      <PerbaikanForm proyeks={proyek || []} items={items} mandors={mandors || []} />
+      <PerbaikanForm proyeks={proyek || []} items={items} />
     </main>
   );
 }

@@ -15,7 +15,7 @@ const STATUS_LABEL = {
   CANCELLED: { label: "Tidak Disetujui", cls: "text-red-500" },
 };
 
-export default function PerbaikanForm({ proyeks = [], items = [], mandors = [] }) {
+export default function PerbaikanForm({ proyeks = [], items = [] }) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -79,22 +79,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], mandors = [] }
     setUraian("");
     setFoto(null);
     setPreview(null);
-  };
-
-  // Tugaskan/ubah Mandor penanggung jawab item ini secara manual — dipakai
-  // sebagai fallback kalau proyek.mandor_id kosong/salah (sync Taraco gagal
-  // cocok nama), lihat add_checklist_assigned_mandor.sql.
-  const ubahAssignedMandor = async (id, mandorId) => {
-    const val = mandorId || null;
-    setList((l) =>
-      l.map((x) =>
-        x.id === id
-          ? { ...x, assignedMandorId: val, assignedMandorName: mandors.find((m) => m.id === val)?.name || null }
-          : x
-      )
-    );
-    await supabase.from("checklist_perbaikan").update({ assigned_mandor_id: val }).eq("id", id);
-    router.refresh();
   };
 
   const ubahStatus = async (id, status) => {
@@ -290,20 +274,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], mandors = [] }
                     </div>
                   </div>
                   <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
-
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <span className="text-[10px] text-gray-400">Mandor:</span>
-                    <select
-                      value={it.assignedMandorId || ""}
-                      onChange={(e) => ubahAssignedMandor(it.id, e.target.value)}
-                      className="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-600"
-                    >
-                      <option value="">— Ikuti mandor proyek —</option>
-                      {mandors.map((m) => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                    </select>
-                  </div>
 
                   {(it.foto || it.fotoBukti) && (
                     <div className="mt-1.5 grid grid-cols-2 gap-1.5">
