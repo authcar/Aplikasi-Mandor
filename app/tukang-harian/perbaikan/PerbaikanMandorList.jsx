@@ -39,12 +39,12 @@ export default function PerbaikanMandorList({ items = [] }) {
     );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {list.map((it) => {
         const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
         return (
-          <div key={it.id} className="card p-4">
-            <div className="mb-2 flex items-start justify-between gap-3">
+          <div key={it.id} className="card p-3">
+            <div className="mb-1 flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
                 <p className="text-xs font-semibold text-gray-400">No. {it.no}</p>
                 {!it.dibaca_tukang_harian && (
@@ -53,14 +53,13 @@ export default function PerbaikanMandorList({ items = [] }) {
               </div>
               <p className="shrink-0 text-xs text-gray-400">{tglID(it.created_at)}</p>
             </div>
-            <p className="font-semibold">{it.uraian}</p>
-            {it.periode && <p className="mt-0.5 text-sm text-gray-500">Periode {it.periode}</p>}
+            <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
             {it.foto && (
-              <FotoLightbox src={it.foto} caption={it.uraian} className="mt-2">
-                <img src={it.foto} alt="dokumentasi" className="h-28 w-full rounded-xl border border-gray-200 object-cover" />
+              <FotoLightbox src={it.foto} caption={it.uraian} className="mt-1.5 inline-block">
+                <img src={it.foto} alt="dokumentasi" className="h-20 w-28 rounded-lg border border-gray-200 object-cover" />
               </FotoLightbox>
             )}
-            <div className="mt-3 flex items-center justify-between">
+            <div className="mt-2 flex items-center justify-between">
               <span className={`text-xs font-semibold ${st.cls}`}>{st.label}</span>
               {it.status !== "DONE" && it.status !== "CANCELLED" && (
                 <button

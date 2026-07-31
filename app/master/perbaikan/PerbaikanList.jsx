@@ -22,33 +22,31 @@ export default function PerbaikanList({ items = [] }) {
     );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {items.map((it) => {
         const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
         return (
-          <div key={it.id} className="card p-4">
-            <div className="mb-2 flex items-start justify-between gap-3">
+          <div key={it.id} className="card p-3">
+            <div className="mb-1 flex items-start justify-between gap-3">
               <p className="text-xs font-semibold text-gray-400">{it.proyek}</p>
               <p className="shrink-0 text-xs text-gray-400">{tglID(it.created_at)}</p>
             </div>
-            <p className="font-semibold">{it.uraian}</p>
-            <p className="mt-0.5 text-sm text-gray-500">
-              {it.periode ? `Periode ${it.periode} · ` : ""}Dibuat oleh {it.pembuat}
-            </p>
-            {it.foto && (
-              <div className="mt-2">
-                <p className="mb-1 text-xs font-semibold text-gray-500">Foto Temuan</p>
-                <FotoLightbox src={it.foto} caption={it.uraian}>
-                  <img src={it.foto} alt="dokumentasi temuan" className="h-28 w-full rounded-xl border border-gray-200 object-cover" />
-                </FotoLightbox>
-              </div>
-            )}
-            {it.fotoBukti && (
-              <div className="mt-2">
-                <p className="mb-1 text-xs font-semibold text-gray-500">Foto Bukti Pengerjaan Mandor</p>
-                <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                  <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-28 w-full rounded-xl border border-gray-200 object-cover" />
-                </FotoLightbox>
+            <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
+            <p className="mt-0.5 text-xs text-gray-500">Dibuat oleh {it.pembuat}</p>
+            {(it.foto || it.fotoBukti) && (
+              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                {it.foto && (
+                  <FotoLightbox src={it.foto} caption={it.uraian}>
+                    <img src={it.foto} alt="dokumentasi temuan" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
+                    <p className="mt-0.5 text-[10px] text-gray-400">Temuan</p>
+                  </FotoLightbox>
+                )}
+                {it.fotoBukti && (
+                  <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
+                    <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
+                    <p className="mt-0.5 text-[10px] text-gray-400">Bukti Mandor</p>
+                  </FotoLightbox>
+                )}
               </div>
             )}
             {it.catatan_tolak && (
@@ -57,7 +55,7 @@ export default function PerbaikanList({ items = [] }) {
                 <p className="text-sm text-red-600">{it.catatan_tolak}</p>
               </div>
             )}
-            <p className={`mt-3 text-xs font-semibold ${st.cls}`}>{st.label}</p>
+            <p className={`mt-2 text-xs font-semibold ${st.cls}`}>{st.label}</p>
           </div>
         );
       })}

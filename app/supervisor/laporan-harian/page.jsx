@@ -12,12 +12,18 @@ export default async function LaporanHarianPage() {
     supabase.from("proyek").select("id, nama").eq("supervisor_id", profile.id).eq("is_active", true).order("nama"),
     supabase
       .from("laporan_harian")
-      .select("id, tanggal, deskripsi, status, foto_url, created_at, proyek:proyek_id(nama)")
+      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at, proyek:proyek_id(nama)")
       .eq("created_by", profile.id)
       .order("tanggal", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(HALAMAN),
   ]);
+
+  // Proyek yang sudah dilaporkan hari ini — dipakai buat indikator di
+  // dropdown Proyek supaya Supervisor gak perlu buka riwayat dulu buat tahu
+  // proyek mana yang belum dilaporkan (lihat pola sama di app/supervisor/perbaikan).
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const sudahLaporIds = [...new Set((riwayatRows || []).filter((r) => r.tanggal === todayStr).map((r) => r.proyek_id))];
 
   const paths = (riwayatRows || []).filter((r) => r.foto_url).map((r) => r.foto_url);
   const { data: signed } = paths.length
@@ -37,6 +43,7 @@ export default async function LaporanHarianPage() {
       proyekList={proyekList || []}
       riwayat={riwayat}
       hasMore={riwayat.length === HALAMAN}
+      sudahLaporIds={sudahLaporIds}
     />
   );
 }

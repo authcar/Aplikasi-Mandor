@@ -123,8 +123,8 @@ export default function PerbaikanMandorList({ items = [] }) {
         const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
         const bisaKerjakan = it.status !== "DONE" && it.status !== "CANCELLED" && it.status !== "PENDING_REVIEW";
         return (
-          <div key={it.id} className="card p-4">
-            <div className="mb-2 flex items-start justify-between gap-3">
+          <div key={it.id} className="card p-3">
+            <div className="mb-1 flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
                 <p className="text-xs font-semibold text-gray-400">{it.proyek}</p>
                 {!it.dibaca_mandor && (
@@ -133,19 +133,21 @@ export default function PerbaikanMandorList({ items = [] }) {
               </div>
               <p className="shrink-0 text-xs text-gray-400">{tglID(it.created_at)}</p>
             </div>
-            <p className="font-semibold">{it.uraian}</p>
-            {it.periode && <p className="mt-0.5 text-sm text-gray-500">Periode {it.periode}</p>}
-            {it.foto && (
-              <FotoLightbox src={it.foto} caption={it.uraian} className="mt-2">
-                <img src={it.foto} alt="dokumentasi temuan" className="h-28 w-full rounded-xl border border-gray-200 object-cover" />
-              </FotoLightbox>
-            )}
-            {it.fotoBukti && (
-              <div className="mt-2">
-                <p className="mb-1 text-xs font-semibold text-gray-500">Foto Bukti Pengerjaan Anda</p>
-                <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                  <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-28 w-full rounded-xl border border-gray-200 object-cover" />
-                </FotoLightbox>
+            <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
+            {(it.foto || it.fotoBukti) && (
+              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                {it.foto && (
+                  <FotoLightbox src={it.foto} caption={it.uraian}>
+                    <img src={it.foto} alt="dokumentasi temuan" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
+                    <p className="mt-0.5 text-[10px] text-gray-400">Temuan</p>
+                  </FotoLightbox>
+                )}
+                {it.fotoBukti && (
+                  <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
+                    <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
+                    <p className="mt-0.5 text-[10px] text-gray-400">Bukti Anda</p>
+                  </FotoLightbox>
+                )}
               </div>
             )}
             {it.status === "OPEN" && it.catatan_tolak && (
@@ -209,9 +211,7 @@ export default function PerbaikanMandorList({ items = [] }) {
               return (
                 <div key={it.id} className="card p-3">
                   <div className="mb-1 flex items-start justify-between gap-2">
-                    <p className="text-[11px] font-semibold text-gray-400 truncate">
-                      {it.proyek}{it.periode ? ` · Periode ${it.periode}` : ""}
-                    </p>
+                    <p className="text-[11px] font-semibold text-gray-400 truncate">{it.proyek}</p>
                     <p className="shrink-0 text-[11px] text-gray-400">{tglID(it.created_at)}</p>
                   </div>
                   <p className="text-sm font-semibold leading-snug">{it.uraian}</p>

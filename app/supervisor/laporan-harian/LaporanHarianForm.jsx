@@ -41,8 +41,9 @@ const ENTRI_KOSONG = () => ({
 // 1 proyek per submit, tapi bisa beberapa kegiatan sekaligus — tiap
 // kegiatan punya foto, deskripsi & status sendiri-sendiri (dikirim sebagai
 // baris laporan_harian terpisah, satu request per kegiatan).
-export default function LaporanHarianForm({ proyekList = [], riwayat = [] }) {
+export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudahLaporIds = [] }) {
   const router = useRouter();
+  const sudahLapor = new Set(sudahLaporIds);
   const [proyekId, setProyekId] = useState(proyekList[0]?.id || "");
   const [entries, setEntries] = useState([ENTRI_KOSONG()]);
   const [kameraFor, setKameraFor] = useState(null); // key entri yang lagi ambil foto
@@ -132,9 +133,14 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [] }) {
           <Field label="Proyek">
             <select value={proyekId} onChange={(e) => setProyekId(e.target.value)} className="input text-lg">
               {proyekList.map((p) => (
-                <option key={p.id} value={p.id}>{p.nama}</option>
+                <option key={p.id} value={p.id}>
+                  {sudahLapor.has(p.id) ? `✓ ${p.nama}` : p.nama}
+                </option>
               ))}
             </select>
+            <p className="mt-1.5 text-xs text-gray-400">
+              ✓ {sudahLapor.size} dari {proyekList.length} proyek sudah dilaporkan hari ini
+            </p>
           </Field>
 
           <div className="space-y-4">

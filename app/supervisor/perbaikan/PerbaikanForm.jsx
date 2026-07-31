@@ -390,7 +390,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                                 <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
                                 <p className="mt-0.5 truncate text-[10px] text-gray-400">
                                   <span className={`font-semibold ${st.cls}`}>{st.label}</span>
-                                  {it.periode ? ` · P${it.periode}` : ""} · {tglID(it.created_at)}
+                                  {" "}· {tglID(it.created_at)}
                                 </p>
                               </div>
                               <button
