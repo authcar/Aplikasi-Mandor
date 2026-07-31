@@ -27,28 +27,30 @@ export default function PerbaikanList({ items = [] }) {
         const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
         return (
           <div key={it.id} className="card p-3">
-            <div className="mb-1 flex items-start justify-between gap-3">
-              <p className="text-xs font-semibold text-gray-400">{it.proyek}</p>
-              <p className="shrink-0 text-xs text-gray-400">{tglID(it.created_at)}</p>
-            </div>
-            <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
-            <p className="mt-0.5 text-xs text-gray-500">Dibuat oleh {it.pembuat}</p>
-            {(it.foto || it.fotoBukti) && (
-              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-                {it.foto && (
-                  <FotoLightbox src={it.foto} caption={it.uraian}>
-                    <img src={it.foto} alt="dokumentasi temuan" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
-                    <p className="mt-0.5 text-[10px] text-gray-400">Temuan</p>
-                  </FotoLightbox>
-                )}
-                {it.fotoBukti && (
-                  <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                    <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
-                    <p className="mt-0.5 text-[10px] text-gray-400">Bukti Mandor</p>
-                  </FotoLightbox>
-                )}
+            <div className="flex items-start gap-3">
+              {(it.foto || it.fotoBukti) && (
+                <div className="flex shrink-0 -space-x-2">
+                  {it.foto && (
+                    <FotoLightbox src={it.foto} caption={it.uraian}>
+                      <img src={it.foto} alt="dokumentasi temuan" className="h-14 w-14 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                    </FotoLightbox>
+                  )}
+                  {it.fotoBukti && (
+                    <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
+                      <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-14 w-14 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                    </FotoLightbox>
+                  )}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="truncate text-xs font-semibold text-gray-400">{it.proyek}</p>
+                  <p className="shrink-0 text-[11px] text-gray-400">{tglID(it.created_at)}</p>
+                </div>
+                <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
+                <p className="text-[11px] text-gray-400">Dibuat oleh {it.pembuat}</p>
               </div>
-            )}
+            </div>
             {it.catatan_tolak && (
               <div className="mt-2 rounded-lg bg-red-50 px-3 py-2">
                 <p className="text-xs font-bold text-red-700">Ditolak Supervisor</p>
