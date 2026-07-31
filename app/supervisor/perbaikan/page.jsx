@@ -38,36 +38,30 @@ export default async function PerbaikanSupervisorPage() {
 
   const sudahLaporIds = [...new Set((laporanHariIni || []).map((r) => r.proyek_id))];
 
-  const items = [];
-  for (const r of rows || []) {
-    let foto = null;
-    if (r.foto_url) {
-      const { data } = await supabase.storage
-        .from("perbaikan")
-        .createSignedUrl(r.foto_url, 3600);
-      foto = data?.signedUrl || null;
-    }
-    let fotoBukti = null;
-    if (r.foto_bukti_url) {
-      const { data } = await supabase.storage
-        .from("perbaikan")
-        .createSignedUrl(r.foto_bukti_url, 3600);
-      fotoBukti = data?.signedUrl || null;
-    }
-    items.push({
-      id: r.id,
-      proyek_id: r.proyek_id,
-      no: r.no,
-      uraian: r.uraian,
-      periode: r.periode,
-      status: r.status,
-      dibaca_supervisor: r.dibaca_supervisor,
-      created_at: r.created_at,
-      proyek: r.proyek?.nama || "-",
-      foto,
-      fotoBukti,
-    });
-  }
+  const paths = [
+    ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
+    ...(rows || []).filter((r) => r.foto_bukti_url).map((r) => r.foto_bukti_url),
+  ];
+  const { data: signed } = paths.length
+    ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
+    : { data: [] };
+  const urlMap = Object.fromEntries(
+    (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
+  );
+
+  const items = (rows || []).map((r) => ({
+    id: r.id,
+    proyek_id: r.proyek_id,
+    no: r.no,
+    uraian: r.uraian,
+    periode: r.periode,
+    status: r.status,
+    dibaca_supervisor: r.dibaca_supervisor,
+    created_at: r.created_at,
+    proyek: r.proyek?.nama || "-",
+    foto: r.foto_url ? urlMap[r.foto_url] || null : null,
+    fotoBukti: r.foto_bukti_url ? urlMap[r.foto_bukti_url] || null : null,
+  }));
 
   // Tandai bukti pengerjaan baru sudah dilihat supaya badge "Baru" hilang.
   const belumDibaca = items.filter((i) => !i.dibaca_supervisor).map((i) => i.id);

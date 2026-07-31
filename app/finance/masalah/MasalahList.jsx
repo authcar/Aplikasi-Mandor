@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { tglID } from "@/lib/format";
 import Icon from "@/components/Icon";
@@ -10,10 +10,40 @@ const URGENSI_BADGE = {
   Rendah: "bg-blue-100 text-blue-700",
 };
 
+const TABS = [
+  { key: "SEMUA", label: "Semua" },
+  { key: "OPEN", label: "Menunggu" },
+  { key: "IN_PROGRESS", label: "Diproses" },
+  { key: "DONE", label: "Selesai" },
+];
+
+const HALAMAN = 20;
+
 export default function MasalahList({ items }) {
   const router = useRouter();
   const [busy, setBusy] = useState(null);
   const [list, setList] = useState(items);
+  const [tab, setTab] = useState("SEMUA");
+  const [q, setQ] = useState("");
+  const [visible, setVisible] = useState(HALAMAN);
+
+  useEffect(() => setVisible(HALAMAN), [tab, q]);
+
+  const norm = (s) => (s || "").toLowerCase();
+  const filtered = list.filter((it) => {
+    if (tab !== "SEMUA" && it.status !== tab) return false;
+    if (!q.trim()) return true;
+    const needle = norm(q);
+    return (
+      norm(it.material).includes(needle) ||
+      norm(it.judul).includes(needle) ||
+      norm(it.catatan).includes(needle) ||
+      norm(it.proyek).includes(needle) ||
+      norm(it.mandor).includes(needle)
+    );
+  });
+  const visibleItems = filtered.slice(0, visible);
+  const hasMore = filtered.length > visible;
 
   const ubah = async (id, status) => {
     setBusy(id);
@@ -40,8 +70,49 @@ export default function MasalahList({ items }) {
     );
 
   return (
-    <div className="space-y-3">
-      {list.map((it) => (
+    <>
+      <div className="relative mb-3">
+        <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Cari material, proyek, atau nama..."
+          className="input !py-2.5 !pl-10 !text-sm"
+        />
+      </div>
+
+      <div className="flex gap-1 border-b border-gray-200 mb-4">
+        {TABS.map((t) => {
+          const count = t.key === "SEMUA" ? list.length : list.filter((i) => i.status === t.key).length;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`relative px-3 py-2 text-sm font-semibold transition-colors ${
+                tab === t.key ? "text-brand" : "text-gray-400"
+              }`}
+            >
+              {t.label}
+              {count > 0 && t.key === "OPEN" && (
+                <span className="ml-1 rounded-full bg-brand px-1.5 py-0.5 text-[10px] text-white">{count}</span>
+              )}
+              {tab === t.key && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-brand" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="card flex flex-col items-center gap-2 border-green-200 bg-green-50 p-8 text-center text-green-700">
+          <Icon name="check-circle" className="h-9 w-9" />
+          <p className="font-semibold">Tidak ada laporan yang cocok.</p>
+        </div>
+      ) : (
+      <div className="space-y-3">
+      {visibleItems.map((it) => (
         <div key={it.id} className="card p-4">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
@@ -103,6 +174,18 @@ export default function MasalahList({ items }) {
           </div>
         </div>
       ))}
-    </div>
+      </div>
+      )}
+
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setVisible((v) => v + HALAMAN)}
+          className="btn-outline mt-3 w-full"
+        >
+          Muat Lebih Banyak ({filtered.length - visible} lagi)
+        </button>
+      )}
+    </>
   );
 }

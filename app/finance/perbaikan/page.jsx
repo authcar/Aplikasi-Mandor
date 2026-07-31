@@ -17,33 +17,31 @@ export default async function PerbaikanFinancePage() {
     )
     .order("created_at", { ascending: false });
 
-  const items = [];
-  for (const r of rows || []) {
-    let foto = null;
-    if (r.foto_url) {
-      const { data } = await supabase.storage.from("perbaikan").createSignedUrl(r.foto_url, 3600);
-      foto = data?.signedUrl || null;
-    }
-    let fotoBukti = null;
-    if (r.foto_bukti_url) {
-      const { data } = await supabase.storage.from("perbaikan").createSignedUrl(r.foto_bukti_url, 3600);
-      fotoBukti = data?.signedUrl || null;
-    }
-    items.push({
-      id: r.id,
-      no: r.no,
-      uraian: r.uraian,
-      periode: r.periode,
-      status: r.status,
-      catatan_tolak: r.catatan_tolak,
-      created_at: r.created_at,
-      selesai_at: r.selesai_at,
-      proyek: r.proyek?.nama || "-",
-      pembuat: r.creator?.name || "-",
-      foto,
-      fotoBukti,
-    });
-  }
+  const paths = [
+    ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
+    ...(rows || []).filter((r) => r.foto_bukti_url).map((r) => r.foto_bukti_url),
+  ];
+  const { data: signed } = paths.length
+    ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
+    : { data: [] };
+  const urlMap = Object.fromEntries(
+    (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
+  );
+
+  const items = (rows || []).map((r) => ({
+    id: r.id,
+    no: r.no,
+    uraian: r.uraian,
+    periode: r.periode,
+    status: r.status,
+    catatan_tolak: r.catatan_tolak,
+    created_at: r.created_at,
+    selesai_at: r.selesai_at,
+    proyek: r.proyek?.nama || "-",
+    pembuat: r.creator?.name || "-",
+    foto: r.foto_url ? urlMap[r.foto_url] || null : null,
+    fotoBukti: r.foto_bukti_url ? urlMap[r.foto_bukti_url] || null : null,
+  }));
 
   const menunggu = items.filter((i) => i.status === "PENDING_REVIEW").length;
 

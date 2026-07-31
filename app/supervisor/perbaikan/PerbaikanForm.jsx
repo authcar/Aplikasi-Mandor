@@ -36,7 +36,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   const sudahLapor = new Set(sudahLaporIds);
 
   const [proyekId, setProyekId] = useState(proyeks[0]?.id || "");
-  const [periode, setPeriode] = useState("1");
   const rowId = useRef(1);
   const kosong = () => ({ id: rowId.current++, uraian: "", foto: null, preview: null });
   const [rows, setRows] = useState(() => [kosong()]);
@@ -117,7 +116,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
         proyek_id: proyekId,
         no: noBase + i + 1,
         uraian: row.uraian.trim(),
-        periode,
         foto_url,
         created_by: uid,
       });
@@ -222,16 +220,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                 </option>
               ))}
             </select>
-          </div>
-
-          <div>
-            <label className="label">Periode</label>
-            <input
-              value={periode}
-              onChange={(e) => setPeriode(e.target.value)}
-              placeholder="1"
-              className="input"
-            />
           </div>
 
           <div>

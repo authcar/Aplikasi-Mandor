@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { rupiah } from "@/lib/format";
 import Icon from "@/components/Icon";
@@ -10,6 +10,8 @@ const TABS = [
   { key: "APPROVED",label: "Disetujui" },
   { key: "REJECTED",label: "Ditolak" },
 ];
+
+const HALAMAN = 20;
 
 const STATUS_STYLE = {
   PENDING:  "bg-blue-100 text-blue-700",
@@ -30,8 +32,26 @@ export default function ApprovalList({ items: initialItems }) {
   const [items, setItems] = useState(initialItems);
   const [nota, setNota] = useState(null);
   const [unduh, setUnduh] = useState(false);
+  const [q, setQ] = useState("");
+  const [visible, setVisible] = useState(HALAMAN);
 
-  const filtered = tab === "SEMUA" ? items : items.filter((i) => i._status === tab);
+  useEffect(() => setVisible(HALAMAN), [tab, q]);
+
+  const norm = (s) => (s || "").toLowerCase();
+  const matchesQuery = (it) => {
+    if (!q.trim()) return true;
+    const needle = norm(q);
+    return (
+      norm(it._judul).includes(needle) ||
+      norm(it._proyek).includes(needle) ||
+      norm(it._mandor).includes(needle) ||
+      norm(it._label).includes(needle)
+    );
+  };
+
+  const filtered = items.filter((i) => (tab === "SEMUA" || i._status === tab) && matchesQuery(i));
+  const visibleItems = filtered.slice(0, visible);
+  const hasMore = filtered.length > visible;
 
   const review = async (tipe, id, aksi) => {
     setBusy(id);
@@ -84,6 +104,17 @@ export default function ApprovalList({ items: initialItems }) {
 
   return (
     <>
+      <div className="relative mb-3">
+        <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Cari uraian, proyek, atau nama..."
+          className="input !py-2.5 !pl-10 !text-sm"
+        />
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 mb-4">
         {TABS.map((t) => {
@@ -116,7 +147,7 @@ export default function ApprovalList({ items: initialItems }) {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((it) => (
+          {visibleItems.map((it) => (
             <div key={it.id} className="card p-4">
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -171,6 +202,16 @@ export default function ApprovalList({ items: initialItems }) {
             </div>
           ))}
         </div>
+      )}
+
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setVisible((v) => v + HALAMAN)}
+          className="btn-outline mt-3 w-full"
+        >
+          Muat Lebih Banyak ({filtered.length - visible} lagi)
+        </button>
       )}
 
       {/* Modal nota */}

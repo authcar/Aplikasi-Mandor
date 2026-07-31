@@ -26,16 +26,15 @@ export default async function PerbaikanTukangHarianPage() {
       .eq("proyek_id", proyek.id)
       .order("no", { ascending: true });
 
-    for (const r of rows || []) {
-      let foto = null;
-      if (r.foto_url) {
-        const { data } = await supabase.storage
-          .from("perbaikan")
-          .createSignedUrl(r.foto_url, 3600);
-        foto = data?.signedUrl || null;
-      }
-      items.push({ ...r, foto });
-    }
+    const paths = (rows || []).filter((r) => r.foto_url).map((r) => r.foto_url);
+    const { data: signed } = paths.length
+      ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
+      : { data: [] };
+    const urlMap = Object.fromEntries(
+      (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
+    );
+
+    items = (rows || []).map((r) => ({ ...r, foto: r.foto_url ? urlMap[r.foto_url] || null : null }));
 
     // Tandai sudah dibaca (khusus Tukang Harian) supaya badge notifikasi di
     // dashboard-nya hilang — terpisah dari dibaca_mandor milik Mandor.
