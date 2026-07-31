@@ -133,7 +133,12 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
           <Field label="Proyek">
             <select value={proyekId} onChange={(e) => setProyekId(e.target.value)} className="input text-lg">
               {proyekList.map((p) => (
-                <option key={p.id} value={p.id}>
+                <option
+                  key={p.id}
+                  value={p.id}
+                  className={sudahLapor.has(p.id) ? "text-green-600" : ""}
+                  style={sudahLapor.has(p.id) ? { color: "#16a34a" } : undefined}
+                >
                   {sudahLapor.has(p.id) ? `✓ ${p.nama}` : p.nama}
                 </option>
               ))}

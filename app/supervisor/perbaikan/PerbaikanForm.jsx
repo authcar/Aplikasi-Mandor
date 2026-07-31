@@ -15,6 +15,11 @@ const STATUS_LABEL = {
   CANCELLED: { label: "Tidak Disetujui", cls: "text-red-500" },
 };
 
+const FILTER_TABS = [
+  { key: "SEMUA", label: "Semua" },
+  { key: "PENDING_REVIEW", label: "Menunggu Persetujuan" },
+];
+
 // Kelompokkan list flat -> per proyek, urutan proyek mengikuti kemunculan
 // pertama di `list` (list sudah terurut proyek_id dari query server).
 function kelompokkanProyek(list) {
@@ -45,6 +50,8 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   const [tolakFor, setTolakFor] = useState(null);
   const [alasanTolak, setAlasanTolak] = useState("");
   const [errTolak, setErrTolak] = useState("");
+  const [cari, setCari] = useState("");
+  const [filterStatus, setFilterStatus] = useState("SEMUA");
   // Proyek yang punya item PENDING_REVIEW terbuka duluan (butuh aksi
   // Supervisor); sisanya tertutup supaya "klasifikasi" per proyek terlihat
   // ringkas lewat badge jumlah, bukan langsung daftar penuh.
@@ -64,6 +71,33 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
     });
 
   const isiTerisi = rows.filter((r) => r.uraian.trim()).length;
+
+  const totalMenunggu = list.filter((it) => it.status === "PENDING_REVIEW").length;
+
+  // Pencarian & filter status jalan lintas-proyek — supaya makin banyak
+  // proyek/item, Supervisor tetap bisa langsung nemu yang dicari tanpa buka
+  // grup satu-satu. Saat aktif nyari/nyaring, grup yang cocok otomatis
+  // kebuka (lihat `terbuka` di render) dan grup yang gak cocok disembunyikan.
+  const sedangFilter = cari.trim() !== "" || filterStatus !== "SEMUA";
+  const norm = (s) => (s || "").toLowerCase();
+  const grupTampil = kelompokkanProyek(list)
+    .map((g) => {
+      const needle = norm(cari);
+      const itemsTampil = g.items.filter((it) => {
+        if (filterStatus !== "SEMUA" && it.status !== filterStatus) return false;
+        if (!needle) return true;
+        return norm(it.uraian).includes(needle) || norm(g.nama).includes(needle);
+      });
+      return { ...g, itemsTampil };
+    })
+    .filter((g) => !sedangFilter || g.itemsTampil.length > 0)
+    // Proyek dengan item menunggu persetujuan naik ke atas — biar gak
+    // ketiban scroll pas daftar proyeknya udah panjang.
+    .sort((a, b) => {
+      const pendingA = a.items.filter((it) => it.status === "PENDING_REVIEW").length;
+      const pendingB = b.items.filter((it) => it.status === "PENDING_REVIEW").length;
+      return pendingB - pendingA;
+    });
 
   const tambahRow = () => setRows((r) => [...r, kosong()]);
   const hapusRow = (id) => setRows((r) => r.filter((row) => row.id !== id));
@@ -319,12 +353,51 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
             <p className="font-semibold">Belum ada item perbaikan.</p>
           </div>
         ) : (
+          <>
+            <div className="relative mb-3">
+              <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                value={cari}
+                onChange={(e) => setCari(e.target.value)}
+                placeholder="Cari uraian atau proyek..."
+                className="input !py-2.5 !pl-10 !text-sm"
+              />
+            </div>
+
+            <div className="flex gap-1 border-b border-gray-200 mb-3">
+              {FILTER_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setFilterStatus(t.key)}
+                  className={`relative px-3 py-2 text-sm font-semibold transition-colors ${
+                    filterStatus === t.key ? "text-brand" : "text-gray-400"
+                  }`}
+                >
+                  {t.label}
+                  {t.key === "PENDING_REVIEW" && totalMenunggu > 0 && (
+                    <span className="ml-1 rounded-full bg-brand px-1.5 py-0.5 text-[10px] text-white">{totalMenunggu}</span>
+                  )}
+                  {filterStatus === t.key && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-brand" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {grupTampil.length === 0 ? (
+              <div className="card flex flex-col items-center gap-2 border-gray-200 bg-gray-50 p-8 text-center text-gray-500">
+                <Icon name="check-circle" className="h-9 w-9" />
+                <p className="font-semibold">Tidak ada yang cocok.</p>
+              </div>
+            ) : (
           <div className="space-y-2">
-            {kelompokkanProyek(list).map((g) => {
+            {grupTampil.map((g) => {
               const belum = g.items.filter((it) => it.status === "OPEN" || it.status === "IN_PROGRESS").length;
               const menunggu = g.items.filter((it) => it.status === "PENDING_REVIEW").length;
               const selesai = g.items.filter((it) => it.status === "DONE").length;
-              const terbuka = openProyek.has(g.proyekId);
+              const terbuka = sedangFilter || openProyek.has(g.proyekId);
               return (
                 <div key={g.proyekId} className="card overflow-hidden">
                   <button
@@ -366,7 +439,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
 
                   {terbuka && (
                     <div className="space-y-1.5 border-t border-gray-100 bg-gray-50/60 p-1.5">
-                      {g.items.map((it) => {
+                      {g.itemsTampil.map((it) => {
                         const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
                         const sedangTolak = tolakFor === it.id;
                         return (
@@ -444,6 +517,8 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
               );
             })}
           </div>
+            )}
+          </>
         )}
       </section>
     </div>
