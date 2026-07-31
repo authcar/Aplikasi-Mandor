@@ -15,9 +15,25 @@ const STATUS_LABEL = {
   CANCELLED: { label: "Tidak Disetujui", cls: "text-red-500" },
 };
 
-export default function PerbaikanForm({ proyeks = [], items = [] }) {
+// Kelompokkan list flat -> per proyek, urutan proyek mengikuti kemunculan
+// pertama di `list` (list sudah terurut proyek_id dari query server).
+function kelompokkanProyek(list) {
+  const grup = [];
+  const idx = new Map();
+  for (const it of list) {
+    if (!idx.has(it.proyek_id)) {
+      idx.set(it.proyek_id, grup.length);
+      grup.push({ proyekId: it.proyek_id, nama: it.proyek, items: [] });
+    }
+    grup[idx.get(it.proyek_id)].items.push(it);
+  }
+  return grup;
+}
+
+export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds = [] }) {
   const router = useRouter();
   const supabase = createClient();
+  const sudahLapor = new Set(sudahLaporIds);
 
   const [proyekId, setProyekId] = useState(proyeks[0]?.id || "");
   const [periode, setPeriode] = useState("1");
@@ -30,6 +46,23 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
   const [tolakFor, setTolakFor] = useState(null);
   const [alasanTolak, setAlasanTolak] = useState("");
   const [errTolak, setErrTolak] = useState("");
+  // Proyek yang punya item PENDING_REVIEW terbuka duluan (butuh aksi
+  // Supervisor); sisanya tertutup supaya "klasifikasi" per proyek terlihat
+  // ringkas lewat badge jumlah, bukan langsung daftar penuh.
+  const [openProyek, setOpenProyek] = useState(
+    () =>
+      new Set(
+        kelompokkanProyek(items)
+          .filter((g) => g.items.some((it) => it.status === "PENDING_REVIEW"))
+          .map((g) => g.proyekId)
+      )
+  );
+  const toggleProyek = (id) =>
+    setOpenProyek((cur) => {
+      const next = new Set(cur);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const isiTerisi = rows.filter((r) => r.uraian.trim()).length;
 
@@ -98,15 +131,6 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
     }
     router.refresh();
     setRows([kosong()]);
-  };
-
-  const ubahStatus = async (id, status) => {
-    setList((l) => l.map((x) => (x.id === id ? { ...x, status } : x)));
-    await supabase
-      .from("checklist_perbaikan")
-      .update({ status, selesai_at: status === "DONE" ? new Date().toISOString() : null })
-      .eq("id", id);
-    router.refresh();
   };
 
   // Setujui bukti pengerjaan yang dikirim Mandor (status PENDING_REVIEW).
@@ -298,7 +322,7 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
         </form>
       </div>
 
-      {/* Daftar item */}
+      {/* Daftar item, dikelompokkan per proyek */}
       <section>
         <h2 className="mb-3 font-bold text-gray-700">Daftar Perbaikan</h2>
         {list.length === 0 ? (
@@ -308,91 +332,126 @@ export default function PerbaikanForm({ proyeks = [], items = [] }) {
           </div>
         ) : (
           <div className="space-y-2">
-            {list.map((it) => {
-              const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
-              const sedangTolak = tolakFor === it.id;
+            {kelompokkanProyek(list).map((g) => {
+              const belum = g.items.filter((it) => it.status === "OPEN" || it.status === "IN_PROGRESS").length;
+              const menunggu = g.items.filter((it) => it.status === "PENDING_REVIEW").length;
+              const selesai = g.items.filter((it) => it.status === "DONE").length;
+              const terbuka = openProyek.has(g.proyekId);
               return (
-                <div key={it.id} className="card p-3">
-                  <div className="mb-1 flex items-start justify-between gap-2">
-                    <p className="text-[11px] font-semibold text-gray-400 truncate">
-                      {it.proyek}{it.periode ? ` · Periode ${it.periode}` : ""}
-                    </p>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <p className="text-[11px] text-gray-400">{tglID(it.created_at)}</p>
-                      <button
-                        type="button"
-                        onClick={() => batalkanItem(it.id)}
-                        title="Batalkan item ini"
-                        className="text-gray-300 active:text-red-500"
-                      >
-                        <Icon name="x-circle" className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
+                <div key={g.proyekId} className="card overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleProyek(g.proyekId)}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2.5 active:bg-gray-50"
+                  >
+                    <span className="min-w-0 flex-1 text-left">
+                      <span className="flex items-center gap-1.5">
+                        <span
+                          className={`h-2 w-2 shrink-0 rounded-full ${sudahLapor.has(g.proyekId) ? "bg-green-500" : "bg-gray-300"}`}
+                          title={sudahLapor.has(g.proyekId) ? "Sudah lapor hari ini" : "Belum lapor hari ini"}
+                        />
+                        <span className="truncate text-sm font-bold text-gray-700">{g.nama}</span>
+                      </span>
+                      <span className="mt-0.5 flex flex-wrap items-center gap-1">
+                        {menunggu > 0 && (
+                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                            {menunggu} menunggu
+                          </span>
+                        )}
+                        {belum > 0 && (
+                          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
+                            {belum} belum
+                          </span>
+                        )}
+                        {selesai > 0 && (
+                          <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                            {selesai} selesai
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-gray-400">
+                      <span className="text-[11px]">{g.items.length}</span>
+                      <Icon name="chevron-down" className={`h-3.5 w-3.5 transition-transform ${terbuka ? "rotate-180" : ""}`} />
+                    </span>
+                  </button>
 
-                  {(it.foto || it.fotoBukti) && (
-                    <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-                      {it.foto && (
-                        <FotoLightbox src={it.foto} caption={it.uraian}>
-                          <img src={it.foto} alt="dokumentasi" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
-                          <p className="mt-0.5 text-[10px] text-gray-400">Temuan</p>
-                        </FotoLightbox>
-                      )}
-                      {it.fotoBukti && (
-                        <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                          <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-16 w-full rounded-lg border border-gray-200 object-cover" />
-                          <p className="mt-0.5 text-[10px] text-gray-400">Bukti Mandor</p>
-                        </FotoLightbox>
-                      )}
+                  {terbuka && (
+                    <div className="space-y-1.5 border-t border-gray-100 bg-gray-50/60 p-1.5">
+                      {g.items.map((it) => {
+                        const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
+                        const sedangTolak = tolakFor === it.id;
+                        return (
+                          <div key={it.id} className="rounded-lg bg-white p-2 shadow-sm">
+                            <div className="flex items-start gap-2">
+                              {(it.foto || it.fotoBukti) && (
+                                <div className="flex shrink-0 -space-x-2">
+                                  {it.foto && (
+                                    <FotoLightbox src={it.foto} caption={it.uraian}>
+                                      <img src={it.foto} alt="dokumentasi" className="h-9 w-9 rounded-md border-2 border-white object-cover ring-1 ring-gray-200" />
+                                    </FotoLightbox>
+                                  )}
+                                  {it.fotoBukti && (
+                                    <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
+                                      <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-9 w-9 rounded-md border-2 border-white object-cover ring-1 ring-gray-200" />
+                                    </FotoLightbox>
+                                  )}
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
+                                <p className="mt-0.5 truncate text-[10px] text-gray-400">
+                                  <span className={`font-semibold ${st.cls}`}>{st.label}</span>
+                                  {it.periode ? ` · P${it.periode}` : ""} · {tglID(it.created_at)}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => batalkanItem(it.id)}
+                                title="Batalkan item ini"
+                                className="-mr-0.5 -mt-0.5 shrink-0 p-0.5 text-gray-300 active:text-red-500"
+                              >
+                                <Icon name="x-circle" className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            {it.status === "PENDING_REVIEW" && sedangTolak && (
+                              <div className="mt-1.5 space-y-1.5 border-t border-gray-100 pt-1.5">
+                                <textarea
+                                  value={alasanTolak}
+                                  onChange={(e) => setAlasanTolak(e.target.value)}
+                                  placeholder="Alasan penolakan..."
+                                  rows={2}
+                                  className="input !py-1.5 !text-sm"
+                                  autoFocus
+                                />
+                                {errTolak && <p className="text-xs font-medium text-red-600">{errTolak}</p>}
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <button type="button" onClick={batalTolak} disabled={busy} className="btn-outline !py-1.5 !text-xs text-gray-500">
+                                    Batal
+                                  </button>
+                                  <button type="button" onClick={() => kirimTolak(it.id)} disabled={busy} className="btn-danger !py-1.5 !text-xs">
+                                    {busy ? "Mengirim..." : "Kirim"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {it.status === "PENDING_REVIEW" && !sedangTolak && (
+                              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                                <button onClick={() => mulaiTolak(it.id)} className="btn-outline !py-1.5 !text-xs text-red-500">
+                                  Tidak Disetujui
+                                </button>
+                                <button onClick={() => setujuiBukti(it.id)} className="btn-success !py-1.5 !text-xs">
+                                  Disetujui
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-
-                  {it.status === "PENDING_REVIEW" && sedangTolak && (
-                    <div className="mt-2 space-y-1.5 border-t border-gray-100 pt-2">
-                      <label className="text-xs font-semibold text-gray-600">Alasan Penolakan</label>
-                      <textarea
-                        value={alasanTolak}
-                        onChange={(e) => setAlasanTolak(e.target.value)}
-                        placeholder="Contoh: Foto belum menunjukkan area yang diperbaiki..."
-                        rows={2}
-                        className="input !py-2 !text-sm"
-                        autoFocus
-                      />
-                      {errTolak && <p className="text-xs font-medium text-red-600">{errTolak}</p>}
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <button type="button" onClick={batalTolak} disabled={busy} className="btn-outline !py-2 !text-xs text-gray-500">
-                          Batal
-                        </button>
-                        <button type="button" onClick={() => kirimTolak(it.id)} disabled={busy} className="btn-danger !py-2 !text-xs">
-                          {busy ? "Mengirim..." : "Kirim"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <span className={`text-[11px] font-semibold ${st.cls}`}>{st.label}</span>
-                    {it.status === "PENDING_REVIEW" ? (
-                      !sedangTolak && (
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <button onClick={() => mulaiTolak(it.id)} className="btn-outline !py-2 !text-xs text-red-500">
-                            Tidak Disetujui
-                          </button>
-                          <button onClick={() => setujuiBukti(it.id)} className="btn-success !py-2 !text-xs">
-                            Disetujui
-                          </button>
-                        </div>
-                      )
-                    ) : it.status === "DONE" ? null : (
-                      <button
-                        onClick={() => ubahStatus(it.id, "DONE")}
-                        className="btn-success !py-2 !text-xs"
-                      >
-                        Tandai Selesai
-                      </button>
-                    )}
-                  </div>
                 </div>
               );
             })}

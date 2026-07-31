@@ -103,6 +103,11 @@ create index if not exists idx_proyek_mandor on proyek(mandor_id);
 -- Mandor/Master & form Proyek Baru, tidak pernah lewat migrasi.
 alter table proyek add column if not exists nilai_proyek numeric(14,0);
 
+-- deadline: disinkron dari Taraco (projects.due_date) lewat
+-- syncProyekFromTaraco, dipakai untuk sort & label "Proyek Saya" Supervisor.
+-- Lihat supabase/add_proyek_deadline.sql.
+alter table proyek add column if not exists deadline date;
+
 -- proyek_id (di tabel profiles): proyek tetap milik akun TUKANG_HARIAN
 -- (mandor/supervisor mengaitkan tukang harian ke 1 proyek lewat fitur
 -- "Tambah Tukang Harian"). Mandor/Supervisor sendiri tidak pakai kolom
@@ -276,12 +281,13 @@ alter table checklist_perbaikan
 -- cek existing dulu sebelum insert/update (pola upsert manual) — tapi
 -- tidak ditambahkan sebagai constraint di sini karena belum terverifikasi.
 create table if not exists absensi_ringkas (
-  id            uuid primary key default gen_random_uuid(),
-  proyek_id     uuid references proyek(id) on delete cascade,
-  tanggal       date not null,
-  jumlah_hadir  int not null default 0,
-  created_by    uuid references profiles(id),
-  created_at    timestamptz default now()
+  id                    uuid primary key default gen_random_uuid(),
+  proyek_id             uuid references proyek(id) on delete cascade,
+  tanggal               date not null,
+  jumlah_hadir          int not null default 0,
+  tidak_ada_pengerjaan  boolean not null default false,
+  created_by            uuid references profiles(id),
+  created_at            timestamptz default now()
 );
 
 -- absensi_tim: laporan harian Supervisor per tim (BUKAN per proyek —

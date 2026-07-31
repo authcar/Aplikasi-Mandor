@@ -20,7 +20,7 @@ const labelTanggal = (tgl) =>
 // Read-only — data proyek (nama, lokasi, mandor) datang dari Taraco.
 // `riwayat` dari laporan_harian (laporan manual di web app), terurut terbaru
 // dulu — dipakai buat kartu "Laporan Terakhir" & riwayat lengkap di bawah.
-export default function ProyekDetail({ proyek, jumlahHadir, riwayat = [] }) {
+export default function ProyekDetail({ proyek, jumlahHadir, tidakAdaPengerjaan = false, riwayat = [] }) {
   const laporanTerakhir = riwayat[0] || null;
 
   return (
@@ -42,8 +42,12 @@ export default function ProyekDetail({ proyek, jumlahHadir, riwayat = [] }) {
       <div className="card p-4 mb-5 flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500">Hadir Hari Ini</p>
-          <p className="text-2xl font-bold">
-            {jumlahHadir === null ? "—" : `${jumlahHadir} orang`}
+          <p className={tidakAdaPengerjaan ? "text-base font-semibold text-amber-600" : "text-2xl font-bold"}>
+            {tidakAdaPengerjaan
+              ? "Tidak ada pengerjaan"
+              : jumlahHadir === null
+              ? "—"
+              : `${jumlahHadir} orang`}
           </p>
         </div>
         <span className="icon-tile bg-green-100 text-green-600">

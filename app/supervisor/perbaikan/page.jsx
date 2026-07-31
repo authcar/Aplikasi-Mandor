@@ -9,12 +9,16 @@ export const dynamic = "force-dynamic";
 export default async function PerbaikanSupervisorPage() {
   const { supabase } = await getSessionProfile();
 
-  const [{ data: proyek }, { data: rows }] = await Promise.all([
-    supabase
-      .from("proyek")
-      .select("id, nama, mandor:mandor_id(name)")
-      .eq("is_active", true)
-      .order("nama"),
+  const { data: proyek } = await supabase
+    .from("proyek")
+    .select("id, nama, mandor:mandor_id(name)")
+    .eq("is_active", true)
+    .order("nama");
+
+  const proyekIds = (proyek || []).map((p) => p.id);
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+
+  const [{ data: rows }, { data: laporanHariIni }] = await Promise.all([
     // CANCELLED disembunyikan dari daftar aktif Supervisor (dibatalkan lewat
     // ikon X di card) — tetap tersimpan & muncul di riwayat Master.
     supabase
@@ -25,7 +29,14 @@ export default async function PerbaikanSupervisorPage() {
       .neq("status", "CANCELLED")
       .order("proyek_id", { ascending: true })
       .order("no", { ascending: true }),
+    // Proyek yang sudah dikirimi laporan harian hari ini — dipakai buat
+    // indikator warna per proyek di Defect List (lihat PerbaikanForm).
+    proyekIds.length
+      ? supabase.from("laporan_harian").select("proyek_id").eq("tanggal", todayStr).in("proyek_id", proyekIds)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  const sudahLaporIds = [...new Set((laporanHariIni || []).map((r) => r.proyek_id))];
 
   const items = [];
   for (const r of rows || []) {
@@ -77,7 +88,7 @@ export default async function PerbaikanSupervisorPage() {
         {aktif} item belum selesai
         {menunggu > 0 ? ` · ${menunggu} menunggu persetujuan Anda` : ""}
       </p>
-      <PerbaikanForm proyeks={proyek || []} items={items} />
+      <PerbaikanForm proyeks={proyek || []} items={items} sudahLaporIds={sudahLaporIds} />
     </main>
   );
 }

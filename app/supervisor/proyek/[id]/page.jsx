@@ -17,7 +17,12 @@ export default async function ProyekDetailPage({ params }) {
       .select("id, nama, lokasi, icon, mandor:mandor_id(name)")
       .eq("id", id)
       .single(),
-    supabase.from("absensi_ringkas").select("jumlah_hadir").eq("proyek_id", id).eq("tanggal", today).maybeSingle(),
+    supabase
+      .from("absensi_ringkas")
+      .select("jumlah_hadir, tidak_ada_pengerjaan")
+      .eq("proyek_id", id)
+      .eq("tanggal", today)
+      .maybeSingle(),
     supabase
       .from("laporan_harian")
       .select("id, tanggal, deskripsi, status, foto_url, created_at")
@@ -47,6 +52,7 @@ export default async function ProyekDetailPage({ params }) {
     <ProyekDetail
       proyek={proyek}
       jumlahHadir={absensi?.jumlah_hadir ?? null}
+      tidakAdaPengerjaan={absensi?.tidak_ada_pengerjaan ?? false}
       riwayat={riwayat}
     />
   );

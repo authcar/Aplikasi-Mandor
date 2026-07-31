@@ -18,12 +18,13 @@ export default async function AbsensiPage() {
 
   const { data: sudah } = await supabase
     .from("absensi_ringkas")
-    .select("jumlah_hadir")
+    .select("jumlah_hadir, tidak_ada_pengerjaan")
     .eq("proyek_id", proyek?.id)
     .eq("tanggal", today)
     .maybeSingle();
 
   const jumlahHadirAwal = sudah ? sudah.jumlah_hadir : null;
+  const tidakAdaPengerjaanAwal = sudah?.tidak_ada_pengerjaan ?? false;
 
   // Foto suasana yang sudah ter-upload hari ini (bisa dihapus di hari yang sama)
   const { data: fotoRows } = proyek?.id
@@ -52,6 +53,7 @@ export default async function AbsensiPage() {
     <RollCall
       proyek={proyek}
       jumlahHadirAwal={jumlahHadirAwal}
+      tidakAdaPengerjaanAwal={tidakAdaPengerjaanAwal}
       fotoTerupload={fotoTerupload}
     />
   );
