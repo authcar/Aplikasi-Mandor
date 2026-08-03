@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Icon from "@/components/Icon";
 
 const TABS = [
   {
@@ -16,24 +17,13 @@ const TABS = [
   {
     href: "/supervisor/persetujuan",
     label: "Laporan",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-        <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-        <path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" />
-      </svg>
-    ),
+    // Rollout bertahap: cuma fitur Defect List yang aktif untuk sekarang.
+    locked: true,
   },
   {
     href: "/supervisor/gaji",
     label: "Dompet",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-        <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
-      </svg>
-    ),
+    locked: true,
   },
   {
     href: "/supervisor/profil",
@@ -59,6 +49,19 @@ export default function SupervisorNavbar() {
     <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md border-t border-gray-200 bg-white/95 backdrop-blur">
       <div className="grid grid-cols-4">
         {TABS.map((tab) => {
+          if (tab.locked) {
+            return (
+              <div
+                key={tab.href}
+                className="flex flex-col items-center gap-0.5 py-2 text-gray-300 opacity-60"
+                aria-disabled="true"
+                title="Belum tersedia"
+              >
+                <Icon name="lock" className="h-6 w-6" />
+                <span className="text-[10px] font-semibold text-gray-300">{tab.label}</span>
+              </div>
+            );
+          }
           const active = isActive(tab.href);
           return (
             <Link

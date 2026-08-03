@@ -321,13 +321,17 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
           <div>
             <label className="label">Video (opsional)</label>
             {videoPreview ? (
-              <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
-                <Icon name="video" className="h-4 w-4 shrink-0 text-gray-400" />
-                <span className="min-w-0 flex-1 truncate text-sm text-gray-600">{video.name}</span>
+              <div className="relative">
+                <video
+                  src={videoPreview}
+                  controls
+                  playsInline
+                  className="w-full rounded-xl border border-gray-200 bg-black object-contain max-h-52"
+                />
                 <button
                   type="button"
                   onClick={() => { setVideo(null); setVideoPreview(null); }}
-                  className="shrink-0 text-gray-400 active:text-red-500"
+                  className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white"
                 >
                   <Icon name="x-circle" className="h-4 w-4" />
                 </button>

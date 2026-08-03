@@ -5,6 +5,7 @@ import { rupiah, tglID, labelDeadlineProyek } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import ProyekSwitcher from "./ProyekSwitcher";
 import Icon from "@/components/Icon";
+import LockedTile from "@/components/LockedTile";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +34,7 @@ export default async function DashboardMandor({ searchParams }) {
   const proyek = list.find((p) => p.id === searchParams?.proyek) || list[0] || null;
   const deadlineProyek = proyek ? labelDeadlineProyek(proyek.deadline) : null;
 
-  let pendingApr = 0,
-    perbaikanBaru = 0,
+  let perbaikanBaru = 0,
     reimburseBaru = 0,
     kasbonBaru = 0,
     masalahBaru = 0;
@@ -48,12 +48,7 @@ export default async function DashboardMandor({ searchParams }) {
     const perbaikanOr =
       (proyekIds.length > 0 ? `proyek_id.in.(${proyekIds.join(",")}),` : "") +
       `assigned_mandor_id.eq.${profile.id}`;
-    const [{ count: k }, { count: pb }, { count: rb }, { count: kb }, { count: mb }] = await Promise.all([
-      supabase
-        .from("keuangan")
-        .select("id", { count: "exact", head: true })
-        .eq("proyek_id", proyek.id)
-        .eq("status", "PENDING"),
+    const [{ count: pb }, { count: rb }, { count: kb }, { count: mb }] = await Promise.all([
       supabase
         .from("checklist_perbaikan")
         .select("id", { count: "exact", head: true })
@@ -83,7 +78,6 @@ export default async function DashboardMandor({ searchParams }) {
         .eq("created_by", profile.id)
         .eq("dibaca_pelapor", false),
     ]);
-    pendingApr = k || 0;
     perbaikanBaru = pb || 0;
     reimburseBaru = rb || 0;
     kasbonBaru = kb || 0;
@@ -91,10 +85,12 @@ export default async function DashboardMandor({ searchParams }) {
   }
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
+  // Rollout bertahap: cuma "Perbaikan" (Defect List antar Mandor & Supervisor)
+  // yang aktif untuk sekarang, sisanya di-lock kaya level yang belum kebuka.
   const actions = [
-    { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru },
-    { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru },
-    { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
+    { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru, locked: true },
+    { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru, locked: true },
+    { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru, locked: true },
     { href: "/mandor/perbaikan", label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
   ];
 
@@ -169,33 +165,29 @@ export default async function DashboardMandor({ searchParams }) {
           </div>
 
           <div className="grid grid-cols-4 gap-y-4">
-            {actions.map((a) => (
-              <Link key={a.href} href={a.href} className="relative flex flex-col items-center gap-1.5 active:opacity-70">
-                <span className={`icon-tile !rounded-full ${a.tile}`}>
-                  <Icon name={a.icon} />
-                </span>
-                {!!a.badge && (
-                  <span className="absolute right-2 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                    {a.badge}
+            {actions.map((a) =>
+              a.locked ? (
+                <LockedTile key={a.href} label={a.label} />
+              ) : (
+                <Link key={a.href} href={a.href} className="relative flex flex-col items-center gap-1.5 active:opacity-70">
+                  <span className={`icon-tile !rounded-full ${a.tile}`}>
+                    <Icon name={a.icon} />
                   </span>
-                )}
-                <span className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
-                  {a.label}
-                </span>
-              </Link>
-            ))}
+                  {!!a.badge && (
+                    <span className="absolute right-2 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                      {a.badge}
+                    </span>
+                  )}
+                  <span className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+                    {a.label}
+                  </span>
+                </Link>
+              )
+            )}
           </div>
 
-          {pendingApr > 0 && (
-            <div className="mt-5 flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-card">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand">
-                <Icon name="clock" className="h-3.5 w-3.5" />
-              </span>
-              <p className="text-xs font-semibold text-gray-600">
-                {pendingApr} pengajuan menunggu persetujuan Master
-              </p>
-            </div>
-          )}
+          {/* pendingApr (Kasbon/Reimburse) sengaja tidak ditampilkan selama
+              kedua fitur itu masih di-lock — lihat `actions` di atas. */}
         </>
       )}
     </main>
