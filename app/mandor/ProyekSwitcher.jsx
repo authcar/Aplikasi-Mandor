@@ -45,7 +45,17 @@ export default function ProyekSwitcher({ list, current }) {
 
   return (
     <div className="mb-4" ref={wrapRef}>
-      <label className="label">Pilih Proyek ({list.length})</label>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <label className="!mb-0 text-sm font-semibold text-gray-700">Pilih Proyek ({list.length})</label>
+        <button
+          type="button"
+          onClick={() => (open ? setOpen(false) : bukaDropdown())}
+          className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold text-brand active:bg-brand-50"
+        >
+          <Icon name="search" className="h-3.5 w-3.5" />
+          Cari
+        </button>
+      </div>
       <div className="relative">
         <button
           type="button"
