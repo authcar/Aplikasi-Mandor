@@ -23,7 +23,9 @@ self.addEventListener("push", (event) => {
       body,
       icon: "/logoO.svg",
       badge: "/logoO.svg",
+      vibrate: [200, 100, 200],
       data: { url },
+      actions: [{ action: "lihat", title: "Lihat" }],
     })
   );
 });
