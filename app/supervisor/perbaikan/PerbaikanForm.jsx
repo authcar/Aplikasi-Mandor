@@ -576,14 +576,16 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                                   {" "}· {tglID(it.created_at)}
                                 </p>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => batalkanItem(it.id)}
-                                title="Batalkan item ini"
-                                className="-mr-0.5 -mt-0.5 shrink-0 p-0.5 text-gray-300 active:text-red-500"
-                              >
-                                <Icon name="x-circle" className="h-4 w-4" />
-                              </button>
+                              {it.status !== "DONE" && (
+                                <button
+                                  type="button"
+                                  onClick={() => batalkanItem(it.id)}
+                                  title="Batalkan item ini"
+                                  className="-mr-0.5 -mt-0.5 shrink-0 p-0.5 text-gray-300 active:text-red-500"
+                                >
+                                  <Icon name="x-circle" className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
 
                             {it.status === "PENDING_REVIEW" && sedangTolak && (

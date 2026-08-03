@@ -48,6 +48,16 @@ export default function PerbaikanMandorList({ items = [] }) {
   const [mediaChooserOpen, setMediaChooserOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // Card riwayat per proyek tertutup default (ringkas, cuma badge jumlah) —
+  // tap buat buka & lihat daftar itemnya, sama pola dengan Daftar Perbaikan
+  // Supervisor/Master.
+  const [openRiwayat, setOpenRiwayat] = useState(() => new Set());
+  const toggleRiwayat = (id) =>
+    setOpenRiwayat((cur) => {
+      const next = new Set(cur);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   // Dropdown "per proyek" dibuat dari data yang benar-benar ada (bukan
   // daftar proyek resmi) — supaya proyek tanpa item perbaikan gak muncul
@@ -416,56 +426,89 @@ export default function PerbaikanMandorList({ items = [] }) {
         <section className="pt-1">
           <h2 className="mb-2 text-sm font-bold text-gray-500">Riwayat Perbaikan</h2>
           <div className="space-y-2">
-            {riwayatGroups.map((g) => (
-              <div key={g.proyek_id} className="card p-2.5">
-                {tampilkanNamaProyek && (
-                  <p className="mb-1.5 truncate px-0.5 text-xs font-bold uppercase tracking-wide text-gray-400">{g.proyek}</p>
-                )}
-                <div className="divide-y divide-gray-100">
-                  {g.items.map((it) => {
-                    const st = STATUS_LABEL[it.status] || STATUS_LABEL.DONE;
-                    return (
-                      <div key={it.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
-                        {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
-                          <div className="flex shrink-0 -space-x-2">
-                            {it.foto && (
-                              <FotoLightbox src={it.foto} caption={it.uraian}>
-                                <img src={it.foto} alt="dokumentasi temuan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
-                              </FotoLightbox>
-                            )}
-                            {it.fotoBukti && (
-                              <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                                <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
-                              </FotoLightbox>
-                            )}
-                            {it.video && (
-                              <FotoLightbox src={it.video} caption={it.uraian} type="video">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                                  <Icon name="play" className="h-4 w-4" />
-                                </span>
-                              </FotoLightbox>
-                            )}
-                            {it.videoBukti && (
-                              <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                                  <Icon name="play" className="h-4 w-4" />
-                                </span>
-                              </FotoLightbox>
-                            )}
-                          </div>
+            {riwayatGroups.map((g) => {
+              const selesai = g.items.filter((it) => it.status === "DONE").length;
+              const dibatalkan = g.items.filter((it) => it.status === "CANCELLED").length;
+              const terbuka = !!q.trim() || openRiwayat.has(g.proyek_id);
+              return (
+                <div key={g.proyek_id} className="card overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleRiwayat(g.proyek_id)}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2.5 active:bg-gray-50"
+                  >
+                    <span className="min-w-0 flex-1 text-left">
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-gray-300" />
+                        <span className="truncate text-sm font-bold text-gray-700">{g.proyek}</span>
+                      </span>
+                      <span className="mt-0.5 flex flex-wrap items-center gap-1">
+                        {selesai > 0 && (
+                          <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                            {selesai} selesai
+                          </span>
                         )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold leading-snug">{it.uraian}</p>
-                          <p className="text-[11px] text-gray-400">
-                            <span className={`font-semibold ${st.cls}`}>{st.label}</span> · {tglID(it.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        {dibatalkan > 0 && (
+                          <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
+                            {dibatalkan} dibatalkan
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-gray-400">
+                      <span className="text-[11px]">{g.items.length}</span>
+                      <Icon name="chevron-down" className={`h-3.5 w-3.5 transition-transform ${terbuka ? "rotate-180" : ""}`} />
+                    </span>
+                  </button>
+
+                  {terbuka && (
+                    <div className="divide-y divide-gray-100 border-t border-gray-100 px-3">
+                      {g.items.map((it) => {
+                        const st = STATUS_LABEL[it.status] || STATUS_LABEL.DONE;
+                        return (
+                          <div key={it.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
+                            {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
+                              <div className="flex shrink-0 -space-x-2">
+                                {it.foto && (
+                                  <FotoLightbox src={it.foto} caption={it.uraian}>
+                                    <img src={it.foto} alt="dokumentasi temuan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                                  </FotoLightbox>
+                                )}
+                                {it.fotoBukti && (
+                                  <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
+                                    <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                                  </FotoLightbox>
+                                )}
+                                {it.video && (
+                                  <FotoLightbox src={it.video} caption={it.uraian} type="video">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                                      <Icon name="play" className="h-4 w-4" />
+                                    </span>
+                                  </FotoLightbox>
+                                )}
+                                {it.videoBukti && (
+                                  <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                                      <Icon name="play" className="h-4 w-4" />
+                                    </span>
+                                  </FotoLightbox>
+                                )}
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold leading-snug">{it.uraian}</p>
+                              <p className="text-[11px] text-gray-400">
+                                <span className={`font-semibold ${st.cls}`}>{st.label}</span> · {tglID(it.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
