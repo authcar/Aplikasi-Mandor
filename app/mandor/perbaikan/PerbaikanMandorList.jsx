@@ -184,40 +184,47 @@ export default function PerbaikanMandorList({ items = [] }) {
         </div>
       )}
       {aktifGroups.map((g) => (
-        <div key={g.proyek_id} className="card p-3">
+        <div key={g.proyek_id} className="card p-2.5">
           {tampilkanNamaProyek && (
-            <p className="mb-2 truncate text-xs font-bold uppercase tracking-wide text-gray-400">{g.proyek}</p>
+            <p className="mb-1.5 truncate px-0.5 text-xs font-bold uppercase tracking-wide text-gray-400">{g.proyek}</p>
           )}
           <div className="divide-y divide-gray-100">
             {g.items.map((it) => {
               const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
               const bisaKerjakan = it.status !== "DONE" && it.status !== "CANCELLED" && it.status !== "PENDING_REVIEW";
               return (
-                <div key={it.id} className="py-2.5 first:pt-0 last:pb-0">
-                  <div className="flex items-start gap-3">
+                <div key={it.id} className="py-2 first:pt-0 last:pb-0">
+                  <div className="flex items-center gap-2.5">
                     {(it.foto || it.fotoBukti) && (
                       <div className="flex shrink-0 -space-x-2">
                         {it.foto && (
                           <FotoLightbox src={it.foto} caption={it.uraian}>
-                            <img src={it.foto} alt="dokumentasi temuan" className="h-12 w-12 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                            <img src={it.foto} alt="dokumentasi temuan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
                           </FotoLightbox>
                         )}
                         {it.fotoBukti && (
                           <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                            <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-12 w-12 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                            <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
                           </FotoLightbox>
                         )}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
+                        <p className="truncate text-sm font-semibold leading-snug">{it.uraian}</p>
                         {!it.dibaca_mandor && (
                           <span className="badge shrink-0 bg-red-100 text-red-600">Baru</span>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-400">{tglID(it.created_at)}</p>
+                      <p className="text-[11px] text-gray-400">
+                        <span className={`font-semibold ${st.cls}`}>{st.label}</span> · {tglID(it.created_at)}
+                      </p>
                     </div>
+                    {bisaKerjakan && uploadFor !== it.id && (
+                      <button onClick={() => mulaiUpload(it.id)} className="btn-success shrink-0 !px-3 !py-1.5 !text-xs">
+                        Tandai Selesai
+                      </button>
+                    )}
                   </div>
 
                   {it.status === "OPEN" && it.catatan_tolak && (
@@ -227,8 +234,8 @@ export default function PerbaikanMandorList({ items = [] }) {
                     </div>
                   )}
 
-                  {uploadFor === it.id ? (
-                    <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+                  {uploadFor === it.id && (
+                    <div className="mt-2.5 space-y-2 border-t border-gray-100 pt-2.5">
                       <p className="text-xs font-semibold text-gray-600">Lampirkan foto bukti pekerjaan sudah selesai</p>
                       <div className="flex gap-2">
                         <button
@@ -258,15 +265,6 @@ export default function PerbaikanMandorList({ items = [] }) {
                         </button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className={`text-xs font-semibold ${st.cls}`}>{st.label}</span>
-                      {bisaKerjakan && (
-                        <button onClick={() => mulaiUpload(it.id)} className="btn-success">
-                          Tandai Selesai
-                        </button>
-                      )}
-                    </div>
                   )}
                 </div>
               );
@@ -280,33 +278,34 @@ export default function PerbaikanMandorList({ items = [] }) {
           <h2 className="mb-2 text-sm font-bold text-gray-500">Riwayat Perbaikan</h2>
           <div className="space-y-2">
             {riwayatGroups.map((g) => (
-              <div key={g.proyek_id} className="card p-3">
+              <div key={g.proyek_id} className="card p-2.5">
                 {tampilkanNamaProyek && (
-                  <p className="mb-2 truncate text-xs font-bold uppercase tracking-wide text-gray-400">{g.proyek}</p>
+                  <p className="mb-1.5 truncate px-0.5 text-xs font-bold uppercase tracking-wide text-gray-400">{g.proyek}</p>
                 )}
                 <div className="divide-y divide-gray-100">
                   {g.items.map((it) => {
                     const st = STATUS_LABEL[it.status] || STATUS_LABEL.DONE;
                     return (
-                      <div key={it.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <div key={it.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
                         {(it.foto || it.fotoBukti) && (
                           <div className="flex shrink-0 -space-x-2">
                             {it.foto && (
                               <FotoLightbox src={it.foto} caption={it.uraian}>
-                                <img src={it.foto} alt="dokumentasi temuan" className="h-12 w-12 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                                <img src={it.foto} alt="dokumentasi temuan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
                               </FotoLightbox>
                             )}
                             {it.fotoBukti && (
                               <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                                <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-12 w-12 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                                <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
                               </FotoLightbox>
                             )}
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
-                          <p className="text-[11px] text-gray-400">{tglID(it.created_at)}</p>
-                          <p className={`mt-1 text-[11px] font-semibold ${st.cls}`}>{st.label}</p>
+                          <p className="truncate text-sm font-semibold leading-snug">{it.uraian}</p>
+                          <p className="text-[11px] text-gray-400">
+                            <span className={`font-semibold ${st.cls}`}>{st.label}</span> · {tglID(it.created_at)}
+                          </p>
                         </div>
                       </div>
                     );
