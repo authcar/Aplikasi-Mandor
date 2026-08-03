@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
+import { labelDeadlineProyek } from "@/lib/format";
 
 const labelProyek = (p) => p.nama + (p.lokasi ? ` — ${p.lokasi}` : "");
 
@@ -97,18 +98,31 @@ export default function ProyekSwitcher({ list, current }) {
               {filtered.length === 0 && (
                 <p className="px-4 py-3 text-sm text-gray-400">Proyek tidak ditemukan.</p>
               )}
-              {filtered.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => pilih(p.id)}
-                  className={`block w-full truncate px-4 py-2.5 text-left text-sm active:bg-gray-50 ${
-                    p.id === current ? "bg-brand-50 font-semibold text-brand-800" : "text-gray-700"
-                  }`}
-                >
-                  {labelProyek(p)}
-                </button>
-              ))}
+              {filtered.map((p) => {
+                const deadline = labelDeadlineProyek(p.deadline);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => pilih(p.id)}
+                    className={`block w-full px-4 py-2.5 text-left active:bg-gray-50 ${
+                      p.id === current ? "bg-brand-50" : ""
+                    }`}
+                  >
+                    <span className={`block truncate text-sm ${p.id === current ? "font-semibold text-brand-800" : "text-gray-700"}`}>
+                      {labelProyek(p)}
+                    </span>
+                    {deadline && (
+                      <span
+                        className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.cls}`}
+                      >
+                        <Icon name="calendar" className="h-3 w-3" />
+                        {deadline.teks}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

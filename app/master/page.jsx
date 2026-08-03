@@ -3,6 +3,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
+import ProyekSayaCard from "@/components/ProyekSayaCard";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +25,9 @@ export default async function DashboardMaster() {
   // Master melihat semua proyek aktif (tidak difilter supervisor_id)
   const { data: proyek } = await supabase
     .from("proyek")
-    .select("id, nama, lokasi, icon, mandor:mandor_id(name)")
-    .eq("is_active", true);
+    .select("id, nama, lokasi, icon, deadline, mandor:mandor_id(name)")
+    .eq("is_active", true)
+    .order("deadline", { ascending: true, nullsFirst: false });
 
   const todayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const proyekIds = (proyek || []).map((p) => p.id);
@@ -170,38 +172,7 @@ export default async function DashboardMaster() {
         </Link>
       </div>
 
-      <div className="card flex flex-col">
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
-          <h2 className="font-bold text-gray-700 text-sm">Proyek Saya ({proyek?.length || 0})</h2>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {(proyek || []).map((p) => (
-            <Link key={p.id} href={`/master/proyek/${p.id}`}
-              className="flex items-center gap-3 px-4 py-3 active:bg-gray-50">
-              <span className="icon-tile bg-brand-50 text-brand-600 !w-8 !h-8">
-                <Icon name={p.icon || "building"} />
-              </span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-sm">{p.nama}</p>
-                  {p.mandor?.name && (
-                    <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-600">
-                      {p.mandor.name}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500">{p.lokasi}</p>
-              </div>
-              <Icon name="chevron-right" className="h-4 w-4 text-gray-300" />
-            </Link>
-          ))}
-          {(proyek || []).length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-400">
-              Belum ada proyek dari Taraco.
-            </div>
-          )}
-        </div>
-      </div>
+      <ProyekSayaCard proyek={proyek || []} basePath="/master/proyek" />
     </main>
   );
 }

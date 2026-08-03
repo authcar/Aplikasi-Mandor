@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { rupiah } from "@/lib/format";
 import Icon from "@/components/Icon";
@@ -37,8 +37,31 @@ export default function ApprovalList({ items: initialItems }) {
   const [errTolak, setErrTolak] = useState("");
   const [q, setQ] = useState("");
   const [visible, setVisible] = useState(HALAMAN);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [proyekFilter, setProyekFilter] = useState([]);
+  const [labelFilter, setLabelFilter] = useState([]);
+  const [urutan, setUrutan] = useState("TERBARU");
 
-  useEffect(() => setVisible(HALAMAN), [tab, q]);
+  useEffect(() => setVisible(HALAMAN), [tab, q, proyekFilter, labelFilter, urutan]);
+
+  const proyekOptions = useMemo(
+    () => [...new Set(items.map((i) => i._proyek).filter(Boolean))].sort(),
+    [items]
+  );
+  const labelOptions = useMemo(
+    () => [...new Set(items.map((i) => i._label).filter(Boolean))].sort(),
+    [items]
+  );
+  const jumlahFilterAktif = proyekFilter.length + labelFilter.length + (urutan !== "TERBARU" ? 1 : 0);
+
+  const toggleDalamArray = (arr, setArr, value) =>
+    setArr(arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value]);
+
+  const resetFilter = () => {
+    setProyekFilter([]);
+    setLabelFilter([]);
+    setUrutan("TERBARU");
+  };
 
   const norm = (s) => (s || "").toLowerCase();
   const matchesQuery = (it) => {
@@ -52,7 +75,15 @@ export default function ApprovalList({ items: initialItems }) {
     );
   };
 
-  const filtered = items.filter((i) => (tab === "SEMUA" || i._status === tab) && matchesQuery(i));
+  const filtered = items
+    .filter((i) => (tab === "SEMUA" || i._status === tab) && matchesQuery(i))
+    .filter((i) => proyekFilter.length === 0 || proyekFilter.includes(i._proyek))
+    .filter((i) => labelFilter.length === 0 || labelFilter.includes(i._label))
+    .sort((a, b) =>
+      urutan === "TERLAMA"
+        ? a._tanggal?.localeCompare(b._tanggal)
+        : b._tanggal?.localeCompare(a._tanggal)
+    );
   const visibleItems = filtered.slice(0, visible);
   const hasMore = filtered.length > visible;
 
@@ -130,16 +161,108 @@ export default function ApprovalList({ items: initialItems }) {
 
   return (
     <>
-      <div className="relative mb-3">
-        <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari uraian, proyek, atau nama..."
-          className="input !py-2.5 !pl-10 !text-sm"
-        />
+      <div className="mb-3 flex items-center gap-2">
+        <div className="relative flex-1">
+          <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari uraian, proyek, atau nama..."
+            className="input !py-2.5 !pl-10 !text-sm"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setFilterOpen((o) => !o)}
+          className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+            filterOpen ? "border-brand bg-brand-50 text-brand" : "border-gray-300 bg-white text-gray-500"
+          }`}
+        >
+          <Icon name="filter" className="h-4 w-4" />
+          {jumlahFilterAktif > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
+              {jumlahFilterAktif}
+            </span>
+          )}
+        </button>
       </div>
+
+      {filterOpen && (
+        <div className="card mb-3 space-y-3 p-3">
+          <div>
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-gray-400">Urutkan</p>
+            <div className="flex gap-1.5">
+              {[
+                { key: "TERBARU", label: "Terbaru" },
+                { key: "TERLAMA", label: "Terlama" },
+              ].map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => setUrutan(o.key)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    urutan === o.key ? "bg-brand text-white" : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {labelOptions.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-gray-400">Jenis</p>
+              <div className="flex flex-wrap gap-1.5">
+                {labelOptions.map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => toggleDalamArray(labelFilter, setLabelFilter, label)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      labelFilter.includes(label) ? "bg-brand text-white" : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {proyekOptions.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-gray-400">Proyek</p>
+              <div className="flex flex-wrap gap-1.5">
+                {proyekOptions.map((nama) => (
+                  <button
+                    key={nama}
+                    type="button"
+                    onClick={() => toggleDalamArray(proyekFilter, setProyekFilter, nama)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      proyekFilter.includes(nama) ? "bg-brand text-white" : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {nama}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {jumlahFilterAktif > 0 && (
+            <button
+              type="button"
+              onClick={resetFilter}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2 text-xs font-semibold text-gray-500 active:bg-gray-50"
+            >
+              <Icon name="x-circle" className="h-3.5 w-3.5" />
+              Reset Filter
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-1 border-b border-gray-200 mb-4">
         {TABS.map((t) => {

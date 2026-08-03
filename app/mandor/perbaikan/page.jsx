@@ -31,7 +31,7 @@ export default async function PerbaikanMandorPage() {
 
   const { data: rows } = await supabase
     .from("checklist_perbaikan")
-    .select("id, proyek_id, no, uraian, foto_url, foto_bukti_url, periode, status, dibaca_mandor, catatan_tolak, created_at")
+    .select("id, proyek_id, no, uraian, foto_url, foto_bukti_url, video_url, periode, status, dibaca_mandor, catatan_tolak, created_at")
     .or(orParts.join(","))
     .order("created_at", { ascending: false });
 
@@ -49,6 +49,7 @@ export default async function PerbaikanMandorPage() {
   const paths = [
     ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
     ...(rows || []).filter((r) => r.foto_bukti_url).map((r) => r.foto_bukti_url),
+    ...(rows || []).filter((r) => r.video_url).map((r) => r.video_url),
   ];
   const { data: signed } = paths.length
     ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
@@ -61,6 +62,7 @@ export default async function PerbaikanMandorPage() {
     ...r,
     foto: r.foto_url ? urlMap[r.foto_url] || null : null,
     fotoBukti: r.foto_bukti_url ? urlMap[r.foto_bukti_url] || null : null,
+    video: r.video_url ? urlMap[r.video_url] || null : null,
     proyek: namaProyek[r.proyek_id] || "-",
   }));
 

@@ -2,7 +2,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { groupAbsensiTimPerHari } from "@/lib/format";
 import BackButton from "@/components/BackButton";
 import FotoLightbox from "@/components/FotoLightbox";
-import RiwayatLaporanCard from "@/components/RiwayatLaporanCard";
+import RiwayatAbsensiKalender from "@/components/RiwayatAbsensiKalender";
 
 export const dynamic = "force-dynamic";
 
@@ -155,7 +155,7 @@ export default async function AbsensiMasterPage() {
         </>
       )}
 
-      <RiwayatLaporanCard riwayat={riwayat} defaultOpen />
+      <RiwayatAbsensiKalender riwayat={riwayat} defaultOpen />
     </main>
   );
 }

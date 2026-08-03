@@ -22,11 +22,14 @@ export default async function PerbaikanTukangHarianPage() {
   if (proyek) {
     const { data: rows } = await supabase
       .from("checklist_perbaikan")
-      .select("id, no, uraian, foto_url, periode, status, dibaca_tukang_harian, created_at")
+      .select("id, no, uraian, foto_url, video_url, periode, status, dibaca_tukang_harian, created_at")
       .eq("proyek_id", proyek.id)
       .order("no", { ascending: true });
 
-    const paths = (rows || []).filter((r) => r.foto_url).map((r) => r.foto_url);
+    const paths = [
+      ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
+      ...(rows || []).filter((r) => r.video_url).map((r) => r.video_url),
+    ];
     const { data: signed } = paths.length
       ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
       : { data: [] };
@@ -34,7 +37,11 @@ export default async function PerbaikanTukangHarianPage() {
       (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
     );
 
-    items = (rows || []).map((r) => ({ ...r, foto: r.foto_url ? urlMap[r.foto_url] || null : null }));
+    items = (rows || []).map((r) => ({
+      ...r,
+      foto: r.foto_url ? urlMap[r.foto_url] || null : null,
+      video: r.video_url ? urlMap[r.video_url] || null : null,
+    }));
 
     // Tandai sudah dibaca (khusus Tukang Harian) supaya badge notifikasi di
     // dashboard-nya hilang — terpisah dari dibaca_mandor milik Mandor.

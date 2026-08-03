@@ -262,6 +262,11 @@ create index if not exists idx_checklist_proyek on checklist_perbaikan(proyek_id
 alter table checklist_perbaikan
   add column if not exists dibaca_tukang_harian boolean not null default false;
 
+-- Video dokumentasi temuan (opsional, sejajar foto_url) — Supervisor bisa
+-- lampirkan video selain/tanpa foto saat lapor temuan lewat PerbaikanForm.
+alter table checklist_perbaikan
+  add column if not exists video_url text; -- bucket 'perbaikan'
+
 -- =====================================================================
 -- REKONSTRUKSI — ABSENSI_RINGKAS, ABSENSI_TIM, ABSENSI_TIM_FOTO,
 -- CHECKIN_HARIAN, POTONGAN_GAJI

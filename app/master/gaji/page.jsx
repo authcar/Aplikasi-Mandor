@@ -2,7 +2,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { rupiah } from "@/lib/format";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
-import Link from "next/link";
+import NilaiJasaList from "./NilaiJasaList";
 
 export const dynamic = "force-dynamic";
 
@@ -42,37 +42,7 @@ export default async function DompetMasterPage() {
       </div>
 
       {/* Per-Project Budget List */}
-      <div className="card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
-          <h2 className="font-bold text-gray-700 text-sm">Nilai Jasa per Proyek</h2>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {(proyek || []).map((p) => (
-            <Link key={p.id} href={`/master/proyek/${p.id}`}
-              className="flex items-center gap-3 px-4 py-3 active:bg-gray-50">
-              <span className="icon-tile bg-brand-50 text-brand-600 !w-9 !h-9 shrink-0">
-                <Icon name={p.icon || "building"} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{p.nama}</p>
-                <p className="text-xs text-gray-500 truncate">{p.lokasi || "—"} · {p.mandor?.name || "Belum ada mandor"}</p>
-              </div>
-              <div className="text-right shrink-0">
-                {p.nilai_proyek ? (
-                  <p className="text-sm font-bold text-emerald-600">{rupiah(p.nilai_proyek)}</p>
-                ) : (
-                  <p className="text-sm text-gray-300">—</p>
-                )}
-              </div>
-            </Link>
-          ))}
-          {(proyek || []).length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-400">
-              Belum ada proyek aktif.
-            </div>
-          )}
-        </div>
-      </div>
+      <NilaiJasaList proyek={proyek || []} />
     </main>
   );
 }

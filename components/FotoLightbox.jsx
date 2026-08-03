@@ -2,10 +2,11 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-// Thumbnail yang membuka foto sebagai pop-up fullscreen (tanpa pindah window).
-// Overlay dirender lewat portal ke <body> supaya selalu di atas navbar/header.
+// Thumbnail yang membuka foto (atau video, lewat prop `type="video"`) sebagai
+// pop-up fullscreen (tanpa pindah window). Overlay dirender lewat portal ke
+// <body> supaya selalu di atas navbar/header.
 // Pakai: <FotoLightbox src={url} caption="Nama Proyek">...thumbnail...</FotoLightbox>
-export default function FotoLightbox({ src, caption, className = "", children }) {
+export default function FotoLightbox({ src, caption, type = "foto", className = "", children }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -49,11 +50,21 @@ export default function FotoLightbox({ src, caption, className = "", children })
               </button>
             </div>
             <div className="relative min-h-0 flex-1">
-              <img
-                src={src}
-                alt={caption || "foto"}
-                className="absolute inset-0 h-full w-full object-contain"
-              />
+              {type === "video" ? (
+                <video
+                  src={src}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="absolute inset-0 h-full w-full object-contain"
+                />
+              ) : (
+                <img
+                  src={src}
+                  alt={caption || "foto"}
+                  className="absolute inset-0 h-full w-full object-contain"
+                />
+              )}
             </div>
           </div>,
           document.body

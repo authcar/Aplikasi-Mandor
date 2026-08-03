@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import BackButton from "@/components/BackButton";
@@ -29,6 +29,22 @@ export default function ReimburseForm({ proyeks = [], riwayat = [] }) {
   const [daftar, setDaftar] = useState(riwayat);
   const [hasMore, setHasMore] = useState(riwayat.length === HALAMAN);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [riwayatProyekFilter, setRiwayatProyekFilter] = useState("");
+
+  // Dropdown filter riwayat dibuat dari proyek yang benar-benar muncul di
+  // riwayat (bukan daftar `proyeks` aktif) — supaya pengajuan lama ke
+  // proyek yang sekarang sudah nonaktif tetap bisa difilter.
+  const riwayatProyekOptions = useMemo(() => {
+    const seen = new Map();
+    for (const it of daftar) {
+      if (it.proyek_id && !seen.has(it.proyek_id)) seen.set(it.proyek_id, it.proyek);
+    }
+    return [...seen.entries()].map(([id, nama]) => ({ id, nama }));
+  }, [daftar]);
+
+  const daftarTerfilter = riwayatProyekFilter
+    ? daftar.filter((it) => it.proyek_id === riwayatProyekFilter)
+    : daftar;
 
   const pilihFoto = (e) => {
     const file = e.target.files?.[0];
@@ -76,7 +92,7 @@ export default function ReimburseForm({ proyeks = [], riwayat = [] }) {
     const uid = (await supabase.auth.getUser()).data.user.id;
     const { data: rows } = await supabase
       .from("keuangan")
-      .select("id, nominal, keterangan, status, catatan_tolak, created_at, proyek:proyek_id(nama)")
+      .select("id, proyek_id, nominal, keterangan, status, catatan_tolak, created_at, proyek:proyek_id(nama)")
       .eq("jenis", "REIMBURSE")
       .eq("created_by", uid)
       .order("created_at", { ascending: false })
@@ -181,9 +197,28 @@ export default function ReimburseForm({ proyeks = [], riwayat = [] }) {
         {/* Riwayat pengajuan */}
         {daftar.length > 0 && (
           <section className="mt-6">
-            <h2 className="mb-3 font-bold text-gray-700">Riwayat Pengajuan</h2>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="font-bold text-gray-700">Riwayat Pengajuan</h2>
+              {riwayatProyekOptions.length > 1 && (
+                <select
+                  value={riwayatProyekFilter}
+                  onChange={(e) => setRiwayatProyekFilter(e.target.value)}
+                  className="input w-auto !py-1.5 !pl-3 !pr-8 text-xs font-semibold"
+                >
+                  <option value="">Semua Proyek</option>
+                  {riwayatProyekOptions.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nama}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {daftarTerfilter.length === 0 && (
+              <p className="rounded-xl border border-gray-200 bg-white p-4 text-center text-sm text-gray-400">
+                Tidak ada pengajuan untuk proyek ini.
+              </p>
+            )}
             <div className="space-y-3">
-              {daftar.map((it) => {
+              {daftarTerfilter.map((it) => {
                 const badge = STATUS_BADGE[it.status] || STATUS_BADGE.PENDING;
                 return (
                   <div key={it.id} className="card p-4">

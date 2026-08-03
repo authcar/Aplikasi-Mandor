@@ -24,7 +24,7 @@ export default async function PerbaikanSupervisorPage() {
     supabase
       .from("checklist_perbaikan")
       .select(
-        "id, proyek_id, no, uraian, foto_url, foto_bukti_url, periode, status, dibaca_supervisor, created_at, proyek(nama)"
+        "id, proyek_id, no, uraian, foto_url, foto_bukti_url, video_url, periode, status, dibaca_supervisor, created_at, proyek(nama)"
       )
       .neq("status", "CANCELLED")
       .order("proyek_id", { ascending: true })
@@ -41,6 +41,7 @@ export default async function PerbaikanSupervisorPage() {
   const paths = [
     ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
     ...(rows || []).filter((r) => r.foto_bukti_url).map((r) => r.foto_bukti_url),
+    ...(rows || []).filter((r) => r.video_url).map((r) => r.video_url),
   ];
   const { data: signed } = paths.length
     ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
@@ -61,6 +62,7 @@ export default async function PerbaikanSupervisorPage() {
     proyek: r.proyek?.nama || "-",
     foto: r.foto_url ? urlMap[r.foto_url] || null : null,
     fotoBukti: r.foto_bukti_url ? urlMap[r.foto_bukti_url] || null : null,
+    video: r.video_url ? urlMap[r.video_url] || null : null,
   }));
 
   // Tandai bukti pengerjaan baru sudah dilihat supaya badge "Baru" hilang.

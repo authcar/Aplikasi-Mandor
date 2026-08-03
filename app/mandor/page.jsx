@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
-import { rupiah, tglID } from "@/lib/format";
+import { rupiah, tglID, labelDeadlineProyek } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import ProyekSwitcher from "./ProyekSwitcher";
 import Icon from "@/components/Icon";
@@ -23,7 +23,7 @@ export default async function DashboardMandor({ searchParams }) {
 
   const { data: proyekList } = await supabase
     .from("proyek")
-    .select("id, nama, lokasi, nilai_proyek, sisa_budget")
+    .select("id, nama, lokasi, nilai_proyek, sisa_budget, deadline")
     .eq("mandor_id", profile.id)
     .eq("is_active", true)
     .order("nama");
@@ -31,6 +31,7 @@ export default async function DashboardMandor({ searchParams }) {
   const list = proyekList || [];
   // Proyek terpilih: dari ?proyek=, jika tidak valid pakai yang pertama.
   const proyek = list.find((p) => p.id === searchParams?.proyek) || list[0] || null;
+  const deadlineProyek = proyek ? labelDeadlineProyek(proyek.deadline) : null;
 
   let pendingApr = 0,
     perbaikanBaru = 0,
@@ -151,6 +152,14 @@ export default async function DashboardMandor({ searchParams }) {
                   <Icon name="map-pin" className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{proyek.lokasi}</span>
                 </p>
+                {deadlineProyek && (
+                  <span
+                    className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadlineProyek.cls}`}
+                  >
+                    <Icon name="calendar" className="h-3 w-3" />
+                    {deadlineProyek.teks}
+                  </span>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2.5">

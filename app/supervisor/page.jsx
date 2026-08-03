@@ -4,35 +4,9 @@ import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
 import StreakWidget from "@/components/StreakWidget";
+import ProyekSayaCard from "@/components/ProyekSayaCard";
 
 export const dynamic = "force-dynamic";
-
-// Label deadline proyek: tanggal + selisih hari, warna makin mendesak
-// makin dekat/lewat. `deadline` null (belum diisi di Taraco) -> null.
-const labelDeadline = (deadline) => {
-  if (!deadline) return null;
-  const target = new Date(`${deadline}T00:00:00`);
-  const today = new Date(
-    new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }),
-  );
-  const sisaHari = Math.round((target - today) / 86400000);
-  const tanggal = target.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-
-  if (sisaHari < 0) {
-    return { teks: `${tanggal} · telat ${Math.abs(sisaHari)} hari`, cls: "bg-red-100 text-red-600" };
-  }
-  if (sisaHari === 0) {
-    return { teks: `${tanggal} · hari ini`, cls: "bg-red-100 text-red-600" };
-  }
-  if (sisaHari <= 3) {
-    return { teks: `${tanggal} · H-${sisaHari}`, cls: "bg-amber-100 text-amber-600" };
-  }
-  return { teks: tanggal, cls: "bg-gray-100 text-gray-500" };
-};
 
 export default async function DashboardSupervisor() {
   const { user, profile, supabase } = await getSessionProfile();
@@ -315,54 +289,7 @@ export default async function DashboardSupervisor() {
       </div>
 
       {/* Proyek */}
-      <div className="card flex flex-col">
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
-          <h2 className="font-bold text-gray-700 text-sm">
-            Proyek Saya ({proyek?.length || 0})
-          </h2>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {(proyek || []).map((p) => {
-            const deadline = labelDeadline(p.deadline);
-            return (
-              <Link
-                key={p.id}
-                href={`/supervisor/proyek/${p.id}`}
-                className="flex items-center gap-3 px-4 py-3 active:bg-gray-50"
-              >
-                <span className="icon-tile bg-brand-50 text-brand-600 !w-8 !h-8">
-                  <Icon name={p.icon || "building"} />
-                </span>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm">{p.nama}</p>
-                    {p.mandor?.name && (
-                      <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-600">
-                        {p.mandor.name}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500">{p.lokasi}</p>
-                  {deadline && (
-                    <span
-                      className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.cls}`}
-                    >
-                      <Icon name="calendar" className="h-3 w-3" />
-                      {deadline.teks}
-                    </span>
-                  )}
-                </div>
-                <Icon name="chevron-right" className="h-4 w-4 text-gray-300" />
-              </Link>
-            );
-          })}
-          {(proyek || []).length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-400">
-              Belum ada proyek dari Taraco.
-            </div>
-          )}
-        </div>
-      </div>
+      <ProyekSayaCard proyek={proyek || []} basePath="/supervisor/proyek" />
     </main>
   );
 }

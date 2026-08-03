@@ -195,7 +195,7 @@ export default function PerbaikanMandorList({ items = [] }) {
               return (
                 <div key={it.id} className="py-2 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-2.5">
-                    {(it.foto || it.fotoBukti) && (
+                    {(it.foto || it.fotoBukti || it.video) && (
                       <div className="flex shrink-0 -space-x-2">
                         {it.foto && (
                           <FotoLightbox src={it.foto} caption={it.uraian}>
@@ -205,6 +205,13 @@ export default function PerbaikanMandorList({ items = [] }) {
                         {it.fotoBukti && (
                           <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
                             <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                          </FotoLightbox>
+                        )}
+                        {it.video && (
+                          <FotoLightbox src={it.video} caption={it.uraian} type="video">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                              <Icon name="play" className="h-4 w-4" />
+                            </span>
                           </FotoLightbox>
                         )}
                       </div>
@@ -287,7 +294,7 @@ export default function PerbaikanMandorList({ items = [] }) {
                     const st = STATUS_LABEL[it.status] || STATUS_LABEL.DONE;
                     return (
                       <div key={it.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
-                        {(it.foto || it.fotoBukti) && (
+                        {(it.foto || it.fotoBukti || it.video) && (
                           <div className="flex shrink-0 -space-x-2">
                             {it.foto && (
                               <FotoLightbox src={it.foto} caption={it.uraian}>
@@ -297,6 +304,13 @@ export default function PerbaikanMandorList({ items = [] }) {
                             {it.fotoBukti && (
                               <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
                                 <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                              </FotoLightbox>
+                            )}
+                            {it.video && (
+                              <FotoLightbox src={it.video} caption={it.uraian} type="video">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                                  <Icon name="play" className="h-4 w-4" />
+                                </span>
                               </FotoLightbox>
                             )}
                           </div>

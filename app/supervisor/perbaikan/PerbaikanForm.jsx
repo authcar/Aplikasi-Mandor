@@ -42,7 +42,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
 
   const [proyekId, setProyekId] = useState(proyeks[0]?.id || "");
   const rowId = useRef(1);
-  const kosong = () => ({ id: rowId.current++, uraian: "", foto: null, preview: null });
+  const kosong = () => ({ id: rowId.current++, uraian: "", foto: null, preview: null, video: null, videoPreview: null });
   const [rows, setRows] = useState(() => [kosong()]);
   const [kameraForRowId, setKameraForRowId] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -119,6 +119,15 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
     setKameraForRowId(null);
   };
 
+  const hapusVideoRow = (id) =>
+    setRows((r) => r.map((row) => (row.id === id ? { ...row, video: null, videoPreview: null } : row)));
+
+  const pilihVideoRow = (id, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRows((r) => r.map((row) => (row.id === id ? { ...row, video: file, videoPreview: URL.createObjectURL(file) } : row)));
+  };
+
   // Simpan semua baris uraian sekaligus dalam satu proyek/periode — supaya
   // Supervisor gak perlu pilih ulang proyek per temuan (lihat diskusi UX di
   // percakapan ini). Upload foto dulu satu-satu, baru insert semua baris
@@ -146,11 +155,24 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
         }
         foto_url = path;
       }
+      let video_url = null;
+      if (row.video) {
+        const ext = row.video.name.split(".").pop();
+        const path = `${proyekId}/video-${Date.now()}-${i}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("perbaikan").upload(path, row.video);
+        if (uploadError) {
+          setBusy(false);
+          alert(`Gagal unggah video item #${i + 1}: ${uploadError.message}`);
+          return;
+        }
+        video_url = path;
+      }
       inserts.push({
         proyek_id: proyekId,
         no: noBase + i + 1,
         uraian: row.uraian.trim(),
         foto_url,
+        video_url,
         created_by: uid,
       });
     }
@@ -315,6 +337,32 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                       </div>
                     )}
                   </div>
+
+                  {row.videoPreview ? (
+                    <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5">
+                      <Icon name="video" className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                      <span className="min-w-0 flex-1 truncate text-xs text-gray-600">{row.video.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => hapusVideoRow(row.id)}
+                        className="shrink-0 text-gray-400 active:text-red-500"
+                      >
+                        <Icon name="x-circle" className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="mt-1.5 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-gray-300 py-1.5 text-xs font-medium text-gray-400 active:bg-gray-50">
+                      <Icon name="video" className="h-3.5 w-3.5" />
+                      Tambah Video (opsional)
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={(e) => pilihVideoRow(row.id, e)}
+                      />
+                    </label>
+                  )}
+
                   {rows.length > 1 && (
                     <button
                       type="button"
@@ -339,7 +387,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
           </div>
 
           <button disabled={busy || isiTerisi === 0} className="btn-primary btn-lg w-full">
-            {busy ? "Menyimpan..." : isiTerisi > 1 ? `Simpan Semua (${isiTerisi} item)` : "Tambah ke Checklist"}
+            {busy ? "Menyimpan..." : isiTerisi > 1 ? `Laporkan Semua (${isiTerisi} Temuan)` : "Laporkan Temuan"}
           </button>
         </form>
       </div>
@@ -445,7 +493,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                         return (
                           <div key={it.id} className="rounded-lg bg-white p-2 shadow-sm">
                             <div className="flex items-start gap-2">
-                              {(it.foto || it.fotoBukti) && (
+                              {(it.foto || it.fotoBukti || it.video) && (
                                 <div className="flex shrink-0 -space-x-2">
                                   {it.foto && (
                                     <FotoLightbox src={it.foto} caption={it.uraian}>
@@ -455,6 +503,13 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                                   {it.fotoBukti && (
                                     <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
                                       <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-9 w-9 rounded-md border-2 border-white object-cover ring-1 ring-gray-200" />
+                                    </FotoLightbox>
+                                  )}
+                                  {it.video && (
+                                    <FotoLightbox src={it.video} caption={it.uraian} type="video">
+                                      <span className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                                        <Icon name="play" className="h-3.5 w-3.5" />
+                                      </span>
                                     </FotoLightbox>
                                   )}
                                 </div>
