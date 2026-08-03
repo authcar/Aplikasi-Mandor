@@ -236,6 +236,10 @@ alter table masalah add column if not exists urgensi text; -- 'Mendesak'|'Sedang
 -- pelapor (mandor/tukang harian yang membuat laporan masalah ini).
 alter table masalah add column if not exists dibaca_pelapor boolean not null default true;
 
+-- Video dokumentasi kekurangan material (opsional, sejajar foto_url) —
+-- lihat app/{mandor,tukang-harian,supervisor/masalah/baru}/MasalahForm.jsx.
+alter table masalah add column if not exists video_url text; -- bucket 'masalah'
+
 -- =====================================================================
 -- CHECKLIST PERBAIKAN (defect list — Supervisor lapor ke Mandor/Tukang
 -- Harian proyek)

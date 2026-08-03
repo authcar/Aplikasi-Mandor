@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { tglID } from "@/lib/format";
 import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
+import VideoRecorderModal from "@/components/VideoRecorderModal";
 import FotoLightbox from "@/components/FotoLightbox";
 
 const STATUS_LABEL = {
@@ -45,6 +46,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   const kosong = () => ({ id: rowId.current++, uraian: "", foto: null, preview: null, video: null, videoPreview: null });
   const [rows, setRows] = useState(() => [kosong()]);
   const [kameraForRowId, setKameraForRowId] = useState(null);
+  const [videoRecorderForRowId, setVideoRecorderForRowId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState(items);
   const [tolakFor, setTolakFor] = useState(null);
@@ -126,6 +128,13 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
     const file = e.target.files?.[0];
     if (!file) return;
     setRows((r) => r.map((row) => (row.id === id ? { ...row, video: file, videoPreview: URL.createObjectURL(file) } : row)));
+  };
+
+  const pakaiVideoRow = (file) => {
+    setRows((r) =>
+      r.map((row) => (row.id === videoRecorderForRowId ? { ...row, video: file, videoPreview: URL.createObjectURL(file) } : row))
+    );
+    setVideoRecorderForRowId(null);
   };
 
   // Simpan semua baris uraian sekaligus dalam satu proyek/periode — supaya
@@ -258,6 +267,14 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
         />
       )}
 
+      {videoRecorderForRowId && (
+        <VideoRecorderModal
+          title="Rekam Video Dokumentasi"
+          onCapture={pakaiVideoRow}
+          onClose={() => setVideoRecorderForRowId(null)}
+        />
+      )}
+
       {/* Form Card */}
       <div className="card p-5 shadow-sm">
         <h2 className="mb-4 text-lg font-bold tracking-tight">Tambah Item Perbaikan</h2>
@@ -336,32 +353,40 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                         </label>
                       </div>
                     )}
-                  </div>
-
-                  {row.videoPreview ? (
-                    <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5">
-                      <Icon name="video" className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-                      <span className="min-w-0 flex-1 truncate text-xs text-gray-600">{row.video.name}</span>
+                    {row.videoPreview ? (
                       <button
                         type="button"
                         onClick={() => hapusVideoRow(row.id)}
-                        className="shrink-0 text-gray-400 active:text-red-500"
+                        title={`Video: ${row.video.name} — klik untuk hapus`}
+                        className="flex h-14 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-brand-500 bg-brand-50 text-brand-600 active:bg-brand-100"
                       >
-                        <Icon name="x-circle" className="h-3.5 w-3.5" />
+                        <Icon name="video" className="h-4 w-4" />
                       </button>
-                    </div>
-                  ) : (
-                    <label className="mt-1.5 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-gray-300 py-1.5 text-xs font-medium text-gray-400 active:bg-gray-50">
-                      <Icon name="video" className="h-3.5 w-3.5" />
-                      Tambah Video (opsional)
-                      <input
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        onChange={(e) => pilihVideoRow(row.id, e)}
-                      />
-                    </label>
-                  )}
+                    ) : (
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setVideoRecorderForRowId(row.id)}
+                          title="Rekam Video"
+                          className="flex h-14 w-9 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
+                        >
+                          <Icon name="video" className="h-4 w-4" />
+                        </button>
+                        <label
+                          title="Video dari Galeri"
+                          className="flex h-14 w-9 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
+                        >
+                          <Icon name="clipboard" className="h-4 w-4" />
+                          <input
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            onChange={(e) => pilihVideoRow(row.id, e)}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
 
                   {rows.length > 1 && (
                     <button

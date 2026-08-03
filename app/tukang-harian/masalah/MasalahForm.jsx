@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import BackButton from "@/components/BackButton";
 import KameraModal from "@/components/KameraModal";
+import Icon from "@/components/Icon";
 
 const SATUAN = ["pcs", "kg", "sak", "dus", "m", "m²", "roll", "lembar", "batang", "lonjor", "liter", "unit", "set", "karung"];
 const URGENSI = ["Mendesak", "Sedang", "Rendah"];
@@ -34,6 +35,8 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
   const [catatan, setCatatan] = useState("");
   const [foto, setFoto] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [video, setVideo] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
   const [kameraOpen, setKameraOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -54,6 +57,13 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
     setKameraOpen(false);
   };
 
+  const pilihVideo = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVideo(file);
+    setVideoPreview(URL.createObjectURL(file));
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     if (!proyekId || !material || !jumlah) return;
@@ -69,6 +79,14 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
         if (upErr) throw new Error("Gagal upload foto: " + upErr.message);
         foto_url = path;
       }
+      let video_url = null;
+      if (video) {
+        const ext = video.name.split(".").pop();
+        const path = `${proyekId}/video-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("masalah").upload(path, video);
+        if (upErr) throw new Error("Gagal upload video: " + upErr.message);
+        video_url = path;
+      }
       const { data: created, error } = await supabase
         .from("masalah")
         .insert({
@@ -76,6 +94,7 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
           judul: material,
           deskripsi: catatan,
           foto_url,
+          video_url,
           material,
           jumlah: parseFloat(jumlah),
           satuan,
@@ -105,6 +124,8 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
       setUrgensi("Sedang");
       setFoto(null);
       setPreview(null);
+      setVideo(null);
+      setVideoPreview(null);
       router.refresh();
     } catch (e) {
       setErr(
@@ -275,6 +296,30 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
                   </svg>
                 </button>
               </div>
+            )}
+          </div>
+
+          {/* Video */}
+          <div>
+            <label className="label">Video (opsional)</label>
+            {videoPreview ? (
+              <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
+                <Icon name="video" className="h-4 w-4 shrink-0 text-gray-400" />
+                <span className="min-w-0 flex-1 truncate text-sm text-gray-600">{video.name}</span>
+                <button
+                  type="button"
+                  onClick={() => { setVideo(null); setVideoPreview(null); }}
+                  className="shrink-0 text-gray-400 active:text-red-500"
+                >
+                  <Icon name="x-circle" className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50">
+                <Icon name="video" className="h-5 w-5 text-gray-400" />
+                Tambah Video
+                <input type="file" accept="video/*" className="hidden" onChange={pilihVideo} />
+              </label>
             )}
           </div>
 
