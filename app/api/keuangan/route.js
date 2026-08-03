@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { notifyMaster } from "@/lib/notify";
+import { sendPushToRoles } from "@/lib/push";
 
 const KASBON_ROLES = ["SUPERVISOR", "MANDOR"];
 
@@ -51,10 +52,16 @@ export async function POST(req) {
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
+  const label = jenis === "KASBON" ? "Kasbon" : "Reimburse";
   await notifyMaster({
     tipe: jenis === "KASBON" ? "kasbon" : "keuangan",
     namaPengaju: profile.name,
-    ringkasan: `${keterangan || (jenis === "KASBON" ? "Kasbon" : "Reimburse")} — Rp${nominal.toLocaleString("id-ID")}`,
+    ringkasan: `${keterangan || label} — Rp${nominal.toLocaleString("id-ID")}`,
+  }).catch(() => {});
+  await sendPushToRoles(["MASTER", "FINANCE"], {
+    title: `${label} baru`,
+    body: `${profile.name}: Rp${nominal.toLocaleString("id-ID")}${keterangan ? ` — ${keterangan}` : ""}`,
+    url: "/",
   }).catch(() => {});
 
   return NextResponse.json({ ok: true, data });

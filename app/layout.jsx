@@ -3,6 +3,7 @@ import "./globals.css";
 export const metadata = {
   title: "Taraco App",
   description: "Manajemen proyek lapangan untuk Mandor & Supervisor",
+  manifest: "/manifest.json",
 };
 
 export const viewport = {

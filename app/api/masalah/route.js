@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { sendPush } from "@/lib/push";
 
 // POST /api/masalah
 // body: { id: uuid, status: 'OPEN'|'IN_PROGRESS'|'DONE' }
@@ -25,6 +26,13 @@ export async function POST(req) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   if (!data)
     return NextResponse.json({ error: "Tidak ditemukan" }, { status: 404 });
+
+  const STATUS_LABEL = { OPEN: "Open", IN_PROGRESS: "Diproses", DONE: "Selesai" };
+  await sendPush(data.created_by, {
+    title: `Laporan masalah: ${STATUS_LABEL[status]}`,
+    body: data.judul,
+    url: "/",
+  }).catch(() => {});
 
   return NextResponse.json({ ok: true, data });
 }

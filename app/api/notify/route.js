@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { notifySupervisor, notifyMaster } from "@/lib/notify";
+import { sendPush, sendPushToRoles } from "@/lib/push";
+
+const TIPE_LABEL = {
+  lembur: "Pengajuan Lembur",
+  keuangan: "Pengajuan Reimburse",
+  masalah: "Laporan Kurang Material",
+};
 
 const ALLOWED_TIPE = ["lembur", "keuangan", "masalah"];
 
@@ -20,10 +27,25 @@ export async function POST(req) {
   // Kalau pengajunya sendiri Supervisor (mis. laporan Kurang Material dari
   // Supervisor), tidak masuk akal notifikasi dikirim ke Supervisor proyek
   // itu (dirinya sendiri) — alihkan ke Master, sama seperti pola Kasbon.
-  const ok =
-    profile.role === "SUPERVISOR"
-      ? await notifyMaster({ tipe, namaPengaju: profile.name, ringkasan })
-      : await notifySupervisor({ supabase, proyek_id, tipe, namaPengaju: profile.name, ringkasan });
+  const pushPayload = {
+    title: `${TIPE_LABEL[tipe]} baru`,
+    body: `${profile.name}${ringkasan ? `: ${ringkasan}` : ""}`,
+    url: "/",
+  };
+
+  let ok;
+  if (profile.role === "SUPERVISOR") {
+    ok = await notifyMaster({ tipe, namaPengaju: profile.name, ringkasan });
+    await sendPushToRoles(["MASTER", "FINANCE"], pushPayload).catch(() => {});
+  } else {
+    ok = await notifySupervisor({ supabase, proyek_id, tipe, namaPengaju: profile.name, ringkasan });
+    const { data: proyek } = await supabase
+      .from("proyek")
+      .select("supervisor_id")
+      .eq("id", proyek_id)
+      .maybeSingle();
+    if (proyek?.supervisor_id) await sendPush(proyek.supervisor_id, pushPayload).catch(() => {});
+  }
 
   return NextResponse.json({ ok });
 }

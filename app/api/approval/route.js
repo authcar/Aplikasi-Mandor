@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { sendPush } from "@/lib/push";
 
 // POST /api/approval
 // body: { tipe: 'lembur'|'keuangan', id: uuid, aksi: 'APPROVED'|'REJECTED', catatan? }
@@ -55,6 +56,13 @@ export async function POST(req) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   if (!data)
     return NextResponse.json({ error: "Sudah diproses / tidak ditemukan" }, { status: 409 });
+
+  const label = tipe === "keuangan" ? "Pengajuan" : "Pengajuan lembur";
+  await sendPush(data.created_by, {
+    title: `${label} ${aksi === "APPROVED" ? "disetujui" : "ditolak"}`,
+    body: aksi === "REJECTED" && catatan ? catatan : "Buka aplikasi untuk detail.",
+    url: "/",
+  }).catch(() => {});
 
   return NextResponse.json({ ok: true, data });
 }
