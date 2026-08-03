@@ -88,10 +88,10 @@ export default async function DashboardMandor({ searchParams }) {
   // Rollout bertahap: cuma "Perbaikan" (Defect List antar Mandor & Supervisor)
   // yang aktif untuk sekarang, sisanya di-lock kaya level yang belum kebuka.
   const actions = [
+    { href: "/mandor/perbaikan", label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru, locked: true },
     { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru, locked: true },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru, locked: true },
-    { href: "/mandor/perbaikan", label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
   ];
 
   return (

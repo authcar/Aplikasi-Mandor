@@ -127,11 +127,6 @@ export default async function DashboardSupervisor() {
       {/* Aksi Cepat — cuma Defect List yang aktif selama rollout bertahap */}
       <div className="shrink-0">
         <div className="grid grid-cols-4 gap-y-3">
-          <LockedTile label="Laporan Harian" gap="gap-1" />
-          <LockedTile label="Absensi Tukang" gap="gap-1" />
-          <LockedTile label="Kurang Material" gap="gap-1" />
-          <LockedTile label="Rekap Gaji" gap="gap-1" />
-
           <Link
             href="/supervisor/perbaikan"
             className="relative flex flex-col items-center gap-1 active:opacity-70"
@@ -149,6 +144,10 @@ export default async function DashboardSupervisor() {
             </p>
           </Link>
 
+          <LockedTile label="Laporan Harian" gap="gap-1" />
+          <LockedTile label="Absensi Tukang" gap="gap-1" />
+          <LockedTile label="Kurang Material" gap="gap-1" />
+          <LockedTile label="Rekap Gaji" gap="gap-1" />
           <LockedTile label="Kasbon" gap="gap-1" />
         </div>
       </div>
