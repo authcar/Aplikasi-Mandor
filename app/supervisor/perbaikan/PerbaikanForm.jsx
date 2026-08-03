@@ -47,6 +47,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   const [rows, setRows] = useState(() => [kosong()]);
   const [kameraForRowId, setKameraForRowId] = useState(null);
   const [videoRecorderForRowId, setVideoRecorderForRowId] = useState(null);
+  const [mediaChooserForRowId, setMediaChooserForRowId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState(items);
   const [tolakFor, setTolakFor] = useState(null);
@@ -105,34 +106,49 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   const hapusRow = (id) => setRows((r) => r.filter((row) => row.id !== id));
   const ubahUraian = (id, value) =>
     setRows((r) => r.map((row) => (row.id === id ? { ...row, uraian: value } : row)));
+  // Foto & video 1 slot per item (saling gantiin, bukan bisa dua-duanya) —
+  // biar tombolnya tetap ringkas (Kamera + Galeri aja), bukan 4 tombol.
   const hapusFotoRow = (id) =>
     setRows((r) => r.map((row) => (row.id === id ? { ...row, foto: null, preview: null } : row)));
-
-  const pilihFotoRow = (id, e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setRows((r) => r.map((row) => (row.id === id ? { ...row, foto: file, preview: URL.createObjectURL(file) } : row)));
-  };
-
-  const pakaiFotoRow = (file) => {
-    setRows((r) =>
-      r.map((row) => (row.id === kameraForRowId ? { ...row, foto: file, preview: URL.createObjectURL(file) } : row))
-    );
-    setKameraForRowId(null);
-  };
 
   const hapusVideoRow = (id) =>
     setRows((r) => r.map((row) => (row.id === id ? { ...row, video: null, videoPreview: null } : row)));
 
-  const pilihVideoRow = (id, e) => {
+  // Galeri: 1 input menerima foto ATAU video, tipe filenya dideteksi dari
+  // file.type supaya tetap 1 tombol "Galeri" aja.
+  const pilihMediaRow = (id, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setRows((r) => r.map((row) => (row.id === id ? { ...row, video: file, videoPreview: URL.createObjectURL(file) } : row)));
+    const url = URL.createObjectURL(file);
+    setRows((r) =>
+      r.map((row) =>
+        row.id === id
+          ? file.type.startsWith("video/")
+            ? { ...row, video: file, videoPreview: url, foto: null, preview: null }
+            : { ...row, foto: file, preview: url, video: null, videoPreview: null }
+          : row
+      )
+    );
+  };
+
+  const pakaiFotoRow = (file) => {
+    setRows((r) =>
+      r.map((row) =>
+        row.id === kameraForRowId
+          ? { ...row, foto: file, preview: URL.createObjectURL(file), video: null, videoPreview: null }
+          : row
+      )
+    );
+    setKameraForRowId(null);
   };
 
   const pakaiVideoRow = (file) => {
     setRows((r) =>
-      r.map((row) => (row.id === videoRecorderForRowId ? { ...row, video: file, videoPreview: URL.createObjectURL(file) } : row))
+      r.map((row) =>
+        row.id === videoRecorderForRowId
+          ? { ...row, video: file, videoPreview: URL.createObjectURL(file), foto: null, preview: null }
+          : row
+      )
     );
     setVideoRecorderForRowId(null);
   };
@@ -329,59 +345,66 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                           </svg>
                         </button>
                       </div>
-                    ) : (
-                      <div className="flex shrink-0 gap-1">
+                    ) : row.videoPreview ? (
+                      <div className="relative shrink-0">
+                        <span
+                          title={row.video.name}
+                          className="flex h-14 w-14 items-center justify-center rounded-lg border border-gray-200 bg-gray-800 text-white"
+                        >
+                          <Icon name="play" className="h-5 w-5" />
+                        </span>
                         <button
                           type="button"
-                          onClick={() => setKameraForRowId(row.id)}
-                          title="Kamera"
-                          className="flex h-14 w-9 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
+                          onClick={() => hapusVideoRow(row.id)}
+                          className="absolute -right-1.5 -top-1.5 rounded-full bg-black/60 p-0.5 text-white"
                         >
-                          <Icon name="camera" className="h-4 w-4" />
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
                         </button>
-                        <label
-                          title="Galeri"
-                          className="flex h-14 w-9 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
-                        >
-                          <Icon name="clipboard" className="h-4 w-4" />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => pilihFotoRow(row.id, e)}
-                          />
-                        </label>
                       </div>
-                    )}
-                    {row.videoPreview ? (
-                      <button
-                        type="button"
-                        onClick={() => hapusVideoRow(row.id)}
-                        title={`Video: ${row.video.name} — klik untuk hapus`}
-                        className="flex h-14 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-brand-500 bg-brand-50 text-brand-600 active:bg-brand-100"
-                      >
-                        <Icon name="video" className="h-4 w-4" />
-                      </button>
                     ) : (
                       <div className="flex shrink-0 gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setVideoRecorderForRowId(row.id)}
-                          title="Rekam Video"
-                          className="flex h-14 w-9 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
-                        >
-                          <Icon name="video" className="h-4 w-4" />
-                        </button>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setMediaChooserForRowId((cur) => (cur === row.id ? null : row.id))}
+                            title="Kamera"
+                            className="flex h-14 w-9 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
+                          >
+                            <Icon name="camera" className="h-4 w-4" />
+                          </button>
+                          {mediaChooserForRowId === row.id && (
+                            <div className="absolute right-0 top-full z-10 mt-1 w-28 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                              <button
+                                type="button"
+                                onClick={() => { setKameraForRowId(row.id); setMediaChooserForRowId(null); }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 active:bg-gray-50"
+                              >
+                                <Icon name="camera" className="h-3.5 w-3.5" />
+                                Foto
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setVideoRecorderForRowId(row.id); setMediaChooserForRowId(null); }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 active:bg-gray-50"
+                              >
+                                <Icon name="video" className="h-3.5 w-3.5" />
+                                Video
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         <label
-                          title="Video dari Galeri"
+                          title="Galeri (foto/video)"
                           className="flex h-14 w-9 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
                         >
                           <Icon name="clipboard" className="h-4 w-4" />
                           <input
                             type="file"
-                            accept="video/*"
+                            accept="image/*,video/*"
                             className="hidden"
-                            onChange={(e) => pilihVideoRow(row.id, e)}
+                            onChange={(e) => pilihMediaRow(row.id, e)}
                           />
                         </label>
                       </div>

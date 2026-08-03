@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import BackButton from "@/components/BackButton";
 import KameraModal from "@/components/KameraModal";
+import VideoRecorderModal from "@/components/VideoRecorderModal";
 import Icon from "@/components/Icon";
 
 const SATUAN = ["pcs", "kg", "sak", "dus", "m", "m²", "roll", "lembar", "batang", "lonjor", "liter", "unit", "set", "karung"];
@@ -38,6 +39,7 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
   const [video, setVideo] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
   const [kameraOpen, setKameraOpen] = useState(false);
+  const [videoRecorderOpen, setVideoRecorderOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [daftar, setDaftar] = useState(laporan);
@@ -62,6 +64,12 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
     if (!file) return;
     setVideo(file);
     setVideoPreview(URL.createObjectURL(file));
+  };
+
+  const pakaiVideo = (file) => {
+    setVideo(file);
+    setVideoPreview(URL.createObjectURL(file));
+    setVideoRecorderOpen(false);
   };
 
   const submit = async (e) => {
@@ -163,6 +171,13 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
           title="Foto Material"
           onCapture={pakaiFoto}
           onClose={() => setKameraOpen(false)}
+        />
+      )}
+      {videoRecorderOpen && (
+        <VideoRecorderModal
+          title="Rekam Video Material"
+          onCapture={pakaiVideo}
+          onClose={() => setVideoRecorderOpen(false)}
         />
       )}
       <BackButton href={`/tukang-harian?proyek=${proyekId}`} />
@@ -315,11 +330,21 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
                 </button>
               </div>
             ) : (
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50">
-                <Icon name="video" className="h-5 w-5 text-gray-400" />
-                Tambah Video
-                <input type="file" accept="video/*" className="hidden" onChange={pilihVideo} />
-              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVideoRecorderOpen(true)}
+                  className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50"
+                >
+                  <Icon name="video" className="h-5 w-5 text-gray-400" />
+                  Rekam
+                </button>
+                <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50">
+                  <Icon name="clipboard" className="h-5 w-5 text-gray-400" />
+                  Galeri
+                  <input type="file" accept="video/*" className="hidden" onChange={pilihVideo} />
+                </label>
+              </div>
             )}
           </div>
 
