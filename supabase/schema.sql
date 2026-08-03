@@ -271,6 +271,12 @@ alter table checklist_perbaikan
 alter table checklist_perbaikan
   add column if not exists video_url text; -- bucket 'perbaikan'
 
+-- Video bukti pengerjaan (opsional, sejajar foto_bukti_url) — Mandor bisa
+-- lampirkan video selain/tanpa foto saat "Tandai Selesai" lewat
+-- PerbaikanMandorList.jsx.
+alter table checklist_perbaikan
+  add column if not exists video_bukti_url text; -- bucket 'perbaikan'
+
 -- =====================================================================
 -- REKONSTRUKSI — ABSENSI_RINGKAS, ABSENSI_TIM, ABSENSI_TIM_FOTO,
 -- CHECKIN_HARIAN, POTONGAN_GAJI

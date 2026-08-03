@@ -28,7 +28,7 @@ export default function PerbaikanList({ items = [] }) {
         return (
           <div key={it.id} className="card p-3">
             <div className="flex items-start gap-3">
-              {(it.foto || it.fotoBukti) && (
+              {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
                 <div className="flex shrink-0 -space-x-2">
                   {it.foto && (
                     <FotoLightbox src={it.foto} caption={it.uraian}>
@@ -38,6 +38,20 @@ export default function PerbaikanList({ items = [] }) {
                   {it.fotoBukti && (
                     <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
                       <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-14 w-14 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
+                    </FotoLightbox>
+                  )}
+                  {it.video && (
+                    <FotoLightbox src={it.video} caption={it.uraian} type="video">
+                      <span className="flex h-14 w-14 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                        <Icon name="play" className="h-5 w-5" />
+                      </span>
+                    </FotoLightbox>
+                  )}
+                  {it.videoBukti && (
+                    <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
+                      <span className="flex h-14 w-14 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                        <Icon name="play" className="h-5 w-5" />
+                      </span>
                     </FotoLightbox>
                   )}
                 </div>

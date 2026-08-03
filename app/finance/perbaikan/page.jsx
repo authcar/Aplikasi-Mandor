@@ -13,13 +13,15 @@ export default async function PerbaikanFinancePage() {
   const { data: rows } = await supabase
     .from("checklist_perbaikan")
     .select(
-      "id, no, uraian, foto_url, foto_bukti_url, periode, status, catatan_tolak, created_at, selesai_at, proyek(nama), creator:created_by(name)"
+      "id, no, uraian, foto_url, foto_bukti_url, video_url, video_bukti_url, periode, status, catatan_tolak, created_at, selesai_at, proyek(nama), creator:created_by(name)"
     )
     .order("created_at", { ascending: false });
 
   const paths = [
     ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
     ...(rows || []).filter((r) => r.foto_bukti_url).map((r) => r.foto_bukti_url),
+    ...(rows || []).filter((r) => r.video_url).map((r) => r.video_url),
+    ...(rows || []).filter((r) => r.video_bukti_url).map((r) => r.video_bukti_url),
   ];
   const { data: signed } = paths.length
     ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
@@ -41,6 +43,8 @@ export default async function PerbaikanFinancePage() {
     pembuat: r.creator?.name || "-",
     foto: r.foto_url ? urlMap[r.foto_url] || null : null,
     fotoBukti: r.foto_bukti_url ? urlMap[r.foto_bukti_url] || null : null,
+    video: r.video_url ? urlMap[r.video_url] || null : null,
+    videoBukti: r.video_bukti_url ? urlMap[r.video_bukti_url] || null : null,
   }));
 
   const menunggu = items.filter((i) => i.status === "PENDING_REVIEW").length;

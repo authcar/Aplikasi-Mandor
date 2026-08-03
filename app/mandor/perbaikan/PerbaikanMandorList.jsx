@@ -6,6 +6,7 @@ import { tglID } from "@/lib/format";
 import Icon from "@/components/Icon";
 import FotoLightbox from "@/components/FotoLightbox";
 import KameraModal from "@/components/KameraModal";
+import VideoRecorderModal from "@/components/VideoRecorderModal";
 
 const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
@@ -40,7 +41,11 @@ export default function PerbaikanMandorList({ items = [] }) {
   const [uploadFor, setUploadFor] = useState(null);
   const [foto, setFoto] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [video, setVideo] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
   const [kameraOpen, setKameraOpen] = useState(false);
+  const [videoRecorderOpen, setVideoRecorderOpen] = useState(false);
+  const [mediaChooserOpen, setMediaChooserOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -63,6 +68,9 @@ export default function PerbaikanMandorList({ items = [] }) {
     setUploadFor(id);
     setFoto(null);
     setPreview(null);
+    setVideo(null);
+    setVideoPreview(null);
+    setMediaChooserOpen(false);
     setErr("");
   };
 
@@ -70,45 +78,106 @@ export default function PerbaikanMandorList({ items = [] }) {
     setUploadFor(null);
     setFoto(null);
     setPreview(null);
+    setVideo(null);
+    setVideoPreview(null);
+    setMediaChooserOpen(false);
     setErr("");
   };
 
-  const pilihFoto = (e) => {
+  const hapusBukti = () => {
+    setFoto(null);
+    setPreview(null);
+    setVideo(null);
+    setVideoPreview(null);
+  };
+
+  // Foto & video bukti 1 slot (saling gantiin) — biar tombolnya tetap
+  // ringkas (Kamera + Galeri), sama pola dengan PerbaikanForm Supervisor.
+  const pilihMediaBukti = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFoto(file);
-    setPreview(URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    if (file.type.startsWith("video/")) {
+      setVideo(file);
+      setVideoPreview(url);
+      setFoto(null);
+      setPreview(null);
+    } else {
+      setFoto(file);
+      setPreview(url);
+      setVideo(null);
+      setVideoPreview(null);
+    }
   };
 
   const pakaiFoto = (file) => {
     setFoto(file);
     setPreview(URL.createObjectURL(file));
+    setVideo(null);
+    setVideoPreview(null);
     setKameraOpen(false);
   };
 
+  const pakaiVideo = (file) => {
+    setVideo(file);
+    setVideoPreview(URL.createObjectURL(file));
+    setFoto(null);
+    setPreview(null);
+    setVideoRecorderOpen(false);
+  };
+
   const kirimBukti = async (id) => {
-    if (!foto) return setErr("Foto bukti pengerjaan wajib dilampirkan.");
+    if (!foto && !video) return setErr("Bukti pengerjaan (foto/video) wajib dilampirkan.");
     const item = list.find((x) => x.id === id);
     setBusy(true);
     setErr("");
     try {
-      const ext = foto.name.split(".").pop();
-      const path = `${item.proyek_id}/bukti-${id}-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("perbaikan").upload(path, foto);
-      if (upErr) throw new Error("Gagal unggah foto: " + upErr.message);
+      let foto_bukti_url = null;
+      let fotoBuktiSignedUrl = null;
+      if (foto) {
+        const ext = foto.name.split(".").pop();
+        const path = `${item.proyek_id}/bukti-${id}-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("perbaikan").upload(path, foto);
+        if (upErr) throw new Error("Gagal unggah foto: " + upErr.message);
+        foto_bukti_url = path;
+        const { data: signed } = await supabase.storage.from("perbaikan").createSignedUrl(path, 3600);
+        fotoBuktiSignedUrl = signed?.signedUrl || null;
+      }
 
-      const { data: signed } = await supabase.storage.from("perbaikan").createSignedUrl(path, 3600);
+      let video_bukti_url = null;
+      let videoBuktiSignedUrl = null;
+      if (video) {
+        const ext = video.name.split(".").pop();
+        const path = `${item.proyek_id}/video-bukti-${id}-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("perbaikan").upload(path, video);
+        if (upErr) throw new Error("Gagal unggah video: " + upErr.message);
+        video_bukti_url = path;
+        const { data: signed } = await supabase.storage.from("perbaikan").createSignedUrl(path, 3600);
+        videoBuktiSignedUrl = signed?.signedUrl || null;
+      }
 
       const { error } = await supabase
         .from("checklist_perbaikan")
-        .update({ status: "PENDING_REVIEW", foto_bukti_url: path, dibaca_supervisor: false, catatan_tolak: null })
+        .update({
+          status: "PENDING_REVIEW",
+          foto_bukti_url,
+          video_bukti_url,
+          dibaca_supervisor: false,
+          catatan_tolak: null,
+        })
         .eq("id", id);
       if (error) throw new Error("Gagal mengirim: " + error.message);
 
       setList((l) =>
         l.map((x) =>
           x.id === id
-            ? { ...x, status: "PENDING_REVIEW", fotoBukti: signed?.signedUrl || null, catatan_tolak: null }
+            ? {
+                ...x,
+                status: "PENDING_REVIEW",
+                fotoBukti: fotoBuktiSignedUrl,
+                videoBukti: videoBuktiSignedUrl,
+                catatan_tolak: null,
+              }
             : x
         )
       );
@@ -144,6 +213,14 @@ export default function PerbaikanMandorList({ items = [] }) {
           title="Foto Bukti Pengerjaan"
           onCapture={pakaiFoto}
           onClose={() => setKameraOpen(false)}
+        />
+      )}
+
+      {videoRecorderOpen && (
+        <VideoRecorderModal
+          title="Rekam Video Bukti Pengerjaan"
+          onCapture={pakaiVideo}
+          onClose={() => setVideoRecorderOpen(false)}
         />
       )}
 
@@ -195,7 +272,7 @@ export default function PerbaikanMandorList({ items = [] }) {
               return (
                 <div key={it.id} className="py-2 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-2.5">
-                    {(it.foto || it.fotoBukti || it.video) && (
+                    {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
                       <div className="flex shrink-0 -space-x-2">
                         {it.foto && (
                           <FotoLightbox src={it.foto} caption={it.uraian}>
@@ -209,6 +286,13 @@ export default function PerbaikanMandorList({ items = [] }) {
                         )}
                         {it.video && (
                           <FotoLightbox src={it.video} caption={it.uraian} type="video">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                              <Icon name="play" className="h-4 w-4" />
+                            </span>
+                          </FotoLightbox>
+                        )}
+                        {it.videoBukti && (
+                          <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
                             <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
                               <Icon name="play" className="h-4 w-4" />
                             </span>
@@ -243,24 +327,72 @@ export default function PerbaikanMandorList({ items = [] }) {
 
                   {uploadFor === it.id && (
                     <div className="mt-2.5 space-y-2 border-t border-gray-100 pt-2.5">
-                      <p className="text-xs font-semibold text-gray-600">Lampirkan foto bukti pekerjaan sudah selesai</p>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setKameraOpen(true)}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-2.5 text-sm font-medium text-gray-500 active:bg-gray-50"
-                        >
-                          <Icon name="camera" className="h-5 w-5 text-gray-400" />
-                          Kamera
-                        </button>
-                        <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-2.5 text-sm font-medium text-gray-500 active:bg-gray-50">
-                          <Icon name="clipboard" className="h-5 w-5 text-gray-400" />
-                          Galeri
-                          <input type="file" accept="image/*" className="hidden" onChange={pilihFoto} />
-                        </label>
-                      </div>
-                      {preview && (
-                        <img src={preview} alt="preview bukti" className="w-full max-h-52 rounded-xl border border-gray-200 object-cover" />
+                      <p className="text-xs font-semibold text-gray-600">Lampirkan bukti pekerjaan sudah selesai</p>
+                      {preview ? (
+                        <div className="relative">
+                          <img src={preview} alt="preview bukti" className="w-full max-h-52 rounded-xl border border-gray-200 object-cover" />
+                          <button
+                            type="button"
+                            onClick={hapusBukti}
+                            className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white"
+                          >
+                            <Icon name="x-circle" className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : videoPreview ? (
+                        <div className="relative">
+                          <video
+                            src={videoPreview}
+                            controls
+                            playsInline
+                            className="w-full max-h-52 rounded-xl border border-gray-200 bg-black object-contain"
+                          />
+                          <button
+                            type="button"
+                            onClick={hapusBukti}
+                            className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white"
+                          >
+                            <Icon name="x-circle" className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <button
+                              type="button"
+                              onClick={() => setMediaChooserOpen((o) => !o)}
+                              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-2.5 text-sm font-medium text-gray-500 active:bg-gray-50"
+                            >
+                              <Icon name="camera" className="h-5 w-5 text-gray-400" />
+                              Kamera
+                            </button>
+                            {mediaChooserOpen && (
+                              <div className="absolute left-0 top-full z-10 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                <button
+                                  type="button"
+                                  onClick={() => { setKameraOpen(true); setMediaChooserOpen(false); }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 active:bg-gray-50"
+                                >
+                                  <Icon name="camera" className="h-4 w-4" />
+                                  Foto
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setVideoRecorderOpen(true); setMediaChooserOpen(false); }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 active:bg-gray-50"
+                                >
+                                  <Icon name="video" className="h-4 w-4" />
+                                  Video
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-2.5 text-sm font-medium text-gray-500 active:bg-gray-50">
+                            <Icon name="clipboard" className="h-5 w-5 text-gray-400" />
+                            Galeri
+                            <input type="file" accept="image/*,video/*" className="hidden" onChange={pilihMediaBukti} />
+                          </label>
+                        </div>
                       )}
                       {err && <p className="text-sm font-medium text-red-600">{err}</p>}
                       <div className="grid grid-cols-2 gap-2">
@@ -294,7 +426,7 @@ export default function PerbaikanMandorList({ items = [] }) {
                     const st = STATUS_LABEL[it.status] || STATUS_LABEL.DONE;
                     return (
                       <div key={it.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
-                        {(it.foto || it.fotoBukti || it.video) && (
+                        {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
                           <div className="flex shrink-0 -space-x-2">
                             {it.foto && (
                               <FotoLightbox src={it.foto} caption={it.uraian}>
@@ -308,6 +440,13 @@ export default function PerbaikanMandorList({ items = [] }) {
                             )}
                             {it.video && (
                               <FotoLightbox src={it.video} caption={it.uraian} type="video">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                                  <Icon name="play" className="h-4 w-4" />
+                                </span>
+                              </FotoLightbox>
+                            )}
+                            {it.videoBukti && (
+                              <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
                                 <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
                                   <Icon name="play" className="h-4 w-4" />
                                 </span>

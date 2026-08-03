@@ -178,7 +178,7 @@ export default function PerbaikanList({ items = [] }) {
                       return (
                         <div key={it.id} className="rounded-lg bg-white p-2 shadow-sm">
                           <div className="flex items-start gap-2">
-                            {(it.foto || it.fotoBukti || it.video) && (
+                            {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
                               <div className="flex shrink-0 -space-x-2">
                                 {it.foto && (
                                   <FotoLightbox src={it.foto} caption={it.uraian}>
@@ -192,6 +192,13 @@ export default function PerbaikanList({ items = [] }) {
                                 )}
                                 {it.video && (
                                   <FotoLightbox src={it.video} caption={it.uraian} type="video">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
+                                      <Icon name="play" className="h-3.5 w-3.5" />
+                                    </span>
+                                  </FotoLightbox>
+                                )}
+                                {it.videoBukti && (
+                                  <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
                                     <span className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
                                       <Icon name="play" className="h-3.5 w-3.5" />
                                     </span>
