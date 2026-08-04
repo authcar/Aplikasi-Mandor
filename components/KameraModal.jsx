@@ -1,19 +1,28 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
+import Icon from "@/components/Icon";
 
 // Modal kamera in-app (getUserMedia) — bekerja di desktop maupun HP.
-// onCapture menerima File JPEG hasil jepretan.
+// onCapture menerima File JPEG hasil jepretan. Default kamera belakang
+// ("environment"), bisa ditukar ke kamera depan lewat tombol switch.
 export default function KameraModal({ onCapture, onClose, title = "Ambil Foto" }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const [siap, setSiap] = useState(false);
   const [error, setError] = useState(null);
+  const [facingMode, setFacingMode] = useState("environment");
 
   useEffect(() => {
+    let batal = false;
+    setSiap(false);
     navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: "environment" }, audio: false })
+      .getUserMedia({ video: { facingMode }, audio: false })
       .then((stream) => {
+        if (batal) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -23,8 +32,13 @@ export default function KameraModal({ onCapture, onClose, title = "Ambil Foto" }
       })
       .catch(() => setError("Kamera tidak bisa diakses. Pastikan izin kamera sudah diberikan."));
 
-    return () => streamRef.current?.getTracks().forEach((t) => t.stop());
-  }, []);
+    return () => {
+      batal = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, [facingMode]);
+
+  const tukarKamera = () => setFacingMode((m) => (m === "environment" ? "user" : "environment"));
 
   const ambilFoto = useCallback(() => {
     const video = videoRef.current;
@@ -59,11 +73,19 @@ export default function KameraModal({ onCapture, onClose, title = "Ambil Foto" }
         )}
       </div>
       {siap && (
-        <div className="flex shrink-0 justify-center pb-10 pt-6">
+        <div className="relative flex shrink-0 items-center justify-center pb-10 pt-6">
           <button
             onClick={ambilFoto}
             className="h-16 w-16 rounded-full border-4 border-white bg-white/20 active:bg-white/40"
           />
+          <button
+            type="button"
+            onClick={tukarKamera}
+            title="Ganti kamera"
+            className="absolute right-6 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white active:bg-white/30"
+          >
+            <Icon name="switch-camera" className="h-5 w-5" />
+          </button>
         </div>
       )}
       <canvas ref={canvasRef} className="hidden" />

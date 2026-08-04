@@ -1,9 +1,12 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
+import Icon from "@/components/Icon";
 
 // Modal rekam video in-app (getUserMedia + MediaRecorder) — sejalan dengan
 // KameraModal (foto): tekan buat mulai rekam, tekan lagi buat stop, lalu
-// preview hasilnya dan bisa "Ulangi" sebelum dipakai (onCapture).
+// preview hasilnya dan bisa "Ulangi" sebelum dipakai (onCapture). Default
+// kamera belakang ("environment"), bisa ditukar ke kamera depan sebelum
+// mulai rekam.
 export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam Video", maxDetik = 60 }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -16,11 +19,15 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
   const [detik, setDetik] = useState(0);
   const [hasilUrl, setHasilUrl] = useState(null);
   const [hasilFile, setHasilFile] = useState(null);
+  const [facingMode, setFacingMode] = useState("environment");
 
-  const bukaKamera = useCallback(() => {
+  // Lepas stream lama dulu (kalau ada) sebelum minta yang baru — dipakai
+  // baik saat buka pertama kali, ganti kamera, maupun "Ulangi".
+  const bukaKamera = useCallback((mode) => {
     setError(null);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
     navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: "environment" }, audio: true })
+      .getUserMedia({ video: { facingMode: mode }, audio: true })
       .then((stream) => {
         streamRef.current = stream;
         if (videoRef.current) {
@@ -33,12 +40,14 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
   }, []);
 
   useEffect(() => {
-    bukaKamera();
+    bukaKamera(facingMode);
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       clearInterval(timerRef.current);
     };
-  }, [bukaKamera]);
+  }, [facingMode, bukaKamera]);
+
+  const tukarKamera = () => setFacingMode((m) => (m === "environment" ? "user" : "environment"));
 
   // Lepas kamera segera setelah stop (bukan nunggu modal ditutup) — supaya
   // indikator "kamera aktif" di OS/browser langsung mati dan jelas kalau
@@ -86,7 +95,7 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
   const ulangi = () => {
     setHasilFile(null);
     setHasilUrl(null);
-    bukaKamera();
+    bukaKamera(facingMode);
   };
 
   const pakai = () => {
@@ -149,10 +158,22 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
             </div>
           ) : (
             <>
-              <button
-                onClick={merekam ? stopRekam : mulaiRekam}
-                className={`h-16 w-16 rounded-full border-4 border-white ${merekam ? "bg-red-500" : "bg-white/20 active:bg-white/40"}`}
-              />
+              <div className="relative flex w-full items-center justify-center">
+                <button
+                  onClick={merekam ? stopRekam : mulaiRekam}
+                  className={`h-16 w-16 rounded-full border-4 border-white ${merekam ? "bg-red-500" : "bg-white/20 active:bg-white/40"}`}
+                />
+                {!merekam && (
+                  <button
+                    type="button"
+                    onClick={tukarKamera}
+                    title="Ganti kamera"
+                    className="absolute right-6 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white active:bg-white/30"
+                  >
+                    <Icon name="switch-camera" className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
               {!merekam && <p className="text-xs text-white/60">Maks {maxDetik} detik</p>}
             </>
           )}
