@@ -17,7 +17,8 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
   const [hasilUrl, setHasilUrl] = useState(null);
   const [hasilFile, setHasilFile] = useState(null);
 
-  useEffect(() => {
+  const bukaKamera = useCallback(() => {
+    setError(null);
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "environment" }, audio: true })
       .then((stream) => {
@@ -29,17 +30,25 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
         }
       })
       .catch(() => setError("Kamera/mikrofon tidak bisa diakses. Pastikan izin sudah diberikan."));
+  }, []);
 
+  useEffect(() => {
+    bukaKamera();
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       clearInterval(timerRef.current);
     };
-  }, []);
+  }, [bukaKamera]);
 
+  // Lepas kamera segera setelah stop (bukan nunggu modal ditutup) — supaya
+  // indikator "kamera aktif" di OS/browser langsung mati dan jelas kalau
+  // rekaman sudah benar-benar berhenti, bukan cuma preview yang muter terus.
   const stopRekam = useCallback(() => {
     recorderRef.current?.stop();
     clearInterval(timerRef.current);
     setMerekam(false);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
   }, []);
 
   const mulaiRekam = useCallback(() => {
@@ -77,6 +86,7 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
   const ulangi = () => {
     setHasilFile(null);
     setHasilUrl(null);
+    bukaKamera();
   };
 
   const pakai = () => {
@@ -102,7 +112,7 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
         {error ? (
           <p className="absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-red-400">{error}</p>
         ) : hasilUrl ? (
-          <video src={hasilUrl} controls autoPlay loop playsInline className="absolute inset-0 h-full w-full object-contain" />
+          <video src={hasilUrl} controls autoPlay playsInline className="absolute inset-0 h-full w-full object-contain" />
         ) : (
           <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-contain" />
         )}
@@ -110,6 +120,12 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
           <span className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
             <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
             {mm}:{ss}
+          </span>
+        )}
+        {hasilUrl && (
+          <span className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            Rekaman selesai — {mm}:{ss}
           </span>
         )}
       </div>
