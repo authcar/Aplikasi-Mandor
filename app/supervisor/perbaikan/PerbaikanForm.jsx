@@ -202,12 +202,25 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
       });
     }
 
-    const { error } = await supabase.from("checklist_perbaikan").insert(inserts);
+    const { data: created, error } = await supabase
+      .from("checklist_perbaikan")
+      .insert(inserts)
+      .select("id, no, uraian, foto_url, video_url, created_at");
     setBusy(false);
     if (error) {
       alert(`Gagal menyimpan: ${error.message}`);
       return;
     }
+
+    // Trigger workflow n8n (upload foto/video ke Google Drive) — gagal di
+    // sini tidak menandakan defect gagal tersimpan, lihat /api/drive-sync.
+    const proyekNama = proyeks.find((p) => p.id === proyekId)?.nama || null;
+    fetch("/api/drive-sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ proyekId, proyek: proyekNama, items: created || [] }),
+    }).catch(() => {});
+
     router.refresh();
     setRows([kosong()]);
   };

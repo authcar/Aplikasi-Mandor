@@ -1,0 +1,360 @@
+{
+  "name": "Defect List -> Google Drive Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Setup checklist\nFolder terpisah, khusus defect list (bukan di dalam folder proyek yang lama): `Defect List (root)` → `<Kode Nama Proyek>` → `<Tanggal YYYY-MM-DD>` → foto/video. Semuanya (folder proyek & folder tanggal) dibuat OTOMATIS kalau belum ada — tidak perlu setup manual per proyek.\n\n1. Di Google Drive, buat 1 folder baru bernama \"Defect List\" (di mana saja, boleh di My Drive Anda) — ini jadi root-nya.\n2. Buka node **Normalize**, ganti `\"ISI_DENGAN_ID_FOLDER_ROOT_DRIVE_ANDA\"` dengan ID folder itu (dari URL: drive.google.com/drive/folders/<ID_INI>).\n3. Di semua node **HTTP Request** (yang manggil googleapis.com) → tab Credentials → pilih credential Google Drive OAuth2 Anda (yang sudah dipakai di workflow n8n lain).\n4. Di node **Upload Foto** dan **Upload Video** → pilih credential Google Drive yang sama.\n5. Klik **Activate**, lalu copy Production URL dari node **Webhook** → paste ke `.env.local` project (`N8N_DRIVE_WEBHOOK_URL=...`).\n6. Test: buat defect baru dari app (Supervisor → Defect List) dengan foto/video → cek folder `<Nama Proyek>/<Tanggal>` otomatis kebuat di dalam folder \"Defect List\" itu.\n\nKalau ada node bertanda seru merah setelah import, biasanya cuma soal pilih ulang credential/field dari dropdown (versi n8n beda sedikit bisa beda label field).",
+        "height": 520,
+        "width": 480
+      },
+      "id": "note-setup",
+      "name": "Setup Checklist",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [ -400, -300 ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "defect-drive-sync",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [ -400, 40 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn [{\n  json: {\n    proyek: body.proyek,\n    proyekId: body.proyekId,\n    tanggal: body.tanggal,\n    items: body.items || [],\n    // GANTI dengan ID folder Google Drive \"Defect List\" (root khusus fitur\n    // ini) — ambil dari URL folder: drive.google.com/drive/folders/<ID_INI>\n    rootFolderId: \"ISI_DENGAN_ID_FOLDER_ROOT_DRIVE_ANDA\",\n  },\n}];"
+      },
+      "id": "normalize",
+      "name": "Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ -160, 40 ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "=name='{{ $json.proyek.replace(/'/g, \"\\\\'\") }}' and mimeType='application/vnd.google-apps.folder' and '{{ $json.rootFolderId }}' in parents and trashed=false" },
+            { "name": "fields", "value": "files(id,name)" },
+            { "name": "supportsAllDrives", "value": "true" },
+            { "name": "includeItemsFromAllDrives", "value": "true" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "search-proyek",
+      "name": "Cari Folder Proyek",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 80, 40 ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            { "id": "cond-proyek", "leftValue": "={{ $json.files.length }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-proyek",
+      "name": "Proyek Ada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [ 320, 40 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const norm = $('Normalize').first().json;\nconst found = $input.first().json;\nreturn [{ json: { ...norm, projectFolderId: found.files[0].id } }];"
+      },
+      "id": "set-proyek-existing",
+      "name": "ProjectFolder - Existing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 560, -80 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [ { "name": "supportsAllDrives", "value": "true" } ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"name\": $('Normalize').first().json.proyek, \"mimeType\": \"application/vnd.google-apps.folder\", \"parents\": [ $('Normalize').first().json.rootFolderId ] } }}",
+        "options": {}
+      },
+      "id": "create-proyek",
+      "name": "Buat Folder Proyek",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 560, 160 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const norm = $('Normalize').first().json;\nconst created = $input.first().json;\nreturn [{ json: { ...norm, projectFolderId: created.id } }];"
+      },
+      "id": "set-proyek-created",
+      "name": "ProjectFolder - Created",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 800, 160 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json }];"
+      },
+      "id": "folder-proyek-siap",
+      "name": "Folder Proyek Siap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 1040, 40 ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "=name='{{ $json.tanggal }}' and mimeType='application/vnd.google-apps.folder' and '{{ $json.projectFolderId }}' in parents and trashed=false" },
+            { "name": "fields", "value": "files(id,name)" },
+            { "name": "supportsAllDrives", "value": "true" },
+            { "name": "includeItemsFromAllDrives", "value": "true" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "search-tanggal",
+      "name": "Cari Folder Tanggal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 1280, 40 ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            { "id": "cond-tanggal", "leftValue": "={{ $json.files.length }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-tanggal",
+      "name": "Tanggal Ada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [ 1520, 40 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Folder Proyek Siap').first().json;\nconst found = $input.first().json;\nreturn [{ json: { ...base, dateFolderId: found.files[0].id } }];"
+      },
+      "id": "set-tanggal-existing",
+      "name": "DateFolder - Existing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 1760, -80 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [ { "name": "supportsAllDrives", "value": "true" } ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"name\": $('Folder Proyek Siap').first().json.tanggal, \"mimeType\": \"application/vnd.google-apps.folder\", \"parents\": [ $('Folder Proyek Siap').first().json.projectFolderId ] } }}",
+        "options": {}
+      },
+      "id": "create-tanggal",
+      "name": "Buat Folder Tanggal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 1760, 160 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Folder Proyek Siap').first().json;\nconst created = $input.first().json;\nreturn [{ json: { ...base, dateFolderId: created.id } }];"
+      },
+      "id": "set-tanggal-created",
+      "name": "DateFolder - Created",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 2000, 160 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json }];"
+      },
+      "id": "folder-siap",
+      "name": "Folder Siap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 2240, 40 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $input.first().json;\nconst safe = (s) => String(s || '').replace(/[\\\\/:*?\"<>|]/g, '-').slice(0, 60).trim();\nreturn (base.items || []).map((it) => ({\n  json: {\n    id: it.id,\n    no: it.no,\n    uraian: it.uraian,\n    fotoUrl: it.fotoUrl,\n    fotoExt: it.fotoExt,\n    videoUrl: it.videoUrl,\n    videoExt: it.videoExt,\n    dateFolderId: base.dateFolderId,\n    fotoFileName: it.fotoUrl ? `${it.no} - ${safe(it.uraian)}.${it.fotoExt || 'jpg'}` : null,\n    videoFileName: it.videoUrl ? `${it.no} - ${safe(it.uraian)}.${it.videoExt || 'mp4'}` : null,\n  },\n}));"
+      },
+      "id": "pecah-item",
+      "name": "Pecah Item",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 2480, 40 ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            { "id": "cond-foto", "leftValue": "={{ $json.fotoUrl }}", "rightValue": "", "operator": { "type": "string", "operation": "notEquals" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-foto",
+      "name": "Ada Foto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [ 2720, -100 ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.fotoUrl }}",
+        "options": { "response": { "response": { "responseFormat": "file" } } }
+      },
+      "id": "download-foto",
+      "name": "Download Foto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 2960, -160 ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "name": "={{ $('Pecah Item').item.json.fotoFileName }}",
+        "inputDataFieldName": "data",
+        "driveId": { "__rl": true, "mode": "list", "value": "My Drive", "cachedResultName": "My Drive", "cachedResultUrl": "https://drive.google.com/drive/my-drive" },
+        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Pecah Item').item.json.dateFolderId }}" }
+      },
+      "id": "upload-foto",
+      "name": "Upload Foto",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [ 3200, -160 ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            { "id": "cond-video", "leftValue": "={{ $json.videoUrl }}", "rightValue": "", "operator": { "type": "string", "operation": "notEquals" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-video",
+      "name": "Ada Video?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [ 2720, 180 ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.videoUrl }}",
+        "options": { "response": { "response": { "responseFormat": "file" } } }
+      },
+      "id": "download-video",
+      "name": "Download Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 2960, 180 ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "name": "={{ $('Pecah Item').item.json.videoFileName }}",
+        "inputDataFieldName": "data",
+        "driveId": { "__rl": true, "mode": "list", "value": "My Drive", "cachedResultName": "My Drive", "cachedResultUrl": "https://drive.google.com/drive/my-drive" },
+        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Pecah Item').item.json.dateFolderId }}" }
+      },
+      "id": "upload-video",
+      "name": "Upload Video",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [ 3200, 180 ]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [ [ { "node": "Normalize", "type": "main", "index": 0 } ] ] },
+    "Normalize": { "main": [ [ { "node": "Cari Folder Proyek", "type": "main", "index": 0 } ] ] },
+    "Cari Folder Proyek": { "main": [ [ { "node": "Proyek Ada?", "type": "main", "index": 0 } ] ] },
+    "Proyek Ada?": {
+      "main": [
+        [ { "node": "ProjectFolder - Existing", "type": "main", "index": 0 } ],
+        [ { "node": "Buat Folder Proyek", "type": "main", "index": 0 } ]
+      ]
+    },
+    "ProjectFolder - Existing": { "main": [ [ { "node": "Folder Proyek Siap", "type": "main", "index": 0 } ] ] },
+    "Buat Folder Proyek": { "main": [ [ { "node": "ProjectFolder - Created", "type": "main", "index": 0 } ] ] },
+    "ProjectFolder - Created": { "main": [ [ { "node": "Folder Proyek Siap", "type": "main", "index": 0 } ] ] },
+    "Folder Proyek Siap": { "main": [ [ { "node": "Cari Folder Tanggal", "type": "main", "index": 0 } ] ] },
+    "Cari Folder Tanggal": { "main": [ [ { "node": "Tanggal Ada?", "type": "main", "index": 0 } ] ] },
+    "Tanggal Ada?": {
+      "main": [
+        [ { "node": "DateFolder - Existing", "type": "main", "index": 0 } ],
+        [ { "node": "Buat Folder Tanggal", "type": "main", "index": 0 } ]
+      ]
+    },
+    "DateFolder - Existing": { "main": [ [ { "node": "Folder Siap", "type": "main", "index": 0 } ] ] },
+    "Buat Folder Tanggal": { "main": [ [ { "node": "DateFolder - Created", "type": "main", "index": 0 } ] ] },
+    "DateFolder - Created": { "main": [ [ { "node": "Folder Siap", "type": "main", "index": 0 } ] ] },
+    "Folder Siap": { "main": [ [ { "node": "Pecah Item", "type": "main", "index": 0 } ] ] },
+    "Pecah Item": {
+      "main": [
+        [
+          { "node": "Ada Foto?", "type": "main", "index": 0 },
+          { "node": "Ada Video?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Ada Foto?": { "main": [ [ { "node": "Download Foto", "type": "main", "index": 0 } ], [] ] },
+    "Download Foto": { "main": [ [ { "node": "Upload Foto", "type": "main", "index": 0 } ] ] },
+    "Ada Video?": { "main": [ [ { "node": "Download Video", "type": "main", "index": 0 } ], [] ] },
+    "Download Video": { "main": [ [ { "node": "Upload Video", "type": "main", "index": 0 } ] ] }
+  },
+  "pinData": {},
+  "meta": { "instanceId": "defect-list-drive-sync" }
+}
