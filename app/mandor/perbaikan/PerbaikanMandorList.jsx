@@ -191,6 +191,13 @@ export default function PerbaikanMandorList({ items = [] }) {
             : x
         )
       );
+
+      fetch("/api/perbaikan/notify-bukti", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proyek_id: item.proyek_id, uraian: item.uraian }),
+      }).catch(() => {});
+
       batalUpload();
       router.refresh();
     } catch (e) {

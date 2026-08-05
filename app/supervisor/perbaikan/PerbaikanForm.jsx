@@ -234,6 +234,13 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
       .from("checklist_perbaikan")
       .update({ status: "DONE", selesai_at: new Date().toISOString(), dibaca_mandor: false })
       .eq("id", id);
+
+    fetch("/api/perbaikan/notify-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "DONE" }),
+    }).catch(() => {});
+
     router.refresh();
   };
 
@@ -264,6 +271,13 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
         catatan_tolak: alasanTolak.trim(),
       })
       .eq("id", id);
+
+    fetch("/api/perbaikan/notify-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "OPEN", alasan: alasanTolak.trim() }),
+    }).catch(() => {});
+
     setBusy(false);
     batalTolak();
     router.refresh();
