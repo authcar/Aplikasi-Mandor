@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Setup checklist\nFolder terpisah, khusus defect list (bukan di dalam folder proyek yang lama): `Defect List (root)` → `<Kode Nama Proyek>` → `<Tanggal YYYY-MM-DD>` → foto/video. Semuanya (folder proyek & folder tanggal) dibuat OTOMATIS kalau belum ada — tidak perlu setup manual per proyek.\n\nSetelah upload sukses, workflow ini juga lapor balik ke app (endpoint /api/drive-sync/confirm) supaya app tahu file ini aman dihapus dari Supabase Storage nanti (lihat n8n/defect-list-cleanup-schedule.json — workflow terpisah utk itu).\n\n1. Di Google Drive, buat 1 folder baru bernama \"Defect List\" (di mana saja, boleh di My Drive Anda) — ini jadi root-nya.\n2. Buka node **Normalize**, isi 3 hal: `rootFolderId` (ID folder di atas, dari URL drive.google.com/drive/folders/<ID_INI>), `appBaseUrl` (URL app Anda, TANPA garis miring di akhir, mis. https://aplikasi-mandor.vercel.app), dan `callbackSecret` (nilai `N8N_CALLBACK_SECRET` dari .env.local app — sama persis).\n3. Di semua node **HTTP Request** (yang manggil googleapis.com) → tab Credentials → pilih credential Google Drive OAuth2 Anda (yang sudah dipakai di workflow n8n lain).\n4. Di node **Upload Foto** dan **Upload Video** → pilih credential Google Drive yang sama.\n5. Klik **Activate**, lalu copy Production URL dari node **Webhook** → paste ke `.env.local` project (`N8N_DRIVE_WEBHOOK_URL=...`).\n6. Test: buat defect baru dari app (Supervisor → Defect List) dengan foto/video → cek folder `<Nama Proyek>/<Tanggal>` otomatis kebuat di dalam folder \"Defect List\" itu, dan cek kolom `drive_synced_at` di tabel `checklist_perbaikan` sudah terisi.\n\nKalau ada node bertanda seru merah setelah import, biasanya cuma soal pilih ulang credential/field dari dropdown (versi n8n beda sedikit bisa beda label field).",
+        "content": "## Setup checklist\nFolder terpisah, khusus defect list (bukan di dalam folder proyek yang lama): `Defect List (root)` → `<Kode Nama Proyek>` → `<Tanggal YYYY-MM-DD>` → foto/video. Semuanya (folder proyek & folder tanggal) dibuat OTOMATIS kalau belum ada — tidak perlu setup manual per proyek.\n\nDipakai utk 2 hal (sama webhook, dibedakan field `jenis` dari app): temuan awal (Supervisor) DAN bukti pengerjaan (Mandor) — file bukti dikasih label \"Bukti - \" di nama filenya, tetap masuk folder tanggal yang sama.\n\nSetelah upload sukses, workflow ini juga lapor balik ke app (endpoint /api/drive-sync/confirm, ikut kirim `jenis` supaya app update kolom retensi yang benar) supaya app tahu file ini aman dihapus dari Supabase Storage nanti (lihat n8n/defect-list-cleanup-schedule.json — workflow terpisah utk itu).\n\n1. Di Google Drive, buat 1 folder baru bernama \"Defect List\" (di mana saja, boleh di My Drive Anda) — ini jadi root-nya.\n2. Buka node **Normalize**, isi 3 hal: `rootFolderId` (ID folder di atas, dari URL drive.google.com/drive/folders/<ID_INI>), `appBaseUrl` (URL app Anda, TANPA garis miring di akhir, mis. https://aplikasi-mandor.vercel.app), dan `callbackSecret` (nilai `N8N_CALLBACK_SECRET` dari .env.local app — sama persis).\n3. Di semua node **HTTP Request** (yang manggil googleapis.com) → tab Credentials → pilih credential Google Drive OAuth2 Anda (yang sudah dipakai di workflow n8n lain).\n4. Di node **Upload Foto** dan **Upload Video** → pilih credential Google Drive yang sama.\n5. Klik **Activate**, lalu copy Production URL dari node **Webhook** → paste ke `.env.local` project (`N8N_DRIVE_WEBHOOK_URL=...`).\n6. Test: buat defect baru dari app (Supervisor → Defect List) dengan foto/video → cek folder `<Nama Proyek>/<Tanggal>` otomatis kebuat di dalam folder \"Defect List\" itu, dan cek kolom `drive_synced_at` di tabel `checklist_perbaikan` sudah terisi.\n\nKalau ada node bertanda seru merah setelah import, biasanya cuma soal pilih ulang credential/field dari dropdown (versi n8n beda sedikit bisa beda label field).",
         "height": 560,
         "width": 500
       },
@@ -28,7 +28,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body;\nreturn [{\n  json: {\n    proyek: body.proyek,\n    proyekId: body.proyekId,\n    tanggal: body.tanggal,\n    items: body.items || [],\n    // GANTI ketiga nilai di bawah ini:\n    // ID folder Google Drive \"Defect List\" (root khusus fitur ini) — dari\n    // URL folder: drive.google.com/drive/folders/<ID_INI>\n    rootFolderId: \"ISI_DENGAN_ID_FOLDER_ROOT_DRIVE_ANDA\",\n    // URL app Anda, TANPA garis miring di akhir\n    appBaseUrl: \"ISI_DENGAN_URL_APP_ANDA\",\n    // Harus SAMA PERSIS dengan N8N_CALLBACK_SECRET di .env.local app\n    callbackSecret: \"ISI_DENGAN_N8N_CALLBACK_SECRET_DARI_ENV_LOCAL\",\n  },\n}];"
+        "jsCode": "const body = $input.first().json.body;\nreturn [{\n  json: {\n    proyek: body.proyek,\n    proyekId: body.proyekId,\n    tanggal: body.tanggal,\n    items: body.items || [],\n    // GANTI ketiga nilai di bawah ini:\n    // ID folder Google Drive \"Defect List\" (root khusus fitur ini) — dari\n    // URL folder: drive.google.com/drive/folders/<ID_INI>\n    rootFolderId: \"ISI_DENGAN_ID_FOLDER_ROOT_DRIVE_ANDA\",\n    // URL app Anda, TANPA garis miring di akhir\n    appBaseUrl: \"https://taracoapp.com\",\n    // Harus SAMA PERSIS dengan N8N_CALLBACK_SECRET di .env.local app\n    callbackSecret: \"05f224ab1d0f179c0e4ba76f51c677ac82095e6d1550d73a\",\n  },\n}];"
       },
       "id": "normalize",
       "name": "Normalize",
@@ -220,7 +220,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const base = $input.first().json;\nconst safe = (s) => String(s || '').replace(/[\\\\/:*?\"<>|]/g, '-').slice(0, 60).trim();\nreturn (base.items || []).map((it) => ({\n  json: {\n    id: it.id,\n    no: it.no,\n    uraian: it.uraian,\n    fotoUrl: it.fotoUrl,\n    fotoExt: it.fotoExt,\n    videoUrl: it.videoUrl,\n    videoExt: it.videoExt,\n    dateFolderId: base.dateFolderId,\n    fotoFileName: it.fotoUrl ? `${it.no} - ${safe(it.uraian)}.${it.fotoExt || 'jpg'}` : null,\n    videoFileName: it.videoUrl ? `${it.no} - ${safe(it.uraian)}.${it.videoExt || 'mp4'}` : null,\n  },\n}));"
+        "jsCode": "const base = $input.first().json;\nconst safe = (s) => String(s || '').replace(/[\\\\/:*?\"<>|]/g, '-').slice(0, 60).trim();\nreturn (base.items || []).map((it) => {\n  const label = it.jenis === 'bukti' ? 'Bukti - ' : '';\n  return {\n    json: {\n      id: it.id,\n      no: it.no,\n      uraian: it.uraian,\n      jenis: it.jenis === 'bukti' ? 'bukti' : 'temuan',\n      fotoUrl: it.fotoUrl,\n      fotoExt: it.fotoExt,\n      videoUrl: it.videoUrl,\n      videoExt: it.videoExt,\n      dateFolderId: base.dateFolderId,\n      fotoFileName: it.fotoUrl ? `${it.no} - ${label}${safe(it.uraian)}.${it.fotoExt || 'jpg'}` : null,\n      videoFileName: it.videoUrl ? `${it.no} - ${label}${safe(it.uraian)}.${it.videoExt || 'mp4'}` : null,\n    },\n  };\n});"
       },
       "id": "pecah-item",
       "name": "Pecah Item",
@@ -282,7 +282,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"id\": $('Pecah Item').item.json.id } }}",
+        "jsonBody": "={{ { \"id\": $('Pecah Item').item.json.id, \"jenis\": $('Pecah Item').item.json.jenis } }}",
         "options": {}
       },
       "id": "confirm-foto",
@@ -345,7 +345,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"id\": $('Pecah Item').item.json.id } }}",
+        "jsonBody": "={{ { \"id\": $('Pecah Item').item.json.id, \"jenis\": $('Pecah Item').item.json.jenis } }}",
         "options": {}
       },
       "id": "confirm-video",

@@ -199,6 +199,32 @@ export default function PerbaikanMandorList({ items = [] }) {
         body: JSON.stringify({ proyek_id: item.proyek_id, uraian: item.uraian }),
       }).catch(() => {});
 
+      // Trigger workflow n8n (upload bukti pengerjaan ke Google Drive) —
+      // gagal di sini tidak menandakan bukti gagal terkirim, lihat /api/drive-sync.
+      // created_at sengaja pakai tanggal TEMUAN ASLINYA (item.created_at),
+      // bukan waktu sekarang — supaya bukti masuk ke folder tanggal yang
+      // sama dengan foto temuannya di Drive (gampang dibandingkan
+      // before/after), bukan folder tanggal terpisah.
+      fetch("/api/drive-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proyekId: item.proyek_id,
+          proyek: item.proyek,
+          items: [
+            {
+              id,
+              no: item.no,
+              uraian: item.uraian,
+              foto_url: foto_bukti_url,
+              video_url: video_bukti_url,
+              created_at: item.created_at,
+              jenis: "bukti",
+            },
+          ],
+        }),
+      }).catch(() => {});
+
       batalUpload();
       router.refresh();
     } catch (e) {

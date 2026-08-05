@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 
-// POST /api/drive-sync — dipanggil dari PerbaikanForm setelah defect baru
-// berhasil disimpan, buat trigger workflow n8n yang upload foto/video ke
-// Google Drive. n8n sendiri yang cari folder tujuan lewat nama proyek
-// (proyek.nama di app ini match persis dengan nama folder proyek di Drive)
-// -> "4. Dokumentasi" -> "1. Defect List" -> subfolder per tanggal. Sama
-// seperti /api/notify: gagal di sini tidak menandakan data gagal tersimpan
-// — data checklist sudah tersimpan sebelum ini dipanggil, endpoint ini
-// cuma pelengkap.
-// body: { proyekId, proyek, items: [{ id, no, uraian, foto_url, video_url, created_at }] }
+// POST /api/drive-sync — dipanggil dari PerbaikanForm (temuan baru) maupun
+// PerbaikanMandorList (bukti pengerjaan) setelah foto/video berhasil
+// disimpan, buat trigger workflow n8n yang upload ke Google Drive. n8n
+// sendiri yang cari folder tujuan lewat nama proyek -> subfolder per
+// tanggal. `jenis` per item ('temuan' default, atau 'bukti') menentukan
+// penamaan file & kolom mana yang di-update lewat /api/drive-sync/confirm.
+// Sama seperti /api/notify: gagal di sini tidak menandakan data gagal
+// tersimpan — data checklist sudah tersimpan sebelum ini dipanggil,
+// endpoint ini cuma pelengkap.
+// body: { proyekId, proyek, items: [{ id, no, uraian, foto_url, video_url, created_at, jenis? }] }
 export async function POST(req) {
   const { profile, supabase } = await getSessionProfile();
   if (!profile) return NextResponse.json({ ok: false }, { status: 401 });
@@ -46,6 +47,7 @@ export async function POST(req) {
       id: it.id,
       no: it.no,
       uraian: it.uraian,
+      jenis: it.jenis === "bukti" ? "bukti" : "temuan",
       fotoUrl: it.foto_url ? urlMap[it.foto_url] || null : null,
       fotoExt: ext(it.foto_url),
       videoUrl: it.video_url ? urlMap[it.video_url] || null : null,
