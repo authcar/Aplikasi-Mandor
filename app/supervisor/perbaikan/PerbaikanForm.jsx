@@ -229,6 +229,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   // dibaca_mandor direset ke false supaya Mandor melihat badge "Baru" —
   // hasil review ini muncul lagi di checklist-nya.
   const setujuiBukti = async (id) => {
+    const item = list.find((x) => x.id === id);
     setList((l) => l.map((x) => (x.id === id ? { ...x, status: "DONE" } : x)));
     await supabase
       .from("checklist_perbaikan")
@@ -240,6 +241,32 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status: "DONE" }),
     }).catch(() => {});
+
+    // Sync bukti ke Google Drive baru dipicu SEKARANG (bukan pas Mandor
+    // kirim) — supaya cuma bukti yang final disetujui yang masuk arsip,
+    // bukan percobaan yang sempat ditolak. created_at pakai tanggal temuan
+    // asli supaya bukti masuk folder tanggal yang sama dengan foto temuannya.
+    if (item?.foto_bukti_url || item?.video_bukti_url) {
+      fetch("/api/drive-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proyekId: item.proyek_id,
+          proyek: item.proyek,
+          items: [
+            {
+              id,
+              no: item.no,
+              uraian: item.uraian,
+              foto_url: item.foto_bukti_url,
+              video_url: item.video_bukti_url,
+              created_at: item.created_at,
+              jenis: "bukti",
+            },
+          ],
+        }),
+      }).catch(() => {});
+    }
 
     router.refresh();
   };

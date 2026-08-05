@@ -65,6 +65,10 @@ export default async function PerbaikanSupervisorPage() {
     fotoBukti: r.foto_bukti_url ? urlMap[r.foto_bukti_url] || null : null,
     video: r.video_url ? urlMap[r.video_url] || null : null,
     videoBukti: r.video_bukti_url ? urlMap[r.video_bukti_url] || null : null,
+    // Path mentah (bukan signed URL) — dipakai buat trigger sync ke Google
+    // Drive pas Supervisor menyetujui bukti (lihat setujuiBukti).
+    foto_bukti_url: r.foto_bukti_url,
+    video_bukti_url: r.video_bukti_url,
   }));
 
   // Tandai bukti pengerjaan baru sudah dilihat supaya badge "Baru" hilang.
