@@ -1,7 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "@/components/Icon";
-import { perbaikiDurasiVideo } from "@/lib/video";
 
 // Modal rekam video in-app (getUserMedia + MediaRecorder) — sejalan dengan
 // KameraModal (foto): tekan buat mulai rekam, tekan lagi buat stop, lalu
@@ -125,14 +124,20 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
         {error ? (
           <p className="absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-red-400">{error}</p>
         ) : hasilUrl ? (
-          <video
-            src={hasilUrl}
-            controls
-            autoPlay
-            playsInline
-            onLoadedMetadata={perbaikiDurasiVideo}
-            className="absolute inset-0 h-full w-full object-contain"
-          />
+          // Sengaja tidak coba putar ulang hasil rekaman di sini (bukan pakai
+          // <video src={hasilUrl}>) — di sebagian HP Android, blob video yang
+          // baru direkam gagal tampil (layar hitam) walau file-nya sendiri
+          // valid & normal diputar setelah diupload. Preview mentah terbukti
+          // tidak reliable lintas device, jadi cukup konfirmasi teks.
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/15 text-green-400">
+              <Icon name="check-circle" className="h-9 w-9" />
+            </span>
+            <p className="text-base font-semibold text-white">Rekaman selesai — {mm}:{ss}</p>
+            <p className="text-sm text-white/50">
+              Preview belum tersedia di sebagian HP — videonya tetap tersimpan normal dan bisa dilihat setelah dikirim.
+            </p>
+          </div>
         ) : (
           <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-contain" />
         )}
@@ -140,12 +145,6 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
           <span className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
             <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
             {mm}:{ss}
-          </span>
-        )}
-        {hasilUrl && (
-          <span className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-            Rekaman selesai — {mm}:{ss}
           </span>
         )}
       </div>
