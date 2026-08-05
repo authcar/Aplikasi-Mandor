@@ -49,15 +49,14 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
 
   const tukarKamera = () => setFacingMode((m) => (m === "environment" ? "user" : "environment"));
 
-  // Lepas kamera segera setelah stop (bukan nunggu modal ditutup) — supaya
-  // indikator "kamera aktif" di OS/browser langsung mati dan jelas kalau
-  // rekaman sudah benar-benar berhenti, bukan cuma preview yang muter terus.
+  // Kamera/mic dilepas di rec.onstop (bukan di sini) — recorder.stop() itu
+  // asinkron, butuh waktu buat "flush" data terakhir. Mematikan track kamera
+  // duluan sebelum flush selesai bikin sebagian HP Android menghasilkan file
+  // video kosong/corrupt (preview jadi blank total setelah "berhasil" rekam).
   const stopRekam = useCallback(() => {
     recorderRef.current?.stop();
     clearInterval(timerRef.current);
     setMerekam(false);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
   }, []);
 
   const mulaiRekam = useCallback(() => {
@@ -78,6 +77,10 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
       const file = new File([blob], `video-${Date.now()}.${ext}`, { type: mimeType });
       setHasilFile(file);
       setHasilUrl(URL.createObjectURL(file));
+      // Kamera/mic dilepas di sini (bukan pas tombol stop ditekan) — lihat
+      // catatan di stopRekam.
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
     };
     rec.start();
     recorderRef.current = rec;

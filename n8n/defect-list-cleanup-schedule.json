@@ -1,0 +1,61 @@
+{
+  "name": "Defect List -> Cleanup Supabase Storage (5 hari)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Setup checklist\nWorkflow terpisah dari \"Defect List -> Google Drive Sync\" — jalan otomatis tiap hari, hapus foto/video defect dari Supabase Storage yang sudah lewat 5 hari SEJAK terkonfirmasi sukses ke-backup ke Google Drive (drive_synced_at). Item yang gagal sync TIDAK PERNAH dihapus di sini (lihat app/api/drive-sync/cleanup).\n\n1. Buka node **Config**, isi `appBaseUrl` (URL app Anda, TANPA garis miring di akhir) dan `callbackSecret` (harus SAMA PERSIS dengan `N8N_CALLBACK_SECRET` di .env.local app, dan sama dengan yang diisi di workflow \"Google Drive Sync\").\n2. Klik **Activate** — jadwal default jalan tiap hari jam 03:00, boleh diubah di node **Jadwal Harian**.\n3. Test manual: klik \"Execute Workflow\" sekali untuk cek responsnya `{ ok: true, dihapus: N }`.",
+        "height": 340,
+        "width": 460
+      },
+      "id": "note-setup",
+      "name": "Setup Checklist",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [ -400, -220 ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [ { "field": "hours", "hoursInterval": 24, "triggerAtHour": 3 } ]
+        }
+      },
+      "id": "schedule",
+      "name": "Jadwal Harian",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [ -400, 40 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    // GANTI kedua nilai ini — harus sama dengan yang diisi di workflow\n    // \"Defect List -> Google Drive Sync\"\n    appBaseUrl: \"ISI_DENGAN_URL_APP_ANDA\",\n    callbackSecret: \"ISI_DENGAN_N8N_CALLBACK_SECRET_DARI_ENV_LOCAL\",\n  },\n}];"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ -160, 40 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.appBaseUrl }}/api/drive-sync/cleanup",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [ { "name": "x-n8n-secret", "value": "={{ $json.callbackSecret }}" } ]
+        },
+        "options": {}
+      },
+      "id": "run-cleanup",
+      "name": "Jalankan Cleanup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 80, 40 ]
+    }
+  ],
+  "connections": {
+    "Jadwal Harian": { "main": [ [ { "node": "Config", "type": "main", "index": 0 } ] ] },
+    "Config": { "main": [ [ { "node": "Jalankan Cleanup", "type": "main", "index": 0 } ] ] }
+  },
+  "pinData": {},
+  "meta": { "instanceId": "defect-list-cleanup-schedule" }
+}
