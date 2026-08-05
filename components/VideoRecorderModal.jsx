@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "@/components/Icon";
+import { perbaikiDurasiVideo } from "@/lib/video";
 
 // Modal rekam video in-app (getUserMedia + MediaRecorder) — sejalan dengan
 // KameraModal (foto): tekan buat mulai rekam, tekan lagi buat stop, lalu
@@ -124,7 +125,14 @@ export default function VideoRecorderModal({ onCapture, onClose, title = "Rekam 
         {error ? (
           <p className="absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-red-400">{error}</p>
         ) : hasilUrl ? (
-          <video src={hasilUrl} controls autoPlay playsInline className="absolute inset-0 h-full w-full object-contain" />
+          <video
+            src={hasilUrl}
+            controls
+            autoPlay
+            playsInline
+            onLoadedMetadata={perbaikiDurasiVideo}
+            className="absolute inset-0 h-full w-full object-contain"
+          />
         ) : (
           <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-contain" />
         )}

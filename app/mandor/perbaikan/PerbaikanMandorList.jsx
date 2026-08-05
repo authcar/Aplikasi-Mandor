@@ -7,6 +7,7 @@ import Icon from "@/components/Icon";
 import FotoLightbox from "@/components/FotoLightbox";
 import KameraModal from "@/components/KameraModal";
 import VideoRecorderModal from "@/components/VideoRecorderModal";
+import { perbaikiDurasiVideo } from "@/lib/video";
 
 const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
@@ -362,6 +363,7 @@ export default function PerbaikanMandorList({ items = [] }) {
                             src={videoPreview}
                             controls
                             playsInline
+                            onLoadedMetadata={perbaikiDurasiVideo}
                             className="w-full max-h-52 rounded-xl border border-gray-200 bg-black object-contain"
                           />
                           <button

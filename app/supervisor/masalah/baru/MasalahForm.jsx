@@ -6,6 +6,7 @@ import BackButton from "@/components/BackButton";
 import KameraModal from "@/components/KameraModal";
 import VideoRecorderModal from "@/components/VideoRecorderModal";
 import Icon from "@/components/Icon";
+import { perbaikiDurasiVideo } from "@/lib/video";
 
 const SATUAN = ["pcs", "kg", "sak", "dus", "m", "m²", "roll", "lembar", "batang", "lonjor", "liter", "unit", "set", "karung"];
 const URGENSI = ["Mendesak", "Sedang", "Rendah"];
@@ -326,6 +327,7 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
                   src={videoPreview}
                   controls
                   playsInline
+                  onLoadedMetadata={perbaikiDurasiVideo}
                   className="w-full rounded-xl border border-gray-200 bg-black object-contain max-h-52"
                 />
                 <button

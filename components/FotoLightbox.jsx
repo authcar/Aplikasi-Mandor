@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { perbaikiDurasiVideo } from "@/lib/video";
 
 // Thumbnail yang membuka foto (atau video, lewat prop `type="video"`) sebagai
 // pop-up fullscreen (tanpa pindah window). Overlay dirender lewat portal ke
@@ -56,6 +57,7 @@ export default function FotoLightbox({ src, caption, type = "foto", className = 
                   controls
                   autoPlay
                   playsInline
+                  onLoadedMetadata={perbaikiDurasiVideo}
                   className="absolute inset-0 h-full w-full object-contain"
                 />
               ) : (
