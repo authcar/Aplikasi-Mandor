@@ -178,12 +178,13 @@ export default function PerbaikanList({ items = [] }) {
                       return (
                         <div key={it.id} className="rounded-lg bg-white p-2 shadow-sm">
                           <div className="flex items-start gap-2">
-                            {((it.mediaTemuan?.length || 0) > 0 || (it.mediaBukti?.length || 0) > 0) && (
-                              <div className="flex shrink-0 flex-col gap-1">
-                                <MediaGallery media={it.mediaTemuan || []} caption={it.uraian} size="h-9 w-9" />
-                                <MediaGallery media={it.mediaBukti || []} caption={`Bukti — ${it.uraian}`} size="h-9 w-9" />
-                              </div>
-                            )}
+                            <MediaGallery
+                              media={[
+                                ...(it.mediaTemuan || []).map((m) => ({ ...m, caption: it.uraian })),
+                                ...(it.mediaBukti || []).map((m) => ({ ...m, caption: `Bukti — ${it.uraian}` })),
+                              ]}
+                              size="h-9 w-9"
+                            />
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
                               <p className="mt-0.5 truncate text-[10px] text-gray-400">

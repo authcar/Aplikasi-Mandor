@@ -285,12 +285,14 @@ export default function PerbaikanMandorList({ items = [] }) {
               return (
                 <div key={it.id} className="py-2 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-2.5">
-                    {((it.mediaTemuan?.length || 0) > 0 || (it.mediaBukti?.length || 0) > 0) && (
-                      <div className="flex shrink-0 flex-col gap-1">
-                        <MediaGallery media={it.mediaTemuan || []} caption={it.uraian} size="h-10 w-10" rounded="rounded-lg" />
-                        <MediaGallery media={it.mediaBukti || []} caption={`Bukti — ${it.uraian}`} size="h-10 w-10" rounded="rounded-lg" />
-                      </div>
-                    )}
+                    <MediaGallery
+                      media={[
+                        ...(it.mediaTemuan || []).map((m) => ({ ...m, caption: it.uraian })),
+                        ...(it.mediaBukti || []).map((m) => ({ ...m, caption: `Bukti — ${it.uraian}` })),
+                      ]}
+                      size="h-10 w-10"
+                      rounded="rounded-lg"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p className="truncate text-sm font-semibold leading-snug">{it.uraian}</p>
@@ -448,12 +450,14 @@ export default function PerbaikanMandorList({ items = [] }) {
                         const st = STATUS_LABEL[it.status] || STATUS_LABEL.DONE;
                         return (
                           <div key={it.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
-                            {((it.mediaTemuan?.length || 0) > 0 || (it.mediaBukti?.length || 0) > 0) && (
-                              <div className="flex shrink-0 flex-col gap-1">
-                                <MediaGallery media={it.mediaTemuan || []} caption={it.uraian} size="h-10 w-10" rounded="rounded-lg" />
-                                <MediaGallery media={it.mediaBukti || []} caption={`Bukti — ${it.uraian}`} size="h-10 w-10" rounded="rounded-lg" />
-                              </div>
-                            )}
+                            <MediaGallery
+                              media={[
+                                ...(it.mediaTemuan || []).map((m) => ({ ...m, caption: it.uraian })),
+                                ...(it.mediaBukti || []).map((m) => ({ ...m, caption: `Bukti — ${it.uraian}` })),
+                              ]}
+                              size="h-10 w-10"
+                              rounded="rounded-lg"
+                            />
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-semibold leading-snug">{it.uraian}</p>
                               <p className="text-[11px] text-gray-400">

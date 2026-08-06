@@ -28,12 +28,14 @@ export default function PerbaikanList({ items = [] }) {
         return (
           <div key={it.id} className="card p-3">
             <div className="flex items-start gap-3">
-              {((it.mediaTemuan?.length || 0) > 0 || (it.mediaBukti?.length || 0) > 0) && (
-                <div className="flex shrink-0 flex-col gap-1">
-                  <MediaGallery media={it.mediaTemuan || []} caption={it.uraian} size="h-14 w-14" rounded="rounded-lg" />
-                  <MediaGallery media={it.mediaBukti || []} caption={`Bukti — ${it.uraian}`} size="h-14 w-14" rounded="rounded-lg" />
-                </div>
-              )}
+              <MediaGallery
+                media={[
+                  ...(it.mediaTemuan || []).map((m) => ({ ...m, caption: it.uraian })),
+                  ...(it.mediaBukti || []).map((m) => ({ ...m, caption: `Bukti — ${it.uraian}` })),
+                ]}
+                size="h-14 w-14"
+                rounded="rounded-lg"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <p className="truncate text-xs font-semibold text-gray-400">{it.proyek}</p>
