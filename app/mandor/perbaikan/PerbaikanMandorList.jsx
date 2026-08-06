@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { tglID } from "@/lib/format";
 import Icon from "@/components/Icon";
-import FotoLightbox from "@/components/FotoLightbox";
+import MediaGallery from "@/components/MediaGallery";
 import KameraModal from "@/components/KameraModal";
 import VideoRecorderModal from "@/components/VideoRecorderModal";
-import { perbaikiDurasiVideo } from "@/lib/video";
+
+const MAX_MEDIA = 5;
 
 const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
@@ -40,10 +41,7 @@ export default function PerbaikanMandorList({ items = [] }) {
   const [proyekFilter, setProyekFilter] = useState("");
   const [q, setQ] = useState("");
   const [uploadFor, setUploadFor] = useState(null);
-  const [foto, setFoto] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [video, setVideo] = useState(null);
-  const [videoPreview, setVideoPreview] = useState(null);
+  const [media, setMedia] = useState([]);
   const [kameraOpen, setKameraOpen] = useState(false);
   const [videoRecorderOpen, setVideoRecorderOpen] = useState(false);
   const [mediaChooserOpen, setMediaChooserOpen] = useState(false);
@@ -77,105 +75,96 @@ export default function PerbaikanMandorList({ items = [] }) {
 
   const mulaiUpload = (id) => {
     setUploadFor(id);
-    setFoto(null);
-    setPreview(null);
-    setVideo(null);
-    setVideoPreview(null);
+    setMedia([]);
     setMediaChooserOpen(false);
     setErr("");
   };
 
   const batalUpload = () => {
     setUploadFor(null);
-    setFoto(null);
-    setPreview(null);
-    setVideo(null);
-    setVideoPreview(null);
+    setMedia([]);
     setMediaChooserOpen(false);
     setErr("");
   };
 
-  const hapusBukti = () => {
-    setFoto(null);
-    setPreview(null);
-    setVideo(null);
-    setVideoPreview(null);
+  const tambahMediaBukti = (file) => {
+    const tipe = file.type.startsWith("video/") ? "video" : "foto";
+    setMedia((m) => (m.length >= MAX_MEDIA ? m : [...m, { key: `${Date.now()}-${Math.random()}`, file, previewUrl: URL.createObjectURL(file), tipe }]));
   };
 
-  // Foto & video bukti 1 slot (saling gantiin) — biar tombolnya tetap
-  // ringkas (Kamera + Galeri), sama pola dengan PerbaikanForm Supervisor.
+  const hapusMediaBukti = (key) => setMedia((m) => m.filter((x) => x.key !== key));
+
+  // Foto & video bukti sekarang bisa banyak (maks MAX_MEDIA), ditambahkan
+  // (bukan saling gantiin), sama pola dengan PerbaikanForm Supervisor.
   const pilihMediaBukti = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    if (file.type.startsWith("video/")) {
-      setVideo(file);
-      setVideoPreview(url);
-      setFoto(null);
-      setPreview(null);
-    } else {
-      setFoto(file);
-      setPreview(url);
-      setVideo(null);
-      setVideoPreview(null);
-    }
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setMedia((m) => {
+      const sisa = MAX_MEDIA - m.length;
+      if (sisa <= 0) return m;
+      if (files.length > sisa) alert(`Maksimal ${MAX_MEDIA} file. ${files.length - sisa} file tidak ditambahkan.`);
+      const baru = files.slice(0, sisa).map((file) => ({
+        key: `${Date.now()}-${Math.random()}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+        tipe: file.type.startsWith("video/") ? "video" : "foto",
+      }));
+      return [...m, ...baru];
+    });
   };
 
   const pakaiFoto = (file) => {
-    setFoto(file);
-    setPreview(URL.createObjectURL(file));
-    setVideo(null);
-    setVideoPreview(null);
+    tambahMediaBukti(file);
     setKameraOpen(false);
   };
 
   const pakaiVideo = (file) => {
-    setVideo(file);
-    setVideoPreview(URL.createObjectURL(file));
-    setFoto(null);
-    setPreview(null);
+    tambahMediaBukti(file);
     setVideoRecorderOpen(false);
   };
 
   const kirimBukti = async (id) => {
-    if (!foto && !video) return setErr("Bukti pengerjaan (foto/video) wajib dilampirkan.");
+    if (media.length === 0) return setErr("Bukti pengerjaan (foto/video) wajib dilampirkan.");
     const item = list.find((x) => x.id === id);
     setBusy(true);
     setErr("");
     try {
-      let foto_bukti_url = null;
-      let fotoBuktiSignedUrl = null;
-      if (foto) {
-        const ext = foto.name.split(".").pop();
-        const path = `${item.proyek_id}/bukti-${id}-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("perbaikan").upload(path, foto);
-        if (upErr) throw new Error("Gagal unggah foto: " + upErr.message);
-        foto_bukti_url = path;
-        const { data: signed } = await supabase.storage.from("perbaikan").createSignedUrl(path, 3600);
-        fotoBuktiSignedUrl = signed?.signedUrl || null;
+      // Resubmit mengganti bukti lama (bukan menambahkan) -- sama semantik
+      // dengan kolom lama yang selalu di-overwrite. Kalau tidak dihapus,
+      // reject/resubmit berulang bisa diam-diam mengisi cap 5 file dengan
+      // bukti lama yang sudah ditolak.
+      const { data: lama } = await supabase
+        .from("checklist_perbaikan_media")
+        .select("id, path")
+        .eq("checklist_id", id)
+        .eq("jenis", "bukti");
+      if (lama?.length) {
+        await supabase.storage.from("perbaikan").remove(lama.map((m) => m.path));
+        await supabase.from("checklist_perbaikan_media").delete().in("id", lama.map((m) => m.id));
       }
 
-      let video_bukti_url = null;
-      let videoBuktiSignedUrl = null;
-      if (video) {
-        const ext = video.name.split(".").pop();
-        const path = `${item.proyek_id}/video-bukti-${id}-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("perbaikan").upload(path, video);
-        if (upErr) throw new Error("Gagal unggah video: " + upErr.message);
-        video_bukti_url = path;
+      const uploaded = [];
+      for (let j = 0; j < media.length; j++) {
+        const m = media[j];
+        const ext = m.file.name.split(".").pop();
+        const prefix = m.tipe === "video" ? "video-bukti" : "bukti";
+        const path = `${item.proyek_id}/${prefix}-${id}-${Date.now()}-${j}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("perbaikan").upload(path, m.file);
+        if (upErr) throw new Error("Gagal unggah: " + upErr.message);
         const { data: signed } = await supabase.storage.from("perbaikan").createSignedUrl(path, 3600);
-        videoBuktiSignedUrl = signed?.signedUrl || null;
+        uploaded.push({ tipe: m.tipe, path, url: signed?.signedUrl || null });
       }
+
+      const { data: mediaRows, error: mediaErr } = await supabase
+        .from("checklist_perbaikan_media")
+        .insert(uploaded.map((m, idx) => ({ checklist_id: id, jenis: "bukti", tipe: m.tipe, path: m.path, urutan: idx })))
+        .select("id, tipe, path");
+      if (mediaErr) throw new Error("Gagal menyimpan bukti: " + mediaErr.message);
 
       const { error } = await supabase
         .from("checklist_perbaikan")
-        .update({
-          status: "PENDING_REVIEW",
-          foto_bukti_url,
-          video_bukti_url,
-          dibaca_supervisor: false,
-          catatan_tolak: null,
-        })
+        .update({ status: "PENDING_REVIEW", dibaca_supervisor: false, catatan_tolak: null })
         .eq("id", id);
       if (error) throw new Error("Gagal mengirim: " + error.message);
 
@@ -185,9 +174,8 @@ export default function PerbaikanMandorList({ items = [] }) {
             ? {
                 ...x,
                 status: "PENDING_REVIEW",
-                fotoBukti: fotoBuktiSignedUrl,
-                videoBukti: videoBuktiSignedUrl,
                 catatan_tolak: null,
+                mediaBukti: uploaded.map((m, idx) => ({ id: mediaRows?.[idx]?.id, url: m.url, tipe: m.tipe, path: m.path })),
               }
             : x
         )
@@ -297,32 +285,10 @@ export default function PerbaikanMandorList({ items = [] }) {
               return (
                 <div key={it.id} className="py-2 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-2.5">
-                    {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
-                      <div className="flex shrink-0 -space-x-2">
-                        {it.foto && (
-                          <FotoLightbox src={it.foto} caption={it.uraian}>
-                            <img src={it.foto} alt="dokumentasi temuan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
-                          </FotoLightbox>
-                        )}
-                        {it.fotoBukti && (
-                          <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                            <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
-                          </FotoLightbox>
-                        )}
-                        {it.video && (
-                          <FotoLightbox src={it.video} caption={it.uraian} type="video">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                              <Icon name="play" className="h-4 w-4" />
-                            </span>
-                          </FotoLightbox>
-                        )}
-                        {it.videoBukti && (
-                          <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                              <Icon name="play" className="h-4 w-4" />
-                            </span>
-                          </FotoLightbox>
-                        )}
+                    {((it.mediaTemuan?.length || 0) > 0 || (it.mediaBukti?.length || 0) > 0) && (
+                      <div className="flex shrink-0 flex-col gap-1">
+                        <MediaGallery media={it.mediaTemuan || []} caption={it.uraian} size="h-10 w-10" rounded="rounded-lg" />
+                        <MediaGallery media={it.mediaBukti || []} caption={`Bukti — ${it.uraian}`} size="h-10 w-10" rounded="rounded-lg" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
@@ -353,34 +319,33 @@ export default function PerbaikanMandorList({ items = [] }) {
                   {uploadFor === it.id && (
                     <div className="mt-2.5 space-y-2 border-t border-gray-100 pt-2.5">
                       <p className="text-xs font-semibold text-gray-600">Lampirkan bukti pekerjaan sudah selesai</p>
-                      {preview ? (
-                        <div className="relative">
-                          <img src={preview} alt="preview bukti" className="w-full max-h-52 rounded-xl border border-gray-200 object-cover" />
-                          <button
-                            type="button"
-                            onClick={hapusBukti}
-                            className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white"
-                          >
-                            <Icon name="x-circle" className="h-4 w-4" />
-                          </button>
+                      {media.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {media.map((m) => (
+                            <div key={m.key} className="relative">
+                              {m.tipe === "video" ? (
+                                <span
+                                  title={m.file.name}
+                                  className="flex h-16 w-16 items-center justify-center rounded-xl border border-gray-200 bg-gray-800 text-white"
+                                >
+                                  <Icon name="play" className="h-5 w-5" />
+                                </span>
+                              ) : (
+                                <img src={m.previewUrl} alt="preview bukti" className="h-16 w-16 rounded-xl border border-gray-200 object-cover" />
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => hapusMediaBukti(m.key)}
+                                className="absolute -right-1.5 -top-1.5 rounded-full bg-black/60 p-0.5 text-white"
+                              >
+                                <Icon name="x-circle" className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                      ) : videoPreview ? (
-                        <div className="relative">
-                          <video
-                            src={videoPreview}
-                            controls
-                            playsInline
-                            onLoadedMetadata={perbaikiDurasiVideo}
-                            className="w-full max-h-52 rounded-xl border border-gray-200 bg-black object-contain"
-                          />
-                          <button
-                            type="button"
-                            onClick={hapusBukti}
-                            className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white"
-                          >
-                            <Icon name="x-circle" className="h-4 w-4" />
-                          </button>
-                        </div>
+                      )}
+                      {media.length >= MAX_MEDIA ? (
+                        <p className="text-[11px] text-gray-400">Maksimal {MAX_MEDIA} file tercapai</p>
                       ) : (
                         <div className="flex gap-2">
                           <div className="relative flex-1">
@@ -416,7 +381,7 @@ export default function PerbaikanMandorList({ items = [] }) {
                           <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-2.5 text-sm font-medium text-gray-500 active:bg-gray-50">
                             <Icon name="clipboard" className="h-5 w-5 text-gray-400" />
                             Galeri
-                            <input type="file" accept="image/*,video/*" className="hidden" onChange={pilihMediaBukti} />
+                            <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={pilihMediaBukti} />
                           </label>
                         </div>
                       )}
@@ -483,32 +448,10 @@ export default function PerbaikanMandorList({ items = [] }) {
                         const st = STATUS_LABEL[it.status] || STATUS_LABEL.DONE;
                         return (
                           <div key={it.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
-                            {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
-                              <div className="flex shrink-0 -space-x-2">
-                                {it.foto && (
-                                  <FotoLightbox src={it.foto} caption={it.uraian}>
-                                    <img src={it.foto} alt="dokumentasi temuan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
-                                  </FotoLightbox>
-                                )}
-                                {it.fotoBukti && (
-                                  <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                                    <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-10 w-10 rounded-lg border-2 border-white object-cover ring-1 ring-gray-200" />
-                                  </FotoLightbox>
-                                )}
-                                {it.video && (
-                                  <FotoLightbox src={it.video} caption={it.uraian} type="video">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                                      <Icon name="play" className="h-4 w-4" />
-                                    </span>
-                                  </FotoLightbox>
-                                )}
-                                {it.videoBukti && (
-                                  <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                                      <Icon name="play" className="h-4 w-4" />
-                                    </span>
-                                  </FotoLightbox>
-                                )}
+                            {((it.mediaTemuan?.length || 0) > 0 || (it.mediaBukti?.length || 0) > 0) && (
+                              <div className="flex shrink-0 flex-col gap-1">
+                                <MediaGallery media={it.mediaTemuan || []} caption={it.uraian} size="h-10 w-10" rounded="rounded-lg" />
+                                <MediaGallery media={it.mediaBukti || []} caption={`Bukti — ${it.uraian}`} size="h-10 w-10" rounded="rounded-lg" />
                               </div>
                             )}
                             <div className="min-w-0 flex-1">

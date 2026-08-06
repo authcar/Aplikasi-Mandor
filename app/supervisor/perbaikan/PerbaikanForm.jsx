@@ -6,7 +6,9 @@ import { tglID } from "@/lib/format";
 import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
 import VideoRecorderModal from "@/components/VideoRecorderModal";
-import FotoLightbox from "@/components/FotoLightbox";
+import MediaGallery from "@/components/MediaGallery";
+
+const MAX_MEDIA = 5;
 
 const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
@@ -43,7 +45,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
 
   const [proyekId, setProyekId] = useState(proyeks[0]?.id || "");
   const rowId = useRef(1);
-  const kosong = () => ({ id: rowId.current++, uraian: "", foto: null, preview: null, video: null, videoPreview: null });
+  const kosong = () => ({ id: rowId.current++, uraian: "", media: [] });
   const [rows, setRows] = useState(() => [kosong()]);
   const [kameraForRowId, setKameraForRowId] = useState(null);
   const [videoRecorderForRowId, setVideoRecorderForRowId] = useState(null);
@@ -106,50 +108,56 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   const hapusRow = (id) => setRows((r) => r.filter((row) => row.id !== id));
   const ubahUraian = (id, value) =>
     setRows((r) => r.map((row) => (row.id === id ? { ...row, uraian: value } : row)));
-  // Foto & video 1 slot per item (saling gantiin, bukan bisa dua-duanya) —
-  // biar tombolnya tetap ringkas (Kamera + Galeri aja), bukan 4 tombol.
-  const hapusFotoRow = (id) =>
-    setRows((r) => r.map((row) => (row.id === id ? { ...row, foto: null, preview: null } : row)));
 
-  const hapusVideoRow = (id) =>
-    setRows((r) => r.map((row) => (row.id === id ? { ...row, video: null, videoPreview: null } : row)));
-
-  // Galeri: 1 input menerima foto ATAU video, tipe filenya dideteksi dari
-  // file.type supaya tetap 1 tombol "Galeri" aja.
-  const pilihMediaRow = (id, e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
+  // Foto & video sekarang bisa banyak per item (maks MAX_MEDIA), ditambahkan
+  // (bukan saling gantiin) — tiap media dapat tombol hapus sendiri.
+  const tambahMediaRow = (id, file) => {
+    const tipe = file.type.startsWith("video/") ? "video" : "foto";
     setRows((r) =>
-      r.map((row) =>
-        row.id === id
-          ? file.type.startsWith("video/")
-            ? { ...row, video: file, videoPreview: url, foto: null, preview: null }
-            : { ...row, foto: file, preview: url, video: null, videoPreview: null }
-          : row
-      )
+      r.map((row) => {
+        if (row.id !== id || row.media.length >= MAX_MEDIA) return row;
+        return {
+          ...row,
+          media: [...row.media, { key: `${Date.now()}-${Math.random()}`, file, previewUrl: URL.createObjectURL(file), tipe }],
+        };
+      })
+    );
+  };
+
+  const hapusMediaRow = (id, key) =>
+    setRows((r) => r.map((row) => (row.id === id ? { ...row, media: row.media.filter((m) => m.key !== key) } : row)));
+
+  // Galeri: 1 input menerima banyak foto/video sekaligus, tipe tiap filenya
+  // dideteksi dari file.type. Kelebihan di atas sisa slot (maks MAX_MEDIA
+  // total) ditolak dengan pemberitahuan.
+  const pilihMediaRow = (id, e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setRows((r) =>
+      r.map((row) => {
+        if (row.id !== id) return row;
+        const sisa = MAX_MEDIA - row.media.length;
+        if (sisa <= 0) return row;
+        if (files.length > sisa) alert(`Maksimal ${MAX_MEDIA} file per item. ${files.length - sisa} file tidak ditambahkan.`);
+        const baru = files.slice(0, sisa).map((file) => ({
+          key: `${Date.now()}-${Math.random()}`,
+          file,
+          previewUrl: URL.createObjectURL(file),
+          tipe: file.type.startsWith("video/") ? "video" : "foto",
+        }));
+        return { ...row, media: [...row.media, ...baru] };
+      })
     );
   };
 
   const pakaiFotoRow = (file) => {
-    setRows((r) =>
-      r.map((row) =>
-        row.id === kameraForRowId
-          ? { ...row, foto: file, preview: URL.createObjectURL(file), video: null, videoPreview: null }
-          : row
-      )
-    );
+    tambahMediaRow(kameraForRowId, file);
     setKameraForRowId(null);
   };
 
   const pakaiVideoRow = (file) => {
-    setRows((r) =>
-      r.map((row) =>
-        row.id === videoRecorderForRowId
-          ? { ...row, video: file, videoPreview: URL.createObjectURL(file), foto: null, preview: null }
-          : row
-      )
-    );
+    tambahMediaRow(videoRecorderForRowId, file);
     setVideoRecorderForRowId(null);
   };
 
@@ -166,51 +174,64 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
     const noBase = list.filter((i) => i.proyek_id === proyekId).length;
 
     const inserts = [];
+    const mediaByNo = {}; // no -> [{ tipe, path }]
     for (let i = 0; i < terisi.length; i++) {
       const row = terisi[i];
-      let foto_url = null;
-      if (row.foto) {
-        const ext = row.foto.name.split(".").pop();
-        const path = `${proyekId}/${Date.now()}-${i}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("perbaikan").upload(path, row.foto);
+      const no = noBase + i + 1;
+      const uploaded = [];
+      for (let j = 0; j < row.media.length; j++) {
+        const m = row.media[j];
+        const ext = m.file.name.split(".").pop();
+        const path = `${proyekId}/${Date.now()}-${i}-${j}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("perbaikan").upload(path, m.file);
         if (uploadError) {
           setBusy(false);
-          alert(`Gagal unggah foto item #${i + 1}: ${uploadError.message}`);
+          alert(`Gagal unggah media item #${i + 1}: ${uploadError.message}`);
           return;
         }
-        foto_url = path;
+        uploaded.push({ tipe: m.tipe, path });
       }
-      let video_url = null;
-      if (row.video) {
-        const ext = row.video.name.split(".").pop();
-        const path = `${proyekId}/video-${Date.now()}-${i}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("perbaikan").upload(path, row.video);
-        if (uploadError) {
-          setBusy(false);
-          alert(`Gagal unggah video item #${i + 1}: ${uploadError.message}`);
-          return;
-        }
-        video_url = path;
-      }
-      inserts.push({
-        proyek_id: proyekId,
-        no: noBase + i + 1,
-        uraian: row.uraian.trim(),
-        foto_url,
-        video_url,
-        created_by: uid,
-      });
+      mediaByNo[no] = uploaded;
+      inserts.push({ proyek_id: proyekId, no, uraian: row.uraian.trim(), created_by: uid });
     }
 
     const { data: created, error } = await supabase
       .from("checklist_perbaikan")
       .insert(inserts)
-      .select("id, no, uraian, foto_url, video_url, created_at");
-    setBusy(false);
+      .select("id, no, uraian, created_at");
     if (error) {
+      setBusy(false);
       alert(`Gagal menyimpan: ${error.message}`);
       return;
     }
+
+    // Media diinsert setelah baris checklist tersimpan (butuh checklist_id).
+    // Dikaitkan lewat `no` (bukan index array) supaya tidak bergantung
+    // asumsi urutan RETURNING dari multi-row insert.
+    const mediaInserts = (created || []).flatMap((row) =>
+      (mediaByNo[row.no] || []).map((m, idx) => ({
+        checklist_id: row.id,
+        jenis: "temuan",
+        tipe: m.tipe,
+        path: m.path,
+        urutan: idx,
+      }))
+    );
+    let insertedMedia = [];
+    if (mediaInserts.length) {
+      const { data: mediaRows, error: mediaErr } = await supabase
+        .from("checklist_perbaikan_media")
+        .insert(mediaInserts)
+        .select("id, checklist_id, tipe, path");
+      if (mediaErr) {
+        // Item checklist sudah tersimpan -- foto/video-nya mungkin belum
+        // tertaut, beri tahu tapi jangan blok alur submit.
+        alert(`Item tersimpan, tapi sebagian media gagal disimpan: ${mediaErr.message}`);
+      } else {
+        insertedMedia = mediaRows || [];
+      }
+    }
+    setBusy(false);
 
     // Trigger workflow n8n (upload foto/video ke Google Drive) — gagal di
     // sini tidak menandakan defect gagal tersimpan, lihat /api/drive-sync.
@@ -218,7 +239,20 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
     fetch("/api/drive-sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ proyekId, proyek: proyekNama, items: created || [] }),
+      body: JSON.stringify({
+        proyekId,
+        proyek: proyekNama,
+        items: (created || []).map((row) => ({
+          id: row.id,
+          no: row.no,
+          uraian: row.uraian,
+          created_at: row.created_at,
+          jenis: "temuan",
+          media: insertedMedia
+            .filter((m) => m.checklist_id === row.id)
+            .map((m) => ({ mediaId: m.id, tipe: m.tipe, path: m.path })),
+        })),
+      }),
     }).catch(() => {});
 
     router.refresh();
@@ -246,7 +280,10 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
     // kirim) — supaya cuma bukti yang final disetujui yang masuk arsip,
     // bukan percobaan yang sempat ditolak. created_at pakai tanggal temuan
     // asli supaya bukti masuk folder tanggal yang sama dengan foto temuannya.
-    if (item?.foto_bukti_url || item?.video_bukti_url) {
+    // foto_bukti_url/video_bukti_url dipertahankan sebagai fallback utk item
+    // LAMA (pra-migrasi multi-media); item baru pakai item.mediaBukti.
+    const punyaMediaBukti = (item?.mediaBukti && item.mediaBukti.length > 0) || item?.foto_bukti_url || item?.video_bukti_url;
+    if (punyaMediaBukti) {
       fetch("/api/drive-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -258,10 +295,11 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
               id,
               no: item.no,
               uraian: item.uraian,
-              foto_url: item.foto_bukti_url,
-              video_url: item.video_bukti_url,
+              foto_url: item.foto_bukti_url || undefined,
+              video_url: item.video_bukti_url || undefined,
               created_at: item.created_at,
               jenis: "bukti",
+              media: (item.mediaBukti || []).filter((m) => m.id).map((m) => ({ mediaId: m.id, tipe: m.tipe, path: m.path })),
             },
           ],
         }),
@@ -382,88 +420,86 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                       rows={2}
                       className="input flex-1 !text-sm resize-none"
                     />
-                    {row.preview ? (
-                      <div className="relative shrink-0">
-                        <img
-                          src={row.preview}
-                          alt="preview"
-                          className="h-14 w-14 rounded-lg border border-gray-200 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => hapusFotoRow(row.id)}
-                          className="absolute -right-1.5 -top-1.5 rounded-full bg-black/60 p-0.5 text-white"
-                        >
-                          <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : row.videoPreview ? (
-                      <div className="relative shrink-0">
-                        <span
-                          title={row.video.name}
-                          className="flex h-14 w-14 items-center justify-center rounded-lg border border-gray-200 bg-gray-800 text-white"
-                        >
-                          <Icon name="play" className="h-5 w-5" />
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => hapusVideoRow(row.id)}
-                          className="absolute -right-1.5 -top-1.5 rounded-full bg-black/60 p-0.5 text-white"
-                        >
-                          <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex shrink-0 gap-1">
-                        <div className="relative">
+                    <div className="flex w-28 shrink-0 flex-wrap justify-end gap-1">
+                      {row.media.map((m) => (
+                        <div key={m.key} className="relative">
+                          {m.tipe === "video" ? (
+                            <span
+                              title={m.file.name}
+                              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-800 text-white"
+                            >
+                              <Icon name="play" className="h-3.5 w-3.5" />
+                            </span>
+                          ) : (
+                            <img
+                              src={m.previewUrl}
+                              alt="preview"
+                              className="h-9 w-9 rounded-lg border border-gray-200 object-cover"
+                            />
+                          )}
                           <button
                             type="button"
-                            onClick={() => setMediaChooserForRowId((cur) => (cur === row.id ? null : row.id))}
-                            title="Kamera"
-                            className="flex h-14 w-9 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
+                            onClick={() => hapusMediaRow(row.id, m.key)}
+                            className="absolute -right-1.5 -top-1.5 rounded-full bg-black/60 p-0.5 text-white"
                           >
-                            <Icon name="camera" className="h-4 w-4" />
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
                           </button>
-                          {mediaChooserForRowId === row.id && (
-                            <div className="absolute right-0 top-full z-10 mt-1 w-28 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                              <button
-                                type="button"
-                                onClick={() => { setKameraForRowId(row.id); setMediaChooserForRowId(null); }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 active:bg-gray-50"
-                              >
-                                <Icon name="camera" className="h-3.5 w-3.5" />
-                                Foto
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => { setVideoRecorderForRowId(row.id); setMediaChooserForRowId(null); }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 active:bg-gray-50"
-                              >
-                                <Icon name="video" className="h-3.5 w-3.5" />
-                                Video
-                              </button>
-                            </div>
-                          )}
                         </div>
-                        <label
-                          title="Galeri (foto/video)"
-                          className="flex h-14 w-9 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
-                        >
-                          <Icon name="clipboard" className="h-4 w-4" />
-                          <input
-                            type="file"
-                            accept="image/*,video/*"
-                            className="hidden"
-                            onChange={(e) => pilihMediaRow(row.id, e)}
-                          />
-                        </label>
-                      </div>
-                    )}
+                      ))}
+                      {row.media.length < MAX_MEDIA && (
+                        <>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setMediaChooserForRowId((cur) => (cur === row.id ? null : row.id))}
+                              title="Kamera"
+                              className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
+                            >
+                              <Icon name="camera" className="h-4 w-4" />
+                            </button>
+                            {mediaChooserForRowId === row.id && (
+                              <div className="absolute right-0 top-full z-10 mt-1 w-28 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                <button
+                                  type="button"
+                                  onClick={() => { setKameraForRowId(row.id); setMediaChooserForRowId(null); }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 active:bg-gray-50"
+                                >
+                                  <Icon name="camera" className="h-3.5 w-3.5" />
+                                  Foto
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setVideoRecorderForRowId(row.id); setMediaChooserForRowId(null); }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 active:bg-gray-50"
+                                >
+                                  <Icon name="video" className="h-3.5 w-3.5" />
+                                  Video
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <label
+                            title="Galeri (foto/video)"
+                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50"
+                          >
+                            <Icon name="clipboard" className="h-4 w-4" />
+                            <input
+                              type="file"
+                              accept="image/*,video/*"
+                              multiple
+                              className="hidden"
+                              onChange={(e) => pilihMediaRow(row.id, e)}
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
                   </div>
+                  {row.media.length >= MAX_MEDIA && (
+                    <p className="mt-1 text-right text-[11px] text-gray-400">Maksimal {MAX_MEDIA} file tercapai</p>
+                  )}
 
                   {rows.length > 1 && (
                     <button
@@ -595,32 +631,10 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                         return (
                           <div key={it.id} className="rounded-lg bg-white p-2 shadow-sm">
                             <div className="flex items-start gap-2">
-                              {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
-                                <div className="flex shrink-0 -space-x-2">
-                                  {it.foto && (
-                                    <FotoLightbox src={it.foto} caption={it.uraian}>
-                                      <img src={it.foto} alt="dokumentasi" className="h-9 w-9 rounded-md border-2 border-white object-cover ring-1 ring-gray-200" />
-                                    </FotoLightbox>
-                                  )}
-                                  {it.fotoBukti && (
-                                    <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                                      <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-9 w-9 rounded-md border-2 border-white object-cover ring-1 ring-gray-200" />
-                                    </FotoLightbox>
-                                  )}
-                                  {it.video && (
-                                    <FotoLightbox src={it.video} caption={it.uraian} type="video">
-                                      <span className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                                        <Icon name="play" className="h-3.5 w-3.5" />
-                                      </span>
-                                    </FotoLightbox>
-                                  )}
-                                  {it.videoBukti && (
-                                    <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
-                                      <span className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                                        <Icon name="play" className="h-3.5 w-3.5" />
-                                      </span>
-                                    </FotoLightbox>
-                                  )}
+                              {((it.mediaTemuan?.length || 0) > 0 || (it.mediaBukti?.length || 0) > 0) && (
+                                <div className="flex shrink-0 flex-col gap-1">
+                                  <MediaGallery media={it.mediaTemuan || []} caption={it.uraian} size="h-9 w-9" />
+                                  <MediaGallery media={it.mediaBukti || []} caption={`Bukti — ${it.uraian}`} size="h-9 w-9" />
                                 </div>
                               )}
                               <div className="min-w-0 flex-1">

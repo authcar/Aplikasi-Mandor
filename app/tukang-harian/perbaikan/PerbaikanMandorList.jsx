@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { tglID } from "@/lib/format";
 import Icon from "@/components/Icon";
-import FotoLightbox from "@/components/FotoLightbox";
+import MediaGallery from "@/components/MediaGallery";
 
 const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
@@ -45,18 +45,7 @@ export default function PerbaikanMandorList({ items = [] }) {
         return (
           <div key={it.id} className="card p-3">
             <div className="flex items-start gap-3">
-              {it.foto && (
-                <FotoLightbox src={it.foto} caption={it.uraian} className="shrink-0">
-                  <img src={it.foto} alt="dokumentasi" className="h-14 w-14 rounded-lg border border-gray-200 object-cover" />
-                </FotoLightbox>
-              )}
-              {it.video && (
-                <FotoLightbox src={it.video} caption={it.uraian} type="video" className="shrink-0">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-lg border border-gray-200 bg-gray-800 text-white">
-                    <Icon name="play" className="h-5 w-5" />
-                  </span>
-                </FotoLightbox>
-              )}
+              <MediaGallery media={it.mediaTemuan || []} caption={it.uraian} size="h-14 w-14" rounded="rounded-lg" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <p className="text-xs font-semibold text-gray-400">No. {it.no}</p>

@@ -1,6 +1,7 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import BackButton from "@/components/BackButton";
 import PerbaikanForm from "./PerbaikanForm";
+import { gabungkanMediaPerbaikan } from "@/lib/perbaikanMedia";
 
 export const dynamic = "force-dynamic";
 
@@ -38,12 +39,19 @@ export default async function PerbaikanSupervisorPage() {
 
   const sudahLaporIds = [...new Set((laporanHariIni || []).map((r) => r.proyek_id))];
 
-  const paths = [
+  const ids = (rows || []).map((r) => r.id);
+  const { data: mediaRows } = ids.length
+    ? await supabase.from("checklist_perbaikan_media").select("id, checklist_id, jenis, tipe, path, urutan").in("checklist_id", ids)
+    : { data: [] };
+
+  const legacyPaths = [
     ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
     ...(rows || []).filter((r) => r.foto_bukti_url).map((r) => r.foto_bukti_url),
     ...(rows || []).filter((r) => r.video_url).map((r) => r.video_url),
     ...(rows || []).filter((r) => r.video_bukti_url).map((r) => r.video_bukti_url),
   ];
+  const mediaPaths = (mediaRows || []).map((m) => m.path);
+  const paths = [...new Set([...legacyPaths, ...mediaPaths])];
   const { data: signed } = paths.length
     ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
     : { data: [] };
@@ -51,7 +59,8 @@ export default async function PerbaikanSupervisorPage() {
     (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
   );
 
-  const items = (rows || []).map((r) => ({
+  const merged = gabungkanMediaPerbaikan(rows, mediaRows, urlMap);
+  const items = (rows || []).map((r, i) => ({
     id: r.id,
     proyek_id: r.proyek_id,
     no: r.no,
@@ -61,12 +70,10 @@ export default async function PerbaikanSupervisorPage() {
     dibaca_supervisor: r.dibaca_supervisor,
     created_at: r.created_at,
     proyek: r.proyek?.nama || "-",
-    foto: r.foto_url ? urlMap[r.foto_url] || null : null,
-    fotoBukti: r.foto_bukti_url ? urlMap[r.foto_bukti_url] || null : null,
-    video: r.video_url ? urlMap[r.video_url] || null : null,
-    videoBukti: r.video_bukti_url ? urlMap[r.video_bukti_url] || null : null,
+    ...merged[i],
     // Path mentah (bukan signed URL) — dipakai buat trigger sync ke Google
-    // Drive pas Supervisor menyetujui bukti (lihat setujuiBukti).
+    // Drive pas Supervisor menyetujui bukti (lihat setujuiBukti), fallback
+    // utk item LAMA yang belum punya baris di checklist_perbaikan_media.
     foto_bukti_url: r.foto_bukti_url,
     video_bukti_url: r.video_bukti_url,
   }));

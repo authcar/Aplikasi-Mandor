@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Setup checklist\nFolder terpisah, khusus defect list (bukan di dalam folder proyek yang lama): `Defect List (root)` → `<Kode Nama Proyek>` → `<Tanggal YYYY-MM-DD>` → foto/video. Semuanya (folder proyek & folder tanggal) dibuat OTOMATIS kalau belum ada — tidak perlu setup manual per proyek.\n\nDipakai utk 2 hal (sama webhook, dibedakan field `jenis` dari app): temuan awal (Supervisor) DAN bukti pengerjaan (Mandor) — file bukti dikasih label \"Bukti - \" di nama filenya, tetap masuk folder tanggal yang sama.\n\nSetelah upload sukses, workflow ini juga lapor balik ke app (endpoint /api/drive-sync/confirm, ikut kirim `jenis` supaya app update kolom retensi yang benar) supaya app tahu file ini aman dihapus dari Supabase Storage nanti (lihat n8n/defect-list-cleanup-schedule.json — workflow terpisah utk itu).\n\n1. Di Google Drive, buat 1 folder baru bernama \"Defect List\" (di mana saja, boleh di My Drive Anda) — ini jadi root-nya.\n2. Buka node **Normalize**, isi 3 hal: `rootFolderId` (ID folder di atas, dari URL drive.google.com/drive/folders/<ID_INI>), `appBaseUrl` (URL app Anda, TANPA garis miring di akhir, mis. https://aplikasi-mandor.vercel.app), dan `callbackSecret` (nilai `N8N_CALLBACK_SECRET` dari .env.local app — sama persis).\n3. Di semua node **HTTP Request** (yang manggil googleapis.com) → tab Credentials → pilih credential Google Drive OAuth2 Anda (yang sudah dipakai di workflow n8n lain).\n4. Di node **Upload Foto** dan **Upload Video** → pilih credential Google Drive yang sama.\n5. Klik **Activate**, lalu copy Production URL dari node **Webhook** → paste ke `.env.local` project (`N8N_DRIVE_WEBHOOK_URL=...`).\n6. Test: buat defect baru dari app (Supervisor → Defect List) dengan foto/video → cek folder `<Nama Proyek>/<Tanggal>` otomatis kebuat di dalam folder \"Defect List\" itu, dan cek kolom `drive_synced_at` di tabel `checklist_perbaikan` sudah terisi.\n\nKalau ada node bertanda seru merah setelah import, biasanya cuma soal pilih ulang credential/field dari dropdown (versi n8n beda sedikit bisa beda label field).",
+        "content": "## Setup checklist\nFolder terpisah, khusus defect list (bukan di dalam folder proyek yang lama): `Defect List (root)` → `<Kode Nama Proyek>` → `<Tanggal YYYY-MM-DD>` → foto/video. Semuanya (folder proyek & folder tanggal) dibuat OTOMATIS kalau belum ada — tidak perlu setup manual per proyek.\n\nDipakai utk 2 hal (sama webhook, dibedakan field `jenis` dari app): temuan awal (Supervisor) DAN bukti pengerjaan (Mandor) — file bukti dikasih label \"Bukti - \" di nama filenya, tetap masuk folder tanggal yang sama. Tiap item bisa punya BEBERAPA foto/video (maks 5) — node **Pecah Item** memecah tiap item jadi 1 baris per file media (field `media[]` dari app), bukan lagi asumsi 1 foto + 1 video tetap.\n\nSetelah upload sukses, workflow ini juga lapor balik ke app (endpoint /api/drive-sync/confirm, ikut kirim `mediaId` per file, atau `id`+`jenis` sebagai fallback item lama) supaya app tahu file ini aman dihapus dari Supabase Storage nanti (lihat n8n/defect-list-cleanup-schedule.json — workflow terpisah utk itu).\n\n1. Di Google Drive, buat 1 folder baru bernama \"Defect List\" (di mana saja, boleh di My Drive Anda) — ini jadi root-nya.\n2. Buka node **Normalize**, isi 3 hal: `rootFolderId` (ID folder di atas, dari URL drive.google.com/drive/folders/<ID_INI>), `appBaseUrl` (URL app Anda, TANPA garis miring di akhir, mis. https://aplikasi-mandor.vercel.app), dan `callbackSecret` (nilai `N8N_CALLBACK_SECRET` dari .env.local app — sama persis).\n3. Di semua node **HTTP Request** (yang manggil googleapis.com) → tab Credentials → pilih credential Google Drive OAuth2 Anda (yang sudah dipakai di workflow n8n lain).\n4. Di node **Upload Media** → pilih credential Google Drive yang sama.\n5. Klik **Activate**, lalu copy Production URL dari node **Webhook** → paste ke `.env.local` project (`N8N_DRIVE_WEBHOOK_URL=...`).\n6. Test: buat defect baru dari app (Supervisor → Defect List) dengan beberapa foto/video → cek folder `<Nama Proyek>/<Tanggal>` otomatis kebuat di dalam folder \"Defect List\" itu berisi semua file, dan cek kolom `drive_synced_at` di tabel `checklist_perbaikan_media` sudah terisi per file.\n\nKalau ada node bertanda seru merah setelah import, biasanya cuma soal pilih ulang credential/field dari dropdown (versi n8n beda sedikit bisa beda label field).",
         "height": 560,
         "width": 500
       },
@@ -220,7 +220,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const base = $input.first().json;\nconst safe = (s) => String(s || '').replace(/[\\\\/:*?\"<>|]/g, '-').slice(0, 60).trim();\nreturn (base.items || []).map((it) => {\n  const label = it.jenis === 'bukti' ? 'Bukti - ' : '';\n  return {\n    json: {\n      id: it.id,\n      no: it.no,\n      uraian: it.uraian,\n      jenis: it.jenis === 'bukti' ? 'bukti' : 'temuan',\n      fotoUrl: it.fotoUrl,\n      fotoExt: it.fotoExt,\n      videoUrl: it.videoUrl,\n      videoExt: it.videoExt,\n      dateFolderId: base.dateFolderId,\n      fotoFileName: it.fotoUrl ? `${it.no} - ${label}${safe(it.uraian)}.${it.fotoExt || 'jpg'}` : null,\n      videoFileName: it.videoUrl ? `${it.no} - ${label}${safe(it.uraian)}.${it.videoExt || 'mp4'}` : null,\n    },\n  };\n});"
+        "jsCode": "const base = $input.first().json;\nconst safe = (s) => String(s || '').replace(/[\\\\/:*?\"<>|]/g, '-').slice(0, 60).trim();\nconst out = [];\nfor (const it of (base.items || [])) {\n  const label = it.jenis === 'bukti' ? 'Bukti - ' : '';\n  const media = (it.media && it.media.length) ? it.media : [\n    it.fotoUrl ? { mediaId: null, tipe: 'foto', url: it.fotoUrl, ext: it.fotoExt } : null,\n    it.videoUrl ? { mediaId: null, tipe: 'video', url: it.videoUrl, ext: it.videoExt } : null,\n  ].filter(Boolean);\n  media.forEach((m, idx) => {\n    const ext = m.ext || (m.tipe === 'video' ? 'mp4' : 'jpg');\n    const dup = media.filter((x) => x.tipe === m.tipe).length > 1 ? ` (${idx + 1})` : '';\n    out.push({\n      json: {\n        id: it.id,\n        mediaId: m.mediaId,\n        no: it.no,\n        uraian: it.uraian,\n        jenis: it.jenis === 'bukti' ? 'bukti' : 'temuan',\n        tipe: m.tipe,\n        url: m.url,\n        dateFolderId: base.dateFolderId,\n        fileName: `${it.no} - ${label}${safe(it.uraian)}${dup}.${ext}`,\n      },\n    });\n  });\n}\nreturn out;"
       },
       "id": "pecah-item",
       "name": "Pecah Item",
@@ -233,44 +233,44 @@
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
           "conditions": [
-            { "id": "cond-foto", "leftValue": "={{ $json.fotoUrl }}", "rightValue": "", "operator": { "type": "string", "operation": "notEquals" } }
+            { "id": "cond-url", "leftValue": "={{ $json.url }}", "rightValue": "", "operator": { "type": "string", "operation": "notEquals" } }
           ],
           "combinator": "and"
         },
         "options": {}
       },
-      "id": "if-foto",
-      "name": "Ada Foto?",
+      "id": "if-url",
+      "name": "Ada URL?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [ 2720, -100 ]
+      "position": [ 2720, 40 ]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $json.fotoUrl }}",
+        "url": "={{ $json.url }}",
         "options": { "response": { "response": { "responseFormat": "file" } } }
       },
-      "id": "download-foto",
-      "name": "Download Foto",
+      "id": "download-media",
+      "name": "Download Media",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [ 2960, -160 ]
+      "position": [ 2960, 40 ]
     },
     {
       "parameters": {
         "resource": "file",
         "operation": "upload",
-        "name": "={{ $('Pecah Item').item.json.fotoFileName }}",
+        "name": "={{ $('Pecah Item').item.json.fileName }}",
         "inputDataFieldName": "data",
         "driveId": { "__rl": true, "mode": "list", "value": "My Drive", "cachedResultName": "My Drive", "cachedResultUrl": "https://drive.google.com/drive/my-drive" },
         "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Pecah Item').item.json.dateFolderId }}" }
       },
-      "id": "upload-foto",
-      "name": "Upload Foto",
+      "id": "upload-media",
+      "name": "Upload Media",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [ 3200, -160 ]
+      "position": [ 3200, 40 ]
     },
     {
       "parameters": {
@@ -282,77 +282,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"id\": $('Pecah Item').item.json.id, \"jenis\": $('Pecah Item').item.json.jenis } }}",
+        "jsonBody": "={{ { \"mediaId\": $('Pecah Item').item.json.mediaId, \"id\": $('Pecah Item').item.json.id, \"jenis\": $('Pecah Item').item.json.jenis } }}",
         "options": {}
       },
-      "id": "confirm-foto",
-      "name": "Konfirmasi Sync Foto",
+      "id": "confirm-media",
+      "name": "Konfirmasi Sync Media",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [ 3440, -160 ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
-          "conditions": [
-            { "id": "cond-video", "leftValue": "={{ $json.videoUrl }}", "rightValue": "", "operator": { "type": "string", "operation": "notEquals" } }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "if-video",
-      "name": "Ada Video?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [ 2720, 180 ]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $json.videoUrl }}",
-        "options": { "response": { "response": { "responseFormat": "file" } } }
-      },
-      "id": "download-video",
-      "name": "Download Video",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [ 2960, 180 ]
-    },
-    {
-      "parameters": {
-        "resource": "file",
-        "operation": "upload",
-        "name": "={{ $('Pecah Item').item.json.videoFileName }}",
-        "inputDataFieldName": "data",
-        "driveId": { "__rl": true, "mode": "list", "value": "My Drive", "cachedResultName": "My Drive", "cachedResultUrl": "https://drive.google.com/drive/my-drive" },
-        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Pecah Item').item.json.dateFolderId }}" }
-      },
-      "id": "upload-video",
-      "name": "Upload Video",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
-      "position": [ 3200, 180 ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $('Normalize').first().json.appBaseUrl }}/api/drive-sync/confirm",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [ { "name": "x-n8n-secret", "value": "={{ $('Normalize').first().json.callbackSecret }}" } ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { \"id\": $('Pecah Item').item.json.id, \"jenis\": $('Pecah Item').item.json.jenis } }}",
-        "options": {}
-      },
-      "id": "confirm-video",
-      "name": "Konfirmasi Sync Video",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [ 3440, 180 ]
+      "position": [ 3440, 40 ]
     }
   ],
   "connections": {
@@ -380,20 +317,10 @@
     "Buat Folder Tanggal": { "main": [ [ { "node": "DateFolder - Created", "type": "main", "index": 0 } ] ] },
     "DateFolder - Created": { "main": [ [ { "node": "Folder Siap", "type": "main", "index": 0 } ] ] },
     "Folder Siap": { "main": [ [ { "node": "Pecah Item", "type": "main", "index": 0 } ] ] },
-    "Pecah Item": {
-      "main": [
-        [
-          { "node": "Ada Foto?", "type": "main", "index": 0 },
-          { "node": "Ada Video?", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Ada Foto?": { "main": [ [ { "node": "Download Foto", "type": "main", "index": 0 } ], [] ] },
-    "Download Foto": { "main": [ [ { "node": "Upload Foto", "type": "main", "index": 0 } ] ] },
-    "Upload Foto": { "main": [ [ { "node": "Konfirmasi Sync Foto", "type": "main", "index": 0 } ] ] },
-    "Ada Video?": { "main": [ [ { "node": "Download Video", "type": "main", "index": 0 } ], [] ] },
-    "Download Video": { "main": [ [ { "node": "Upload Video", "type": "main", "index": 0 } ] ] },
-    "Upload Video": { "main": [ [ { "node": "Konfirmasi Sync Video", "type": "main", "index": 0 } ] ] }
+    "Pecah Item": { "main": [ [ { "node": "Ada URL?", "type": "main", "index": 0 } ] ] },
+    "Ada URL?": { "main": [ [ { "node": "Download Media", "type": "main", "index": 0 } ], [] ] },
+    "Download Media": { "main": [ [ { "node": "Upload Media", "type": "main", "index": 0 } ] ] },
+    "Upload Media": { "main": [ [ { "node": "Konfirmasi Sync Media", "type": "main", "index": 0 } ] ] }
   },
   "pinData": {},
   "meta": { "instanceId": "defect-list-drive-sync" }

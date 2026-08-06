@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { tglID } from "@/lib/format";
 import Icon from "@/components/Icon";
-import FotoLightbox from "@/components/FotoLightbox";
+import MediaGallery from "@/components/MediaGallery";
 
 const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
@@ -178,32 +178,10 @@ export default function PerbaikanList({ items = [] }) {
                       return (
                         <div key={it.id} className="rounded-lg bg-white p-2 shadow-sm">
                           <div className="flex items-start gap-2">
-                            {(it.foto || it.fotoBukti || it.video || it.videoBukti) && (
-                              <div className="flex shrink-0 -space-x-2">
-                                {it.foto && (
-                                  <FotoLightbox src={it.foto} caption={it.uraian}>
-                                    <img src={it.foto} alt="dokumentasi" className="h-9 w-9 rounded-md border-2 border-white object-cover ring-1 ring-gray-200" />
-                                  </FotoLightbox>
-                                )}
-                                {it.fotoBukti && (
-                                  <FotoLightbox src={it.fotoBukti} caption={`Bukti — ${it.uraian}`}>
-                                    <img src={it.fotoBukti} alt="bukti pengerjaan" className="h-9 w-9 rounded-md border-2 border-white object-cover ring-1 ring-gray-200" />
-                                  </FotoLightbox>
-                                )}
-                                {it.video && (
-                                  <FotoLightbox src={it.video} caption={it.uraian} type="video">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                                      <Icon name="play" className="h-3.5 w-3.5" />
-                                    </span>
-                                  </FotoLightbox>
-                                )}
-                                {it.videoBukti && (
-                                  <FotoLightbox src={it.videoBukti} caption={`Bukti — ${it.uraian}`} type="video">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white bg-gray-800 text-white ring-1 ring-gray-200">
-                                      <Icon name="play" className="h-3.5 w-3.5" />
-                                    </span>
-                                  </FotoLightbox>
-                                )}
+                            {((it.mediaTemuan?.length || 0) > 0 || (it.mediaBukti?.length || 0) > 0) && (
+                              <div className="flex shrink-0 flex-col gap-1">
+                                <MediaGallery media={it.mediaTemuan || []} caption={it.uraian} size="h-9 w-9" />
+                                <MediaGallery media={it.mediaBukti || []} caption={`Bukti — ${it.uraian}`} size="h-9 w-9" />
                               </div>
                             )}
                             <div className="min-w-0 flex-1">

@@ -10,7 +10,10 @@ import { getSessionProfile } from "@/lib/supabase/server";
 // Sama seperti /api/notify: gagal di sini tidak menandakan data gagal
 // tersimpan — data checklist sudah tersimpan sebelum ini dipanggil,
 // endpoint ini cuma pelengkap.
-// body: { proyekId, proyek, items: [{ id, no, uraian, foto_url, video_url, created_at, jenis? }] }
+// body: { proyekId, proyek, items: [{ id, no, uraian, created_at, jenis?,
+//   foto_url?, video_url?,            // legacy path (item LAMA saja)
+//   media?: [{ mediaId, tipe, path }]  // item BARU (checklist_perbaikan_media)
+// }] }
 export async function POST(req) {
   const { profile, supabase } = await getSessionProfile();
   if (!profile) return NextResponse.json({ ok: false }, { status: 401 });
@@ -25,7 +28,9 @@ export async function POST(req) {
   // Foto/video di bucket 'perbaikan' bersifat privat — generate signed URL
   // (1 jam) di sini (bukan di client) supaya link yang dikirim ke n8n hanya
   // hidup sebentar dan tetap lewat RLS milik user yang sedang login.
-  const paths = items.flatMap((it) => [it.foto_url, it.video_url].filter(Boolean));
+  const legacyPaths = items.flatMap((it) => [it.foto_url, it.video_url].filter(Boolean));
+  const mediaPaths = items.flatMap((it) => (it.media || []).map((m) => m.path).filter(Boolean));
+  const paths = [...new Set([...legacyPaths, ...mediaPaths])];
   const { data: signed } = paths.length
     ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
     : { data: [] };
@@ -43,16 +48,35 @@ export async function POST(req) {
     proyekId,
     proyek,
     tanggal,
-    items: items.map((it) => ({
-      id: it.id,
-      no: it.no,
-      uraian: it.uraian,
-      jenis: it.jenis === "bukti" ? "bukti" : "temuan",
-      fotoUrl: it.foto_url ? urlMap[it.foto_url] || null : null,
-      fotoExt: ext(it.foto_url),
-      videoUrl: it.video_url ? urlMap[it.video_url] || null : null,
-      videoExt: ext(it.video_url),
-    })),
+    items: items.map((it) => {
+      const media = (it.media || []).map((m) => ({
+        mediaId: m.mediaId,
+        tipe: m.tipe,
+        url: urlMap[m.path] || null,
+        ext: ext(m.path),
+      }));
+      // Fallback fotoUrl/videoUrl tunggal (foto+video PERTAMA) -- DIPERTAHANKAN
+      // supaya n8n workflow LAMA (belum di-update ke bentuk array `media`,
+      // lihat n8n/defect-list-drive-sync.json) masih bisa sync sesuatu
+      // selama masa transisi, alih-alih gagal total.
+      const firstFoto = it.foto_url
+        ? { url: urlMap[it.foto_url] || null, ext: ext(it.foto_url) }
+        : media.find((m) => m.tipe === "foto");
+      const firstVideo = it.video_url
+        ? { url: urlMap[it.video_url] || null, ext: ext(it.video_url) }
+        : media.find((m) => m.tipe === "video");
+      return {
+        id: it.id,
+        no: it.no,
+        uraian: it.uraian,
+        jenis: it.jenis === "bukti" ? "bukti" : "temuan",
+        fotoUrl: firstFoto?.url || null,
+        fotoExt: firstFoto?.ext || null,
+        videoUrl: firstVideo?.url || null,
+        videoExt: firstVideo?.ext || null,
+        media,
+      };
+    }),
   };
 
   try {

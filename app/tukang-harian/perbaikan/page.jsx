@@ -1,6 +1,7 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import BackButton from "@/components/BackButton";
 import PerbaikanMandorList from "./PerbaikanMandorList";
+import { gabungkanMediaPerbaikan } from "@/lib/perbaikanMedia";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,17 @@ export default async function PerbaikanTukangHarianPage() {
       .eq("proyek_id", proyek.id)
       .order("no", { ascending: true });
 
-    const paths = [
+    const ids = (rows || []).map((r) => r.id);
+    const { data: mediaRows } = ids.length
+      ? await supabase.from("checklist_perbaikan_media").select("id, checklist_id, jenis, tipe, path, urutan").in("checklist_id", ids)
+      : { data: [] };
+
+    const legacyPaths = [
       ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
       ...(rows || []).filter((r) => r.video_url).map((r) => r.video_url),
     ];
+    const mediaPaths = (mediaRows || []).map((m) => m.path);
+    const paths = [...new Set([...legacyPaths, ...mediaPaths])];
     const { data: signed } = paths.length
       ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)
       : { data: [] };
@@ -37,10 +45,10 @@ export default async function PerbaikanTukangHarianPage() {
       (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
     );
 
-    items = (rows || []).map((r) => ({
+    const merged = gabungkanMediaPerbaikan(rows, mediaRows, urlMap);
+    items = (rows || []).map((r, i) => ({
       ...r,
-      foto: r.foto_url ? urlMap[r.foto_url] || null : null,
-      video: r.video_url ? urlMap[r.video_url] || null : null,
+      mediaTemuan: merged[i].mediaTemuan,
     }));
 
     // Tandai sudah dibaca (khusus Tukang Harian) supaya badge notifikasi di
