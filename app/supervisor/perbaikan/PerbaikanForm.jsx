@@ -75,9 +75,25 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
       return next;
     });
 
+  // Riwayat Perbaikan (item Selesai) tertutup default, dibuka per proyek —
+  // sama pola dengan Riwayat Perbaikan di role Mandor.
+  const [openRiwayat, setOpenRiwayat] = useState(() => new Set());
+  const toggleRiwayat = (id) =>
+    setOpenRiwayat((cur) => {
+      const next = new Set(cur);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
   const isiTerisi = rows.filter((r) => r.uraian.trim()).length;
 
   const totalMenunggu = list.filter((it) => it.status === "PENDING_REVIEW").length;
+
+  // Item Selesai (DONE) dipisah ke bagian "Riwayat Perbaikan" tersendiri
+  // (sama pola dengan role Mandor) supaya daftar utama tetap ringkas dan
+  // fokus ke yang masih perlu ditindaklanjuti.
+  const aktifList = list.filter((it) => it.status !== "DONE");
+  const doneList = list.filter((it) => it.status === "DONE");
 
   // Pencarian & filter status jalan lintas-proyek — supaya makin banyak
   // proyek/item, Supervisor tetap bisa langsung nemu yang dicari tanpa buka
@@ -85,7 +101,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   // kebuka (lihat `terbuka` di render) dan grup yang gak cocok disembunyikan.
   const sedangFilter = cari.trim() !== "" || filterStatus !== "SEMUA";
   const norm = (s) => (s || "").toLowerCase();
-  const grupTampil = kelompokkanProyek(list)
+  const grupTampil = kelompokkanProyek(aktifList)
     .map((g) => {
       const needle = norm(cari);
       const itemsTampil = g.items.filter((it) => {
@@ -103,6 +119,18 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
       const pendingB = b.items.filter((it) => it.status === "PENDING_REVIEW").length;
       return pendingB - pendingA;
     });
+
+  // Riwayat: cuma ikut pencarian `cari` (bukan tab filterStatus — semua di
+  // sini pasti DONE, gak relevan disaring PENDING_REVIEW).
+  const riwayatGrupTampil = kelompokkanProyek(doneList)
+    .map((g) => {
+      const needle = norm(cari);
+      const itemsTampil = needle
+        ? g.items.filter((it) => norm(it.uraian).includes(needle) || norm(g.nama).includes(needle))
+        : g.items;
+      return { ...g, itemsTampil };
+    })
+    .filter((g) => g.itemsTampil.length > 0);
 
   const tambahRow = () => setRows((r) => [...r, kosong()]);
   const hapusRow = (id) => setRows((r) => r.filter((row) => row.id !== id));
@@ -582,7 +610,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
             {grupTampil.map((g) => {
               const belum = g.items.filter((it) => it.status === "OPEN" || it.status === "IN_PROGRESS").length;
               const menunggu = g.items.filter((it) => it.status === "PENDING_REVIEW").length;
-              const selesai = g.items.filter((it) => it.status === "DONE").length;
               const terbuka = sedangFilter || openProyek.has(g.proyekId);
               return (
                 <div key={g.proyekId} className="card overflow-hidden">
@@ -608,11 +635,6 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                         {belum > 0 && (
                           <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
                             {belum} belum
-                          </span>
-                        )}
-                        {selesai > 0 && (
-                          <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
-                            {selesai} selesai
                           </span>
                         )}
                       </span>
@@ -702,6 +724,72 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
           </>
         )}
       </section>
+
+      {/* Riwayat: item Selesai (DONE), dipisah dari daftar aktif di atas */}
+      {doneList.length > 0 && (
+        <section>
+          <h2 className="mb-3 font-bold text-gray-700">Riwayat Perbaikan</h2>
+          {riwayatGrupTampil.length === 0 ? (
+            <div className="card flex flex-col items-center gap-2 border-gray-200 bg-gray-50 p-8 text-center text-gray-500">
+              <Icon name="search" className="h-8 w-8" />
+              <p className="font-semibold">Tidak ada yang cocok.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {riwayatGrupTampil.map((g) => {
+                const terbuka = cari.trim() !== "" || openRiwayat.has(g.proyekId);
+                return (
+                  <div key={g.proyekId} className="card overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleRiwayat(g.proyekId)}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2.5 active:bg-gray-50"
+                    >
+                      <span className="min-w-0 flex-1 text-left">
+                        <span className="truncate text-sm font-bold text-gray-700">{g.nama}</span>
+                        <span className="mt-0.5 flex flex-wrap items-center gap-1">
+                          <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                            {g.items.length} selesai
+                          </span>
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5 text-gray-400">
+                        <span className="text-[11px]">{g.items.length}</span>
+                        <Icon name="chevron-down" className={`h-3.5 w-3.5 transition-transform ${terbuka ? "rotate-180" : ""}`} />
+                      </span>
+                    </button>
+
+                    {terbuka && (
+                      <div className="space-y-1.5 border-t border-gray-100 bg-gray-50/60 p-1.5">
+                        {g.itemsTampil.map((it) => (
+                          <div key={it.id} className="rounded-lg bg-white p-2 shadow-sm">
+                            <div className="flex items-start gap-2">
+                              <MediaGallery
+                                media={[
+                                  ...(it.mediaTemuan || []).map((m) => ({ ...m, caption: it.uraian })),
+                                  ...(it.mediaBukti || []).map((m) => ({ ...m, caption: `Bukti — ${it.uraian}` })),
+                                ]}
+                                size="h-9 w-9"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold leading-snug">{it.uraian}</p>
+                                <p className="mt-0.5 truncate text-[10px] text-gray-400">
+                                  <span className="font-semibold text-green-500">Selesai</span>
+                                  {" "}· {tglID(it.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

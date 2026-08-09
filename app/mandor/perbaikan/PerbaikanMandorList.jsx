@@ -71,7 +71,11 @@ export default function PerbaikanMandorList({ items = [] }) {
 
   const listTerfilter = list
     .filter((it) => !proyekFilter || it.proyek_id === proyekFilter)
-    .filter((it) => !q.trim() || it.uraian.toLowerCase().includes(q.trim().toLowerCase()));
+    .filter((it) => {
+      const needle = q.trim().toLowerCase();
+      if (!needle) return true;
+      return it.uraian.toLowerCase().includes(needle) || (it.proyek || "").toLowerCase().includes(needle);
+    });
 
   const mulaiUpload = (id) => {
     setUploadFor(id);
