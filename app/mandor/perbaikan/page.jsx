@@ -27,8 +27,13 @@ export default async function PerbaikanMandorPage() {
   const proyekMap = Object.fromEntries(proyeks.map((p) => [p.id, p.nama]));
   const proyekIds = proyeks.map((p) => p.id);
 
+  // Item yang di-assign manual (assigned_mandor_id) ke mandor LAIN harus
+  // disembunyikan dari mandor resmi proyek ini — makanya item milik proyek
+  // sendiri cuma ikut kalau assigned_mandor_id kosong (belum di-assign
+  // spesifik ke siapa pun, jadi tetap tanggung jawab mandor resmi).
   const orParts = [`assigned_mandor_id.eq.${profile.id}`];
-  if (proyekIds.length > 0) orParts.push(`proyek_id.in.(${proyekIds.join(",")})`);
+  if (proyekIds.length > 0)
+    orParts.push(`and(assigned_mandor_id.is.null,proyek_id.in.(${proyekIds.join(",")}))`);
 
   const { data: rows } = await supabase
     .from("checklist_perbaikan")

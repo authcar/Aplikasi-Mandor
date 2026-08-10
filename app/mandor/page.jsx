@@ -43,10 +43,13 @@ export default async function DashboardMandor({ searchParams }) {
     // Perbaikan sekarang ditampilkan lintas semua proyek mandor sekaligus,
     // termasuk item yang di-assign manual lewat assigned_mandor_id (lihat
     // app/mandor/perbaikan & add_checklist_assigned_mandor.sql) — badge-nya
-    // ikut menghitung itu, bukan cuma proyek resmi yang lagi dipilih.
+    // ikut menghitung itu, bukan cuma proyek resmi yang lagi dipilih. Item
+    // proyek sendiri yang di-assign manual ke mandor LAIN sengaja
+    // dikecualikan (and(assigned_mandor_id.is.null, ...)) supaya tidak ikut
+    // menghitung badge mandor resmi.
     const proyekIds = list.map((p) => p.id);
     const perbaikanOr =
-      (proyekIds.length > 0 ? `proyek_id.in.(${proyekIds.join(",")}),` : "") +
+      (proyekIds.length > 0 ? `and(assigned_mandor_id.is.null,proyek_id.in.(${proyekIds.join(",")})),` : "") +
       `assigned_mandor_id.eq.${profile.id}`;
     const [{ count: pb }, { count: rb }, { count: kb }, { count: mb }] = await Promise.all([
       supabase
