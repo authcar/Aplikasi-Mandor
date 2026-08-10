@@ -45,11 +45,16 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
 
   const [proyekId, setProyekId] = useState(proyeks[0]?.id || "");
   const rowId = useRef(1);
-  const kosong = () => ({ id: rowId.current++, uraian: "", media: [] });
+  const kosong = () => ({ id: rowId.current++, uraian: "", media: [], assignedMandorId: null });
   const [rows, setRows] = useState(() => [kosong()]);
   const [kameraForRowId, setKameraForRowId] = useState(null);
   const [videoRecorderForRowId, setVideoRecorderForRowId] = useState(null);
   const [mediaChooserForRowId, setMediaChooserForRowId] = useState(null);
+  const [assignChooserForRowId, setAssignChooserForRowId] = useState(null);
+  // Mandor yang benar-benar dipegang proyek yang lagi dipilih (bisa >1 —
+  // lihat supabase/add_proyek_mandor.sql) — picker "assign ke mandor" per
+  // item dibatasi ke daftar ini saja.
+  const mandorsUntukProyek = proyeks.find((p) => p.id === proyekId)?.mandors || [];
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState(items);
   const [tolakFor, setTolakFor] = useState(null);
@@ -136,6 +141,17 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   const hapusRow = (id) => setRows((r) => r.filter((row) => row.id !== id));
   const ubahUraian = (id, value) =>
     setRows((r) => r.map((row) => (row.id === id ? { ...row, uraian: value } : row)));
+  const ubahAssignedMandor = (id, mandorId) => {
+    setRows((r) => r.map((row) => (row.id === id ? { ...row, assignedMandorId: mandorId } : row)));
+    setAssignChooserForRowId(null);
+  };
+
+  // Ganti proyek -> assignment mandor per baris direset, karena mandor yang
+  // dipilih sebelumnya belum tentu dipegang proyek yang baru.
+  const gantiProyek = (id) => {
+    setProyekId(id);
+    setRows((r) => r.map((row) => ({ ...row, assignedMandorId: null })));
+  };
 
   // Foto & video sekarang bisa banyak per item (maks MAX_MEDIA), ditambahkan
   // (bukan saling gantiin) — tiap media dapat tombol hapus sendiri.
@@ -220,7 +236,13 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
         uploaded.push({ tipe: m.tipe, path });
       }
       mediaByNo[no] = uploaded;
-      inserts.push({ proyek_id: proyekId, no, uraian: row.uraian.trim(), created_by: uid });
+      inserts.push({
+        proyek_id: proyekId,
+        no,
+        uraian: row.uraian.trim(),
+        created_by: uid,
+        assigned_mandor_id: row.assignedMandorId || null,
+      });
     }
 
     const { data: created, error } = await supabase
@@ -419,7 +441,7 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
             <label className="label">Proyek</label>
             <select
               value={proyekId}
-              onChange={(e) => setProyekId(e.target.value)}
+              onChange={(e) => gantiProyek(e.target.value)}
               className="input"
               required
             >
@@ -449,6 +471,52 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                       className="input flex-1 !text-sm resize-none"
                     />
                     <div className="flex w-28 shrink-0 flex-wrap justify-end gap-1">
+                      {mandorsUntukProyek.length >= 2 && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setAssignChooserForRowId((cur) => (cur === row.id ? null : row.id))}
+                            title={
+                              row.assignedMandorId
+                                ? `Ditugaskan ke ${mandorsUntukProyek.find((m) => m.id === row.assignedMandorId)?.name || ""}`
+                                : "Assign ke mandor"
+                            }
+                            className={`flex h-9 w-9 items-center justify-center rounded-lg border-2 active:bg-gray-50 ${
+                              row.assignedMandorId
+                                ? "border-brand bg-brand-50 text-brand-600"
+                                : "border-dashed border-gray-300 text-gray-400"
+                            }`}
+                          >
+                            <Icon name="user" className="h-4 w-4" />
+                          </button>
+                          {assignChooserForRowId === row.id && (
+                            <div className="absolute right-0 top-full z-10 mt-1 w-44 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                              <button
+                                type="button"
+                                onClick={() => ubahAssignedMandor(row.id, null)}
+                                className={`flex w-full items-center px-3 py-2 text-left text-xs font-medium active:bg-gray-50 ${
+                                  !row.assignedMandorId ? "text-brand" : "text-gray-500"
+                                }`}
+                              >
+                                Otomatis (mandor utama)
+                              </button>
+                              {mandorsUntukProyek.map((m) => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => ubahAssignedMandor(row.id, m.id)}
+                                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium active:bg-gray-50 ${
+                                    row.assignedMandorId === m.id ? "text-brand" : "text-gray-600"
+                                  }`}
+                                >
+                                  <Icon name="user" className="h-3.5 w-3.5 shrink-0" />
+                                  <span className="truncate">{m.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {row.media.map((m) => (
                         <div key={m.key} className="relative">
                           {m.tipe === "video" ? (
@@ -527,6 +595,11 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                   </div>
                   {row.media.length >= MAX_MEDIA && (
                     <p className="mt-1 text-right text-[11px] text-gray-400">Maksimal {MAX_MEDIA} file tercapai</p>
+                  )}
+                  {row.assignedMandorId && (
+                    <p className="mt-1 text-right text-[11px] font-medium text-brand-600">
+                      Ditugaskan ke {mandorsUntukProyek.find((m) => m.id === row.assignedMandorId)?.name}
+                    </p>
                   )}
 
                   {rows.length > 1 && (
@@ -666,6 +739,12 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
                                   <span className={`font-semibold ${st.cls}`}>{st.label}</span>
                                   {" "}· {tglID(it.created_at)}
                                 </p>
+                                {it.assignedMandorName && (
+                                  <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-brand-600">
+                                    <Icon name="user" className="h-3 w-3 shrink-0" />
+                                    {it.assignedMandorName}
+                                  </p>
+                                )}
                               </div>
                               {it.status !== "DONE" && (
                                 <button

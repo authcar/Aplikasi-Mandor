@@ -192,6 +192,12 @@ export default function PerbaikanList({ items = [] }) {
                                 {" "}· {tglID(it.created_at)}
                               </p>
                               <p className="mt-0.5 truncate text-[10px] text-gray-400">Dibuat oleh {it.pembuat}</p>
+                              {it.assignedMandorName && (
+                                <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-brand-600">
+                                  <Icon name="user" className="h-3 w-3 shrink-0" />
+                                  {it.assignedMandorName}
+                                </p>
+                              )}
                             </div>
                           </div>
 

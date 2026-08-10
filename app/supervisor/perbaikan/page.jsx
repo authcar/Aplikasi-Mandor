@@ -19,13 +19,13 @@ export default async function PerbaikanSupervisorPage() {
   const proyekIds = (proyek || []).map((p) => p.id);
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-  const [{ data: rows }, { data: laporanHariIni }] = await Promise.all([
+  const [{ data: rows }, { data: laporanHariIni }, { data: proyekMandorRows }] = await Promise.all([
     // CANCELLED disembunyikan dari daftar aktif Supervisor (dibatalkan lewat
     // ikon X di card) — tetap tersimpan & muncul di riwayat Master.
     supabase
       .from("checklist_perbaikan")
       .select(
-        "id, proyek_id, no, uraian, foto_url, foto_bukti_url, video_url, video_bukti_url, periode, status, dibaca_supervisor, created_at, proyek(nama)"
+        "id, proyek_id, no, uraian, foto_url, foto_bukti_url, video_url, video_bukti_url, periode, status, dibaca_supervisor, assigned_mandor_id, assignedMandor:assigned_mandor_id(name), created_at, proyek(nama)"
       )
       .neq("status", "CANCELLED")
       .order("proyek_id", { ascending: true })
@@ -35,7 +35,20 @@ export default async function PerbaikanSupervisorPage() {
     proyekIds.length
       ? supabase.from("laporan_harian").select("proyek_id").eq("tanggal", todayStr).in("proyek_id", proyekIds)
       : Promise.resolve({ data: [] }),
+    // Daftar lengkap mandor per proyek (bisa >1, lihat
+    // supabase/add_proyek_mandor.sql) — dipakai buat batasi pilihan "assign
+    // ke mandor" per item di PerbaikanForm hanya ke mandor proyek tsb.
+    proyekIds.length
+      ? supabase.from("proyek_mandor").select("proyek_id, mandor:mandor_id(id, name)").in("proyek_id", proyekIds)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  const mandorsByProyek = {};
+  for (const r of proyekMandorRows || []) {
+    if (!r.mandor) continue;
+    (mandorsByProyek[r.proyek_id] ||= []).push(r.mandor);
+  }
+  const proyekDenganMandor = (proyek || []).map((p) => ({ ...p, mandors: mandorsByProyek[p.id] || [] }));
 
   const sudahLaporIds = [...new Set((laporanHariIni || []).map((r) => r.proyek_id))];
 
@@ -70,6 +83,8 @@ export default async function PerbaikanSupervisorPage() {
     dibaca_supervisor: r.dibaca_supervisor,
     created_at: r.created_at,
     proyek: r.proyek?.nama || "-",
+    assigned_mandor_id: r.assigned_mandor_id,
+    assignedMandorName: r.assignedMandor?.name || null,
     ...merged[i],
     // Path mentah (bukan signed URL) — dipakai buat trigger sync ke Google
     // Drive pas Supervisor menyetujui bukti (lihat setujuiBukti), fallback
@@ -97,7 +112,7 @@ export default async function PerbaikanSupervisorPage() {
         {aktif} item belum selesai
         {menunggu > 0 ? ` · ${menunggu} menunggu persetujuan Anda` : ""}
       </p>
-      <PerbaikanForm proyeks={proyek || []} items={items} sudahLaporIds={sudahLaporIds} />
+      <PerbaikanForm proyeks={proyekDenganMandor} items={items} sudahLaporIds={sudahLaporIds} />
     </main>
   );
 }
