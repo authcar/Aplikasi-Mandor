@@ -46,6 +46,16 @@ async function bersihkan({ kolomSync, kolomFoto, kolomVideo }) {
 // punya drive_synced_at PER FILE (bukan per baris checklist), jadi dibersihkan
 // per row media, bukan lewat bersihkan() di atas yang asumsi 1 foto + 1 video
 // dalam kolom tetap.
+//
+// CATATAN: sejak /api/drive-sync/confirm menghapus file dari Storage LANGSUNG
+// begitu sync ke Drive dikonfirmasi (lihat komentar di file itu), `path`
+// biasanya sudah NULL duluan sebelum fungsi ini sempat jalan — filter
+// `.not("path", "is", null)` di bawah bikin fungsi ini otomatis no-op utk
+// kasus itu. Ini sekarang cuma jaring pengaman kalau penghapusan langsung
+// tadi sempat gagal (mis. error sementara ke Storage API). Baris media
+// (drive_file_id, dst) TIDAK dihapus di sini -- cuma `path`-nya dikosongkan
+// -- karena drive_file_id masih dipakai app buat menampilkan foto/video dari
+// Google Drive selamanya (lihat lib/perbaikanMedia.js), bukan cuma backup.
 async function bersihkanMedia() {
   const batas = new Date(Date.now() - RETENSI_HARI * 24 * 60 * 60 * 1000).toISOString();
 
@@ -53,6 +63,7 @@ async function bersihkanMedia() {
     .from("checklist_perbaikan_media")
     .select("id, path")
     .not("drive_synced_at", "is", null)
+    .not("path", "is", null)
     .lte("drive_synced_at", batas);
 
   if (error) throw new Error(error.message);
@@ -63,19 +74,20 @@ async function bersihkanMedia() {
 
   await supabaseAdmin
     .from("checklist_perbaikan_media")
-    .delete()
+    .update({ path: null })
     .in("id", rows.map((r) => r.id));
 
   return rows.length;
 }
 
 // POST /api/drive-sync/cleanup — dipanggil terjadwal (n8n Schedule Trigger,
-// lihat n8n/defect-list-cleanup-schedule.json) buat hapus foto/video defect
-// (temuan awal & bukti pengerjaan) dari Supabase Storage yang sudah lewat
-// RETENSI_HARI sejak dikonfirmasi ke-backup ke Google Drive (diisi oleh
-// /api/drive-sync/confirm). Item yang gagal sync (kolom sync-nya masih
-// kosong) SENGAJA tidak pernah dihapus di sini — tetap aman sampai ada yang
-// cek manual kenapa gagal.
+// lihat n8n/defect-list-cleanup-schedule.json). Sejak /api/drive-sync/confirm
+// menghapus file dari Storage segera setelah sync ke Drive dikonfirmasi,
+// endpoint ini SEHARUSNYA jarang menemukan apa pun -- cuma jaring pengaman
+// kalau penghapusan langsung tadi gagal, dengan jeda RETENSI_HARI sebelum
+// dicoba lagi. Item yang gagal sync (kolom sync-nya masih kosong) SENGAJA
+// tidak pernah dihapus di sini — tetap aman sampai ada yang cek manual
+// kenapa gagal.
 export async function POST(req) {
   const secret = req.headers.get("x-n8n-secret");
   if (!secret || secret !== process.env.N8N_CALLBACK_SECRET)

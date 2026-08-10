@@ -37,7 +37,7 @@ export default async function PerbaikanMandorPage() {
 
   const { data: rows } = await supabase
     .from("checklist_perbaikan")
-    .select("id, proyek_id, no, uraian, foto_url, foto_bukti_url, video_url, video_bukti_url, periode, status, dibaca_mandor, catatan_tolak, created_at")
+    .select("id, proyek_id, no, uraian, foto_url, foto_bukti_url, video_url, video_bukti_url, foto_drive_file_id, foto_bukti_drive_file_id, video_drive_file_id, video_bukti_drive_file_id, periode, status, dibaca_mandor, catatan_tolak, created_at")
     .or(orParts.join(","))
     // CANCELLED (dibatalkan Supervisor) disembunyikan total dari Mandor —
     // sama pola dgn app/supervisor/perbaikan/page.jsx — tetap tercatat di
@@ -58,7 +58,7 @@ export default async function PerbaikanMandorPage() {
 
   const ids = (rows || []).map((r) => r.id);
   const { data: mediaRows } = ids.length
-    ? await supabase.from("checklist_perbaikan_media").select("id, checklist_id, jenis, tipe, path, urutan").in("checklist_id", ids)
+    ? await supabase.from("checklist_perbaikan_media").select("id, checklist_id, jenis, tipe, path, drive_file_id, urutan").in("checklist_id", ids)
     : { data: [] };
 
   const legacyPaths = [
@@ -67,7 +67,7 @@ export default async function PerbaikanMandorPage() {
     ...(rows || []).filter((r) => r.video_url).map((r) => r.video_url),
     ...(rows || []).filter((r) => r.video_bukti_url).map((r) => r.video_bukti_url),
   ];
-  const mediaPaths = (mediaRows || []).map((m) => m.path);
+  const mediaPaths = (mediaRows || []).map((m) => m.path).filter(Boolean);
   const paths = [...new Set([...legacyPaths, ...mediaPaths])];
   const { data: signed } = paths.length
     ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)

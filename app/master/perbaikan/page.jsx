@@ -14,13 +14,13 @@ export default async function PerbaikanMasterPage() {
   const { data: rows } = await supabase
     .from("checklist_perbaikan")
     .select(
-      "id, no, proyek_id, uraian, foto_url, foto_bukti_url, video_url, video_bukti_url, periode, status, catatan_tolak, created_at, selesai_at, proyek(nama), creator:created_by(name), assignedMandor:assigned_mandor_id(name)"
+      "id, no, proyek_id, uraian, foto_url, foto_bukti_url, video_url, video_bukti_url, foto_drive_file_id, foto_bukti_drive_file_id, video_drive_file_id, video_bukti_drive_file_id, periode, status, catatan_tolak, created_at, selesai_at, proyek(nama), creator:created_by(name), assignedMandor:assigned_mandor_id(name)"
     )
     .order("created_at", { ascending: false });
 
   const ids = (rows || []).map((r) => r.id);
   const { data: mediaRows } = ids.length
-    ? await supabase.from("checklist_perbaikan_media").select("id, checklist_id, jenis, tipe, path, urutan").in("checklist_id", ids)
+    ? await supabase.from("checklist_perbaikan_media").select("id, checklist_id, jenis, tipe, path, drive_file_id, urutan").in("checklist_id", ids)
     : { data: [] };
 
   const legacyPaths = [
@@ -29,7 +29,7 @@ export default async function PerbaikanMasterPage() {
     ...(rows || []).filter((r) => r.video_url).map((r) => r.video_url),
     ...(rows || []).filter((r) => r.video_bukti_url).map((r) => r.video_bukti_url),
   ];
-  const mediaPaths = (mediaRows || []).map((m) => m.path);
+  const mediaPaths = (mediaRows || []).map((m) => m.path).filter(Boolean);
   const paths = [...new Set([...legacyPaths, ...mediaPaths])];
   const { data: signed } = paths.length
     ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)

@@ -23,20 +23,20 @@ export default async function PerbaikanTukangHarianPage() {
   if (proyek) {
     const { data: rows } = await supabase
       .from("checklist_perbaikan")
-      .select("id, no, uraian, foto_url, video_url, periode, status, dibaca_tukang_harian, created_at")
+      .select("id, no, uraian, foto_url, video_url, foto_drive_file_id, video_drive_file_id, periode, status, dibaca_tukang_harian, created_at")
       .eq("proyek_id", proyek.id)
       .order("no", { ascending: true });
 
     const ids = (rows || []).map((r) => r.id);
     const { data: mediaRows } = ids.length
-      ? await supabase.from("checklist_perbaikan_media").select("id, checklist_id, jenis, tipe, path, urutan").in("checklist_id", ids)
+      ? await supabase.from("checklist_perbaikan_media").select("id, checklist_id, jenis, tipe, path, drive_file_id, urutan").in("checklist_id", ids)
       : { data: [] };
 
     const legacyPaths = [
       ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
       ...(rows || []).filter((r) => r.video_url).map((r) => r.video_url),
     ];
-    const mediaPaths = (mediaRows || []).map((m) => m.path);
+    const mediaPaths = (mediaRows || []).map((m) => m.path).filter(Boolean);
     const paths = [...new Set([...legacyPaths, ...mediaPaths])];
     const { data: signed } = paths.length
       ? await supabase.storage.from("perbaikan").createSignedUrls(paths, 3600)

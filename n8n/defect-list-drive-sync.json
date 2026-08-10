@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Setup checklist\nFolder terpisah, khusus defect list (bukan di dalam folder proyek yang lama): `Defect List (root)` → `<Kode Nama Proyek>` → `<Tanggal YYYY-MM-DD>` → foto/video. Semuanya (folder proyek & folder tanggal) dibuat OTOMATIS kalau belum ada — tidak perlu setup manual per proyek.\n\nDipakai utk 2 hal (sama webhook, dibedakan field `jenis` dari app): temuan awal (Supervisor) DAN bukti pengerjaan (Mandor) — file bukti dikasih label \"Bukti - \" di nama filenya, tetap masuk folder tanggal yang sama. Tiap item bisa punya BEBERAPA foto/video (maks 5) — node **Pecah Item** memecah tiap item jadi 1 baris per file media (field `media[]` dari app), bukan lagi asumsi 1 foto + 1 video tetap.\n\nSetelah upload sukses, workflow ini juga lapor balik ke app (endpoint /api/drive-sync/confirm, ikut kirim `mediaId` per file, atau `id`+`jenis` sebagai fallback item lama) supaya app tahu file ini aman dihapus dari Supabase Storage nanti (lihat n8n/defect-list-cleanup-schedule.json — workflow terpisah utk itu).\n\n1. Di Google Drive, buat 1 folder baru bernama \"Defect List\" (di mana saja, boleh di My Drive Anda) — ini jadi root-nya.\n2. Buka node **Normalize**, isi 3 hal: `rootFolderId` (ID folder di atas, dari URL drive.google.com/drive/folders/<ID_INI>), `appBaseUrl` (URL app Anda, TANPA garis miring di akhir, mis. https://aplikasi-mandor.vercel.app), dan `callbackSecret` (nilai `N8N_CALLBACK_SECRET` dari .env.local app — sama persis).\n3. Di semua node **HTTP Request** (yang manggil googleapis.com) → tab Credentials → pilih credential Google Drive OAuth2 Anda (yang sudah dipakai di workflow n8n lain).\n4. Di node **Upload Media** → pilih credential Google Drive yang sama.\n5. Klik **Activate**, lalu copy Production URL dari node **Webhook** → paste ke `.env.local` project (`N8N_DRIVE_WEBHOOK_URL=...`).\n6. Test: buat defect baru dari app (Supervisor → Defect List) dengan beberapa foto/video → cek folder `<Nama Proyek>/<Tanggal>` otomatis kebuat di dalam folder \"Defect List\" itu berisi semua file, dan cek kolom `drive_synced_at` di tabel `checklist_perbaikan_media` sudah terisi per file.\n\nKalau ada node bertanda seru merah setelah import, biasanya cuma soal pilih ulang credential/field dari dropdown (versi n8n beda sedikit bisa beda label field).",
+        "content": "## Setup checklist\nFolder terpisah, khusus defect list (bukan di dalam folder proyek yang lama): `Defect List (root)` → `<Kode Nama Proyek>` → `<Tanggal YYYY-MM-DD>` → foto/video. Semuanya (folder proyek & folder tanggal) dibuat OTOMATIS kalau belum ada — tidak perlu setup manual per proyek.\n\nDipakai utk 2 hal (sama webhook, dibedakan field `jenis` dari app): temuan awal (Supervisor) DAN bukti pengerjaan (Mandor) — file bukti dikasih label \"Bukti - \" di nama filenya, tetap masuk folder tanggal yang sama. Tiap item bisa punya BEBERAPA foto/video (maks 5) — node **Pecah Item** memecah tiap item jadi 1 baris per file media (field `media[]` dari app), bukan lagi asumsi 1 foto + 1 video tetap.\n\nSetelah upload sukses, node **Set Izin Publik** menandai file itu \"Anyone with the link — Viewer\" (WAJIB, supaya foto/video bisa tampil di app tanpa user harus login akun Google yang sama), baru workflow ini lapor balik ke app (endpoint /api/drive-sync/confirm, kirim `driveFileId` + `mediaId` per file, atau `id`+`jenis`+`tipe` sebagai fallback item lama). App langsung MENGHAPUS file itu dari Supabase Storage begitu menerima konfirmasi ini (bukan ditunda lagi) dan menampilkan foto/video dari Google Drive selanjutnya (lihat lib/perbaikanMedia.js) — /api/drive-sync/cleanup (n8n/defect-list-cleanup-schedule.json) sekarang cuma jaring pengaman kalau penghapusan langsung itu sempat gagal.\n\n1. Di Google Drive, buat 1 folder baru bernama \"Defect List\" (di mana saja, boleh di My Drive Anda) — ini jadi root-nya.\n2. Buka node **Normalize**, isi 3 hal: `rootFolderId` (ID folder di atas, dari URL drive.google.com/drive/folders/<ID_INI>), `appBaseUrl` (URL app Anda, TANPA garis miring di akhir, mis. https://aplikasi-mandor.vercel.app), dan `callbackSecret` (nilai `N8N_CALLBACK_SECRET` dari .env.local app — sama persis).\n3. Di semua node **HTTP Request** (yang manggil googleapis.com, termasuk **Set Izin Publik**) → tab Credentials → pilih credential Google Drive OAuth2 Anda (yang sudah dipakai di workflow n8n lain).\n4. Di node **Upload Media** → pilih credential Google Drive yang sama.\n5. Klik **Activate**, lalu copy Production URL dari node **Webhook** → paste ke `.env.local` project (`N8N_DRIVE_WEBHOOK_URL=...`).\n6. Jalankan migrasi `supabase/add_checklist_perbaikan_drive_url.sql` di Supabase Studio SEBELUM test (kolom `drive_file_id` dst.).\n7. Test: buat defect baru dari app (Supervisor → Defect List) dengan beberapa foto/video → cek folder `<Nama Proyek>/<Tanggal>` otomatis kebuat di dalam folder \"Defect List\" itu berisi semua file, kolom `drive_file_id` di tabel `checklist_perbaikan_media` sudah terisi per file, kolom `path`-nya jadi NULL, dan foto/videonya beneran tampil lagi di app (buka linknya di browser mode incognito buat mastiin izinnya publik).\n\nKalau ada node bertanda seru merah setelah import, biasanya cuma soal pilih ulang credential/field dari dropdown (versi n8n beda sedikit bisa beda label field).",
         "height": 560,
         "width": 500
       },
@@ -275,6 +275,27 @@
     {
       "parameters": {
         "method": "POST",
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ $json.id }}/permissions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [ { "name": "supportsAllDrives", "value": "true" } ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"role\": \"reader\", \"type\": \"anyone\" } }}",
+        "options": {}
+      },
+      "id": "set-permission",
+      "name": "Set Izin Publik",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 3440, 40 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
         "url": "={{ $('Normalize').first().json.appBaseUrl }}/api/drive-sync/confirm",
         "sendHeaders": true,
         "headerParameters": {
@@ -282,14 +303,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"mediaId\": $('Pecah Item').item.json.mediaId, \"id\": $('Pecah Item').item.json.id, \"jenis\": $('Pecah Item').item.json.jenis } }}",
+        "jsonBody": "={{ { \"mediaId\": $('Pecah Item').item.json.mediaId, \"id\": $('Pecah Item').item.json.id, \"jenis\": $('Pecah Item').item.json.jenis, \"tipe\": $('Pecah Item').item.json.tipe, \"driveFileId\": $('Upload Media').item.json.id } }}",
         "options": {}
       },
       "id": "confirm-media",
       "name": "Konfirmasi Sync Media",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [ 3440, 40 ]
+      "position": [ 3680, 40 ]
     }
   ],
   "connections": {
@@ -320,7 +341,8 @@
     "Pecah Item": { "main": [ [ { "node": "Ada URL?", "type": "main", "index": 0 } ] ] },
     "Ada URL?": { "main": [ [ { "node": "Download Media", "type": "main", "index": 0 } ], [] ] },
     "Download Media": { "main": [ [ { "node": "Upload Media", "type": "main", "index": 0 } ] ] },
-    "Upload Media": { "main": [ [ { "node": "Konfirmasi Sync Media", "type": "main", "index": 0 } ] ] }
+    "Upload Media": { "main": [ [ { "node": "Set Izin Publik", "type": "main", "index": 0 } ] ] },
+    "Set Izin Publik": { "main": [ [ { "node": "Konfirmasi Sync Media", "type": "main", "index": 0 } ] ] }
   },
   "pinData": {},
   "meta": { "instanceId": "defect-list-drive-sync" }
