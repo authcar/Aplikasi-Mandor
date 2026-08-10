@@ -215,10 +215,12 @@ export default function PerbaikanMandorList({ items = [] }) {
       </div>
     );
 
-  // Selesai/Tidak Disetujui pindah ke section "Riwayat Perbaikan" di bawah
-  // supaya daftar utama cuma berisi yang masih perlu ditindaklanjuti.
-  const aktif = listTerfilter.filter((it) => it.status !== "DONE" && it.status !== "CANCELLED");
-  const riwayat = listTerfilter.filter((it) => it.status === "DONE" || it.status === "CANCELLED");
+  // Selesai pindah ke section "Riwayat Perbaikan" di bawah supaya daftar
+  // utama cuma berisi yang masih perlu ditindaklanjuti. Item CANCELLED
+  // (dibatalkan Supervisor) sudah difilter total di server (page.jsx), jadi
+  // tidak pernah muncul di `list` sama sekali.
+  const aktif = listTerfilter.filter((it) => it.status !== "DONE");
+  const riwayat = listTerfilter.filter((it) => it.status === "DONE");
   const aktifGroups = kelompokPerProyek(aktif);
   const riwayatGroups = kelompokPerProyek(riwayat);
   const tampilkanNamaProyek = proyekOptions.length > 1;
@@ -285,7 +287,7 @@ export default function PerbaikanMandorList({ items = [] }) {
           <div className="divide-y divide-gray-100">
             {g.items.map((it) => {
               const st = STATUS_LABEL[it.status] || STATUS_LABEL.OPEN;
-              const bisaKerjakan = it.status !== "DONE" && it.status !== "CANCELLED" && it.status !== "PENDING_REVIEW";
+              const bisaKerjakan = it.status !== "DONE" && it.status !== "PENDING_REVIEW";
               return (
                 <div key={it.id} className="py-2 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-2.5">
@@ -414,8 +416,6 @@ export default function PerbaikanMandorList({ items = [] }) {
           <h2 className="mb-2 text-sm font-bold text-gray-500">Riwayat Perbaikan</h2>
           <div className="space-y-2">
             {riwayatGroups.map((g) => {
-              const selesai = g.items.filter((it) => it.status === "DONE").length;
-              const dibatalkan = g.items.filter((it) => it.status === "CANCELLED").length;
               const terbuka = !!q.trim() || openRiwayat.has(g.proyek_id);
               return (
                 <div key={g.proyek_id} className="card overflow-hidden">
@@ -430,16 +430,9 @@ export default function PerbaikanMandorList({ items = [] }) {
                         <span className="truncate text-sm font-bold text-gray-700">{g.proyek}</span>
                       </span>
                       <span className="mt-0.5 flex flex-wrap items-center gap-1">
-                        {selesai > 0 && (
-                          <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
-                            {selesai} selesai
-                          </span>
-                        )}
-                        {dibatalkan > 0 && (
-                          <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
-                            {dibatalkan} dibatalkan
-                          </span>
-                        )}
+                        <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                          {g.items.length} selesai
+                        </span>
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-1.5 text-gray-400">

@@ -34,6 +34,10 @@ export default async function PerbaikanMandorPage() {
     .from("checklist_perbaikan")
     .select("id, proyek_id, no, uraian, foto_url, foto_bukti_url, video_url, video_bukti_url, periode, status, dibaca_mandor, catatan_tolak, created_at")
     .or(orParts.join(","))
+    // CANCELLED (dibatalkan Supervisor) disembunyikan total dari Mandor —
+    // sama pola dgn app/supervisor/perbaikan/page.jsx — tetap tercatat di
+    // riwayat Master.
+    .neq("status", "CANCELLED")
     .order("created_at", { ascending: false });
 
   // Nama proyek utk item yang di-assign manual ke proyek di luar daftar
