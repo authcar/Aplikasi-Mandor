@@ -143,7 +143,11 @@ export default async function AbsensiMasterPage() {
           <h2 className="mt-6 mb-2 font-bold text-gray-700">Dokumentasi ({fotos.length})</h2>
           <div className="grid grid-cols-3 gap-2">
             {fotos.map((f, i) => (
-              <FotoLightbox key={f.id} src={f.url} caption={`Dokumentasi ${i + 1} · ${tglLabel}`}>
+              <FotoLightbox
+                key={f.id}
+                items={fotos.map((ff, ii) => ({ src: ff.url, caption: `Dokumentasi ${ii + 1} · ${tglLabel}` }))}
+                index={i}
+              >
                 <img
                   src={f.url}
                   alt={`dokumentasi absensi ${i + 1}`}

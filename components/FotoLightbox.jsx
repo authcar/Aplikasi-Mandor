@@ -15,19 +15,49 @@ import Icon from "@/components/Icon";
 // di-hotlink tanpa OAuth -- jadi videonya dibuka di tab baru lewat viewer
 // Drive sendiri. Foto tetap tampil langsung (thumbnail Drive cukup buat
 // dilihat), dengan tautan tambahan buat lihat ukuran asli.
-export default function FotoLightbox({ src, driveUrl, caption, type = "foto", className = "", children }) {
+//
+// `items` + `index` (opsional) diisi kalau thumbnail ini bagian dari galeri
+// -- dengan itu overlay dapat tombol panah kiri/kanan buat geser antar
+// foto/video tanpa perlu nutup lalu buka thumbnail lain.
+export default function FotoLightbox({ src, driveUrl, caption, type = "foto", items, index = 0, className = "", children }) {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(index);
+
+  const galeri = items && items.length > 1 ? items : null;
+  const current = galeri ? galeri[activeIndex] : { src, driveUrl, caption, type };
+  const hasPrev = !!galeri && activeIndex > 0;
+  const hasNext = !!galeri && activeIndex < galeri.length - 1;
+
+  const goPrev = (e) => {
+    e.stopPropagation();
+    setActiveIndex((i) => Math.max(0, i - 1));
+  };
+  const goNext = (e) => {
+    e.stopPropagation();
+    setActiveIndex((i) => Math.min(galeri.length - 1, i + 1));
+  };
+
+  useEffect(() => {
+    if (open) setActiveIndex(index);
+  }, [open, index]);
 
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setOpen(false);
+      else if (e.key === "ArrowLeft" && hasPrev) setActiveIndex((i) => i - 1);
+      else if (e.key === "ArrowRight" && hasNext) setActiveIndex((i) => i + 1);
+    };
+    window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
+  }, [open, hasPrev, hasNext]);
 
-  const videoLewatDrive = type === "video" && !!driveUrl;
+  const videoLewatDrive = current.type === "video" && !!current.driveUrl;
 
   return (
     <>
@@ -35,7 +65,7 @@ export default function FotoLightbox({ src, driveUrl, caption, type = "foto", cl
         type="button"
         onClick={() => setOpen(true)}
         className={`block text-left ${className}`}
-        title={caption || "Lihat foto"}
+        title={caption || current.caption || "Lihat foto"}
       >
         {children}
       </button>
@@ -48,7 +78,8 @@ export default function FotoLightbox({ src, driveUrl, caption, type = "foto", cl
           >
             <div className="flex shrink-0 items-center justify-between px-4 py-3">
               <span className="truncate text-sm font-semibold text-white">
-                {caption || "Foto"}
+                {current.caption || "Foto"}
+                {galeri && ` (${activeIndex + 1}/${galeri.length})`}
               </span>
               <button
                 type="button"
@@ -63,16 +94,16 @@ export default function FotoLightbox({ src, driveUrl, caption, type = "foto", cl
             <div className="relative min-h-0 flex-1">
               {videoLewatDrive ? (
                 <>
-                  {src && (
+                  {current.src && (
                     <img
-                      src={src}
-                      alt={caption || "video"}
+                      src={current.src}
+                      alt={current.caption || "video"}
                       className="absolute inset-0 h-full w-full object-contain opacity-40"
                     />
                   )}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <a
-                      href={driveUrl}
+                      href={current.driveUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
@@ -83,9 +114,10 @@ export default function FotoLightbox({ src, driveUrl, caption, type = "foto", cl
                     </a>
                   </div>
                 </>
-              ) : type === "video" ? (
+              ) : current.type === "video" ? (
                 <video
-                  src={src}
+                  key={current.src}
+                  src={current.src}
                   controls
                   autoPlay
                   playsInline
@@ -94,21 +126,42 @@ export default function FotoLightbox({ src, driveUrl, caption, type = "foto", cl
                 />
               ) : (
                 <img
-                  src={src}
-                  alt={caption || "foto"}
+                  src={current.src}
+                  alt={current.caption || "foto"}
                   className="absolute inset-0 h-full w-full object-contain"
                 />
               )}
 
-              {!videoLewatDrive && driveUrl && (
+              {hasPrev && (
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="Sebelumnya"
+                  className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur active:bg-white/40"
+                >
+                  <Icon name="chevron-left" className="h-6 w-6" />
+                </button>
+              )}
+              {hasNext && (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="Berikutnya"
+                  className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur active:bg-white/40"
+                >
+                  <Icon name="chevron-right" className="h-6 w-6" />
+                </button>
+              )}
+
+              {!videoLewatDrive && current.driveUrl && (
                 <a
-                  href={driveUrl}
+                  href={current.driveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
                   className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-gray-800 shadow active:bg-white"
                 >
-                  Lihat ukuran asli di Google Drive
+                  Buka di Gdrive
                 </a>
               )}
             </div>

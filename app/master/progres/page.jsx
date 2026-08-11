@@ -62,11 +62,14 @@ export default async function ProgresFeedPage() {
             {labelTanggal(grup.tanggal)}
           </p>
           <div className="grid grid-cols-3 gap-2">
-            {grup.items.map((f) => (
+            {grup.items.map((f, i) => (
               <FotoLightbox
                 key={f.id}
-                src={f.url}
-                caption={`${f.proyek?.nama || "Proyek"} · ${jamFoto(f.created_at)}`}
+                items={grup.items.map((ff) => ({
+                  src: ff.url,
+                  caption: `${ff.proyek?.nama || "Proyek"} · ${jamFoto(ff.created_at)}`,
+                }))}
+                index={i}
               >
                 <img
                   src={f.url}
