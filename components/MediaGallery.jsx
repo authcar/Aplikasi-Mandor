@@ -2,8 +2,8 @@ import FotoLightbox from "@/components/FotoLightbox";
 import Icon from "@/components/Icon";
 
 // Galeri thumbnail scroll-horizontal, pengganti pola "avatar stack" lama
-// (maks 4 slot tetap) -- sekarang bisa N item (maks 5/jenis, lihat cap di
-// supabase/add_checklist_perbaikan_multi_media.sql). Dipakai di
+// (maks 4 slot tetap) -- sekarang bisa N item (maks 10/jenis, lihat cap di
+// supabase/fix_checklist_perbaikan_media_cap.sql). Dipakai di
 // PerbaikanForm, PerbaikanMandorList, dan PerbaikanList (master & finance).
 //
 // `m.url` selalu link gambar (thumbnail Google Drive kalau `m.driveUrl`

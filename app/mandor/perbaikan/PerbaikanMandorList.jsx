@@ -8,7 +8,7 @@ import MediaGallery from "@/components/MediaGallery";
 import KameraModal from "@/components/KameraModal";
 import VideoRecorderModal from "@/components/VideoRecorderModal";
 
-const MAX_MEDIA = 5;
+const MAX_MEDIA = 10;
 
 const STATUS_LABEL = {
   OPEN: { label: "Belum Dikerjakan", cls: "text-gray-400" },
