@@ -4,6 +4,14 @@ export const metadata = {
   title: "Taraco App",
   description: "Manajemen proyek lapangan untuk Mandor & Supervisor",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Taraco",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport = {
