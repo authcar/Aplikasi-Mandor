@@ -173,6 +173,11 @@ export default async function DashboardFinance() {
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Pos Biaya</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
+        <Link href="/finance/biaya-proyek" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+          <span className="icon-tile bg-emerald-100 text-emerald-600 !w-8 !h-8"><Icon name="wallet" /></span>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Biaya Proyek</p>
+          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
+        </Link>
       </div>
 
       <div className="card flex flex-col">
