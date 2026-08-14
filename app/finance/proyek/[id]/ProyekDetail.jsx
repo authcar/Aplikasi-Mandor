@@ -1,3 +1,4 @@
+import Link from "next/link";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import RiwayatLaporanHarianCard from "@/app/supervisor/laporan-harian/RiwayatLaporanHarianCard";
@@ -64,6 +65,20 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
           <p className="text-lg font-semibold">{proyek.mandor?.name || "— Belum ditetapkan —"}</p>
         </div>
       </div>
+
+      <Link
+        href={`/finance/proyek/${proyek.id}/biaya`}
+        className="card-tap mb-5 flex items-center gap-3 p-4"
+      >
+        <span className="icon-tile bg-emerald-100 text-emerald-600">
+          <Icon name="receipt" />
+        </span>
+        <div className="flex-1">
+          <p className="font-semibold text-sm">Biaya & Profit Proyek</p>
+          <p className="text-xs text-gray-500">Pos biaya, penerimaan klien, profit/loss</p>
+        </div>
+        <Icon name="chevron-right" className="h-4 w-4 text-gray-300" />
+      </Link>
 
       <div className="card p-4 mb-5 space-y-2">
         <p className="font-bold text-gray-700 text-sm">Laporan Terakhir</p>
