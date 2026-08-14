@@ -1,8 +1,9 @@
 "use client";
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import Icon from "@/components/Icon";
 import { rupiah } from "@/lib/format";
+
+const BUAT_POS_BARU = "__buat_pos_baru__";
 
 const todayStr = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
@@ -10,6 +11,7 @@ const tglPendek = (tgl) =>
   new Date(`${tgl}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
 export default function BiayaProyekManager({ proyekId, posList = [], initialBiaya = [], initialPenerimaan = [] }) {
+  const [pos, setPos] = useState(posList);
   const [biaya, setBiaya] = useState(initialBiaya);
   const [penerimaan, setPenerimaan] = useState(initialPenerimaan);
   const [tab, setTab] = useState("biaya");
@@ -22,6 +24,13 @@ export default function BiayaProyekManager({ proyekId, posList = [], initialBiay
   const [nominal, setNominal] = useState("");
   const [keterangan, setKeterangan] = useState("");
   const [tanggal, setTanggal] = useState(todayStr());
+
+  // Pos baru bisa langsung dibuat dari form Biaya (tanpa pindah ke halaman
+  // Pos Biaya) — lihat onPosChange & buatPosBaru di bawah.
+  const [posBaruMode, setPosBaruMode] = useState(false);
+  const [posBaruNama, setPosBaruNama] = useState("");
+  const [posBaruBusy, setPosBaruBusy] = useState(false);
+  const [posBaruErr, setPosBaruErr] = useState("");
 
   const totalBiaya = useMemo(() => biaya.reduce((s, b) => s + Number(b.nominal || 0), 0), [biaya]);
   const totalPenerimaan = useMemo(() => penerimaan.reduce((s, p) => s + Number(p.nominal || 0), 0), [penerimaan]);
@@ -44,6 +53,41 @@ export default function BiayaProyekManager({ proyekId, posList = [], initialBiay
     setNominal("");
     setKeterangan("");
     setTanggal(todayStr());
+    setPosBaruMode(false);
+    setPosBaruNama("");
+    setPosBaruErr("");
+  };
+
+  const onPosChange = (e) => {
+    const val = e.target.value;
+    if (val === BUAT_POS_BARU) {
+      setPosBaruMode(true);
+      setPosBaruNama("");
+      setPosBaruErr("");
+    } else {
+      setPosId(val);
+    }
+  };
+
+  const buatPosBaru = async () => {
+    const nama = posBaruNama.trim();
+    if (!nama) return;
+    setPosBaruBusy(true);
+    setPosBaruErr("");
+
+    const res = await fetch("/api/pos-biaya", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nama }),
+    });
+    const json = await res.json();
+    setPosBaruBusy(false);
+
+    if (!res.ok) return setPosBaruErr(json.error || "Gagal membuat pos.");
+
+    setPos((list) => [...list, json].sort((a, b) => a.nama.localeCompare(b.nama)));
+    setPosId(json.id);
+    setPosBaruMode(false);
   };
 
   const submit = async (e) => {
@@ -68,7 +112,7 @@ export default function BiayaProyekManager({ proyekId, posList = [], initialBiay
     if (!res.ok) return setErr(json.error || "Gagal menyimpan.");
 
     if (tab === "biaya") {
-      const posNama = posList.find((p) => p.id === posId)?.nama || "";
+      const posNama = pos.find((p) => p.id === posId)?.nama || "";
       setBiaya((list) => [{ ...json, pos: { nama: posNama } }, ...list]);
     } else {
       setPenerimaan((list) => [json, ...list]);
@@ -147,17 +191,10 @@ export default function BiayaProyekManager({ proyekId, posList = [], initialBiay
         </button>
       </div>
 
-      {tab === "biaya" && posList.length === 0 && !showForm && (
-        <p className="mb-3 text-center text-xs text-gray-400">
-          Belum ada pos biaya aktif. <Link href="/finance/pos-biaya" className="font-semibold text-brand">Tambah pos biaya</Link> dulu.
-        </p>
-      )}
-
       {!showForm ? (
         <button
           onClick={() => bukaForm(tab)}
-          disabled={tab === "biaya" && posList.length === 0}
-          className="btn-primary btn-lg mb-4 w-full flex items-center justify-center gap-2 disabled:opacity-40"
+          className="btn-primary btn-lg mb-4 w-full flex items-center justify-center gap-2"
         >
           <Icon name="plus" className="h-5 w-5" />
           {tab === "biaya" ? "Tambah Biaya" : "Tambah Penerimaan"}
@@ -167,12 +204,43 @@ export default function BiayaProyekManager({ proyekId, posList = [], initialBiay
           {tab === "biaya" && (
             <div>
               <label className="label">Pos Biaya</label>
-              <select value={posId} onChange={(e) => setPosId(e.target.value)} className="input text-lg" required>
-                <option value="" disabled>Pilih pos</option>
-                {posList.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nama}</option>
-                ))}
-              </select>
+              {!posBaruMode ? (
+                <select value={posId} onChange={onPosChange} className="input text-lg" required>
+                  <option value="" disabled>{pos.length ? "Pilih pos" : "Belum ada pos — buat baru"}</option>
+                  {pos.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nama}</option>
+                  ))}
+                  <option value={BUAT_POS_BARU}>+ Tambah pos baru...</option>
+                </select>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={posBaruNama}
+                      onChange={(e) => setPosBaruNama(e.target.value)}
+                      placeholder="mis. Beli Bahan"
+                      className="input text-lg"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={buatPosBaru}
+                      disabled={posBaruBusy || !posBaruNama.trim()}
+                      className="btn-primary shrink-0 px-4 py-2.5 text-sm disabled:opacity-40"
+                    >
+                      {posBaruBusy ? "..." : "Buat"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPosBaruMode(false); setPosBaruErr(""); }}
+                      className="shrink-0 rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-600"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                  {posBaruErr && <p className="mt-1.5 text-sm font-medium text-red-600">{posBaruErr}</p>}
+                </div>
+              )}
             </div>
           )}
           <div>
