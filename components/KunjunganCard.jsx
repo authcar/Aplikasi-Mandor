@@ -15,6 +15,9 @@ import Icon from "@/components/Icon";
 // ini hanya mengambil koordinat dari perangkat dan menampilkan jawabannya —
 // jangan pindahkan pengecekan radius ke sini.
 
+const AKURASI_CUKUP = 30;    // meter — berhenti mencari kalau sudah setajam ini
+const TUNGGU_MAKS_MS = 12000; // batas menunggu GPS mengunci
+
 function formatJam(iso) {
   if (!iso) return "--:--";
   return new Date(iso).toLocaleTimeString("id-ID", {
@@ -56,14 +59,63 @@ export default function KunjunganCard({ proyeks = [], kunjunganBerjalan = null }
     setTimeout(() => setPesan(null), 5000);
   };
 
+  // GPS butuh beberapa detik untuk mengunci satelit: pembacaan PERTAMA
+  // biasanya masih dari menara seluler (±100-1000 m), lalu menyempit tajam.
+  // getCurrentPosition mengembalikan pembacaan pertama itu dan langsung
+  // selesai — hasilnya absen ditolak terus padahal orangnya benar berdiri di
+  // lokasi. Jadi di sini dipakai watchPosition: ambil pembacaan TERBAIK dalam
+  // beberapa detik, dan berhenti lebih awal begitu sudah cukup tajam.
   const ambilPosisi = () =>
     new Promise((resolve, reject) => {
       if (!navigator.geolocation) return reject(new Error("Perangkat ini tidak mendukung GPS"));
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve(pos.coords),
-        () => reject(new Error("Izinkan akses lokasi terlebih dahulu")),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+
+      let terbaik = null;
+      let selesai = false;
+
+      const tutup = () => {
+        selesai = true;
+        navigator.geolocation.clearWatch(watchId);
+        clearTimeout(batas);
+      };
+
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          if (selesai) return;
+          if (!terbaik || pos.coords.accuracy < terbaik.accuracy) {
+            terbaik = pos.coords;
+            setPesan({ teks: `Mencari sinyal GPS… (±${Math.round(terbaik.accuracy)}m)`, jenis: "info" });
+          }
+          if (terbaik.accuracy <= AKURASI_CUKUP) {
+            tutup();
+            resolve(terbaik);
+          }
+        },
+        (err) => {
+          if (selesai) return;
+          // Kalau sempat dapat pembacaan kasar sebelum error, pakai itu —
+          // biar server yang memutuskan cukup atau tidak.
+          if (terbaik) {
+            tutup();
+            return resolve(terbaik);
+          }
+          tutup();
+          reject(
+            new Error(
+              err.code === 1
+                ? "Izinkan akses lokasi terlebih dahulu"
+                : "GPS tidak bisa dibaca. Pastikan Lokasi aktif di HP."
+            )
+          );
+        },
+        { enableHighAccuracy: true, timeout: TUNGGU_MAKS_MS, maximumAge: 0 }
       );
+
+      const batas = setTimeout(() => {
+        if (selesai) return;
+        tutup();
+        if (terbaik) resolve(terbaik);
+        else reject(new Error("GPS tidak merespons. Coba di luar ruangan."));
+      }, TUNGGU_MAKS_MS);
     });
 
   const kirim = async (mode, { setTitik = false } = {}) => {
@@ -209,9 +261,11 @@ export default function KunjunganCard({ proyeks = [], kunjunganBerjalan = null }
                 ? "text-red-600"
                 : pesan?.jenis === "sukses"
                   ? "text-green-600"
-                  : berjalan
-                    ? "text-amber-600"
-                    : "text-gray-500"
+                  : pesan?.jenis === "info"
+                    ? "text-brand"
+                    : berjalan
+                      ? "text-amber-600"
+                      : "text-gray-500"
             }`}
           >
             {pesan?.teks || (berjalan ? "Sedang di lokasi" : "Tap untuk absen masuk")}

@@ -21,11 +21,19 @@ const supabaseAdmin = createAdminClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-// GPS ponsel di dalam gedung gampang meleset 30-50 m. Akurasi yang lebih
-// buruk dari ini ditolak supaya titik proyek tidak ditetapkan dari fix yang
-// ngawur, dan supaya "lolos radius karena kebetulan akurasinya 2 km" tidak
-// terjadi.
-const AKURASI_MAKS_METER = 100;
+// Batas akurasi GPS, bertingkat — bukan satu angka keras.
+//
+// Akurasi ±X artinya "posisi sebenarnya ada di suatu tempat dalam lingkaran
+// X meter dari titik ini". Jadi angkanya cuma berarti kalau dibandingkan
+// dengan apa yang sedang diputuskan:
+//
+//   • > 500 m  : itu bukan fix GPS sama sekali — browser menebak dari IP atau
+//                daftar WiFi. Ditolak, tidak ada yang bisa disimpulkan.
+//   • set titik: dibatasi lebih ketat, karena error titik acuan diwariskan ke
+//                SEMUA kunjungan sesudahnya di proyek itu.
+//   • cek radius: dipakai sebagai toleransi (lihat di bawah), bukan penolakan.
+const AKURASI_BUKAN_GPS = 500;
+const AKURASI_MAKS_SET_TITIK = 100;
 
 const ambilProyek = (id) =>
   supabaseAdmin
@@ -43,8 +51,12 @@ function bacaKoordinat(body) {
   if (!koordinatValid(lat, lng)) return { error: "Koordinat tidak valid" };
   if (akurasi != null && (!Number.isFinite(akurasi) || akurasi < 0))
     return { error: "Akurasi tidak valid" };
-  if (akurasi != null && akurasi > AKURASI_MAKS_METER)
-    return { error: `Sinyal GPS terlalu lemah (±${Math.round(akurasi)}m). Coba di area terbuka.` };
+  if (akurasi != null && akurasi > AKURASI_BUKAN_GPS)
+    return {
+      error:
+        `Lokasi tidak akurat (±${Math.round(akurasi)}m). Ini biasanya berarti GPS mati atau ` +
+        `Anda memakai laptop — absen kunjungan harus dari HP dengan GPS aktif.`,
+    };
 
   return { lat, lng, akurasi };
 }
@@ -93,6 +105,16 @@ export async function POST(req) {
     // HARUS lewat konfirmasi terpisah di UI — kalau tidak, seseorang yang
     // absen dari luar lokasi diam-diam mengunci titik yang salah untuk
     // semua orang setelahnya. Master bisa mereset lewat detail proyek.
+    if (akurasi != null && akurasi > AKURASI_MAKS_SET_TITIK)
+      return NextResponse.json(
+        {
+          error:
+            `Akurasi ±${Math.round(akurasi)}m belum cukup untuk menetapkan titik proyek ` +
+            `(butuh ±${AKURASI_MAKS_SET_TITIK}m). Coba di luar ruangan, tunggu beberapa detik, lalu ulangi.`,
+        },
+        { status: 422 }
+      );
+
     if (!body?.set_titik)
       return NextResponse.json(
         { perlu_set_titik: true, proyek: { id: proyek.id, nama: proyek.nama, lokasi: proyek.lokasi } },
@@ -105,7 +127,11 @@ export async function POST(req) {
       .eq("id", proyek.id);
   } else {
     const jarak = hitungJarak(lat, lng, proyek.lat, proyek.lng);
-    if (jarak > proyek.radius_meter)
+    // Akurasi jadi toleransi: ditolak hanya kalau BAHKAN dengan memberi
+    // keuntungan sebesar margin error GPS pun posisinya masih di luar radius.
+    // Menolak berdasarkan jarak mentah membuat orang yang benar-benar berdiri
+    // di lokasi ikut ditolak setiap kali sinyalnya sedang jelek.
+    if (jarak - (akurasi || 0) > proyek.radius_meter)
       return NextResponse.json(
         {
           error: `Anda ${Math.round(jarak)}m dari ${proyek.nama}. Absen hanya bisa dalam radius ${proyek.radius_meter}m.`,
@@ -168,7 +194,7 @@ export async function PATCH(req) {
   let catatan = null;
   if (proyek?.lat != null && proyek?.lng != null) {
     const jarak = hitungJarak(lat, lng, proyek.lat, proyek.lng);
-    if (jarak > proyek.radius_meter) {
+    if (jarak - (akurasi || 0) > proyek.radius_meter) {
       status = "TIDAK_SAH";
       catatan = `Absen keluar dari ${Math.round(jarak)}m di luar radius ${proyek.radius_meter}m.`;
     }
