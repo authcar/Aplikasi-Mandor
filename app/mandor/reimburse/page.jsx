@@ -1,5 +1,6 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import ReimburseForm from "./ReimburseForm";
+import { getProyekMandor } from "@/lib/supabase/proyekMandor";
 
 export const dynamic = "force-dynamic";
 
@@ -8,12 +9,7 @@ const HALAMAN = 10;
 export default async function ReimbursePage() {
   const { profile, supabase } = await getSessionProfile();
 
-  const { data: proyeks } = await supabase
-    .from("proyek")
-    .select("id, nama")
-    .eq("mandor_id", profile.id)
-    .eq("is_active", true)
-    .order("nama");
+  const proyeks = await getProyekMandor(supabase, profile.id);
 
   // Riwayat pengajuan reimburse mandor ini di semua proyeknya (terbaru dulu).
   const { data: riwayat } = await supabase
@@ -32,5 +28,5 @@ export default async function ReimbursePage() {
     await supabase.from("keuangan").update({ dibaca_pemohon: true }).in("id", belumDibaca);
   }
 
-  return <ReimburseForm proyeks={proyeks || []} riwayat={daftar} />;
+  return <ReimburseForm proyeks={proyeks} riwayat={daftar} />;
 }

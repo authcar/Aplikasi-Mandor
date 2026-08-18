@@ -1,20 +1,16 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import BackButton from "@/components/BackButton";
 import TukangHarianManager from "@/components/TukangHarianManager";
+import { getProyekMandor } from "@/lib/supabase/proyekMandor";
 
 export const dynamic = "force-dynamic";
 
 export default async function TukangHarianMandorPage() {
   const { profile, supabase } = await getSessionProfile();
 
-  const { data: proyekList } = await supabase
-    .from("proyek")
-    .select("id, nama")
-    .eq("mandor_id", profile.id)
-    .eq("is_active", true)
-    .order("nama");
+  const proyekList = await getProyekMandor(supabase, profile.id);
 
-  const proyekIds = (proyekList || []).map((p) => p.id);
+  const proyekIds = proyekList.map((p) => p.id);
 
   const { data: workers } = proyekIds.length
     ? await supabase
@@ -37,7 +33,7 @@ export default async function TukangHarianMandorPage() {
         </p>
       </header>
 
-      {proyekList?.length ? (
+      {proyekList.length ? (
         <TukangHarianManager
           proyekList={proyekList}
           initialWorkers={workers || []}

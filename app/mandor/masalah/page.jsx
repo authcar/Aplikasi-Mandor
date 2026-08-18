@@ -1,18 +1,14 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import MasalahForm from "./MasalahForm";
+import { getProyekMandor } from "@/lib/supabase/proyekMandor";
 
 export const dynamic = "force-dynamic";
 
 export default async function MasalahPage() {
   const { profile, supabase } = await getSessionProfile();
 
-  const [{ data: proyeks }, { data: rows }] = await Promise.all([
-    supabase
-      .from("proyek")
-      .select("id, nama")
-      .eq("mandor_id", profile.id)
-      .eq("is_active", true)
-      .order("nama"),
+  const [proyeks, { data: rows }] = await Promise.all([
+    getProyekMandor(supabase, profile.id),
     supabase
       .from("masalah")
       .select("id, judul, material, jumlah, satuan, urgensi, deskripsi, status, created_at, dibaca_pelapor, proyek(nama)")
@@ -39,5 +35,5 @@ export default async function MasalahPage() {
     proyek: r.proyek?.nama || null,
   }));
 
-  return <MasalahForm proyeks={proyeks || []} laporan={laporan} />;
+  return <MasalahForm proyeks={proyeks} laporan={laporan} />;
 }

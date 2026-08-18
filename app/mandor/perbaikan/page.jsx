@@ -2,6 +2,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import BackButton from "@/components/BackButton";
 import PerbaikanMandorList from "./PerbaikanMandorList";
 import { gabungkanMediaPerbaikan } from "@/lib/perbaikanMedia";
+import { getProyekMandor } from "@/lib/supabase/proyekMandor";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +17,7 @@ export const dynamic = "force-dynamic";
 export default async function PerbaikanMandorPage() {
   const { profile, supabase } = await getSessionProfile();
 
-  const { data: proyekList } = await supabase
-    .from("proyek")
-    .select("id, nama")
-    .eq("mandor_id", profile.id)
-    .eq("is_active", true)
-    .order("nama");
-
-  const proyeks = proyekList || [];
+  const proyeks = await getProyekMandor(supabase, profile.id);
   const proyekMap = Object.fromEntries(proyeks.map((p) => [p.id, p.nama]));
   const proyekIds = proyeks.map((p) => p.id);
 

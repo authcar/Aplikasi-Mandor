@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
+import { getProyekMandor } from "@/lib/supabase/proyekMandor";
 import { rupiah, tglID, labelDeadlineProyek } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import ProyekSwitcher from "./ProyekSwitcher";
@@ -22,14 +23,11 @@ export default async function DashboardMandor({ searchParams }) {
   );
   const sapa = jam < 11 ? "Selamat Pagi" : jam < 15 ? "Selamat Siang" : jam < 19 ? "Selamat Sore" : "Selamat Malam";
 
-  const { data: proyekList } = await supabase
-    .from("proyek")
-    .select("id, nama, lokasi, nilai_proyek, sisa_budget, deadline")
-    .eq("mandor_id", profile.id)
-    .eq("is_active", true)
-    .order("nama");
-
-  const list = proyekList || [];
+  const list = await getProyekMandor(
+    supabase,
+    profile.id,
+    "id, nama, lokasi, nilai_proyek, sisa_budget, deadline"
+  );
   // Proyek terpilih: dari ?proyek=, jika tidak valid pakai yang pertama.
   const proyek = list.find((p) => p.id === searchParams?.proyek) || list[0] || null;
   const deadlineProyek = proyek ? labelDeadlineProyek(proyek.deadline) : null;

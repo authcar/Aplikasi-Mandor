@@ -5,9 +5,12 @@ import { sendPush } from "@/lib/push";
 // POST /api/perbaikan/notify-review — dipanggil dari PerbaikanForm
 // (Supervisor) setelah menyetujui/menolak bukti pengerjaan, buat push
 // notification browser ke Mandor yang bersangkutan. Target-nya
-// assigned_mandor_id kalau item ini di-assign manual, kalau tidak fallback
-// ke proyek.mandor_id (sama seperti pola visibilitas di
-// supabase/add_checklist_assigned_mandor.sql). Sama seperti /api/notify:
+// assigned_mandor_id kalau item ini di-assign manual, kalau tidak SEMUA
+// mandor proyek tsb (proyek_mandor — 1 proyek bisa dipegang >1 mandor,
+// lihat lib/supabase/proyekMandor.js), sama seperti pola visibilitas di
+// supabase/add_checklist_assigned_mandor.sql. proyek.mandor_id tetap ikut
+// di-OR supaya proyek lokal manual yang tidak punya baris proyek_mandor
+// tetap kebagian. Sama seperti /api/notify:
 // gagal di sini tidak menandakan status gagal tersimpan — data checklist
 // sudah tersimpan sebelum ini dipanggil, endpoint ini pelengkap.
 // body: { id, status: 'DONE'|'OPEN', alasan? }
@@ -21,14 +24,25 @@ export async function POST(req) {
 
   const { data: item } = await supabase
     .from("checklist_perbaikan")
-    .select("uraian, assigned_mandor_id, proyek:proyek_id(mandor_id)")
+    .select("uraian, proyek_id, assigned_mandor_id, proyek:proyek_id(mandor_id)")
     .eq("id", id)
     .maybeSingle();
 
-  const targetMandorId = item?.assigned_mandor_id || item?.proyek?.mandor_id;
-  if (!targetMandorId) return NextResponse.json({ ok: false });
+  let target = [];
+  if (item?.assigned_mandor_id) {
+    target = [item.assigned_mandor_id];
+  } else if (item?.proyek_id) {
+    const { data: pasangan } = await supabase
+      .from("proyek_mandor")
+      .select("mandor_id")
+      .eq("proyek_id", item.proyek_id);
+    target = [
+      ...new Set([...(pasangan || []).map((r) => r.mandor_id), item?.proyek?.mandor_id].filter(Boolean)),
+    ];
+  }
+  if (!target.length) return NextResponse.json({ ok: false });
 
-  const ok = await sendPush(targetMandorId, {
+  const ok = await sendPush(target, {
     title: status === "DONE" ? "Bukti pengerjaan disetujui" : "Bukti pengerjaan ditolak",
     body: `${item.uraian}${status === "OPEN" && alasan ? ` — ${alasan}` : ""}`,
     url: "/mandor/perbaikan",

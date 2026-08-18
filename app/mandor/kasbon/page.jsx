@@ -1,13 +1,14 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import KasbonForm from "./KasbonForm";
+import { getProyekMandor } from "@/lib/supabase/proyekMandor";
 
 export const dynamic = "force-dynamic";
 
 export default async function KasbonMandorPage() {
   const { profile, supabase } = await getSessionProfile();
 
-  const [{ data: proyekList }, { data: riwayat }] = await Promise.all([
-    supabase.from("proyek").select("id, nama").eq("mandor_id", profile.id).eq("is_active", true).order("nama"),
+  const [proyekList, { data: riwayat }] = await Promise.all([
+    getProyekMandor(supabase, profile.id),
     supabase
       .from("keuangan")
       .select("id, nominal, keterangan, status, catatan_tolak, created_at, dibaca_pemohon")
@@ -24,6 +25,6 @@ export default async function KasbonMandorPage() {
   }
 
   return (
-    <KasbonForm proyekList={proyekList || []} riwayat={riwayat || []} />
+    <KasbonForm proyekList={proyekList} riwayat={riwayat || []} />
   );
 }
