@@ -10,6 +10,10 @@ export const metadata = {
     title: "Taraco",
   },
   icons: {
+    // `icon` WAJIB disebut di sini: begitu metadata.icons diisi, Next berhenti
+    // memakai konvensi file app/icon.svg, jadi tanpa baris ini tab browser
+    // tidak dapat <link rel="icon"> sama sekali (dan /favicon.ico 404).
+    icon: "/icon.svg",
     apple: "/apple-touch-icon.png",
   },
 };
