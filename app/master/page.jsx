@@ -175,6 +175,11 @@ export default async function DashboardMaster() {
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Biaya Proyek</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
+        <Link href="/master/kunjungan" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+          <span className="icon-tile bg-sky-100 text-sky-600 !w-8 !h-8"><Icon name="map-pin" /></span>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Kunjungan SPV</p>
+          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
+        </Link>
       </div>
 
       <ProyekSayaCard proyek={proyek || []} basePath="/master/proyek" />

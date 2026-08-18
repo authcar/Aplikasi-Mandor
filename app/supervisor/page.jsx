@@ -155,6 +155,18 @@ export default async function DashboardSupervisor() {
             </p>
           </Link>
 
+          <Link
+            href="/supervisor/kunjungan"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
+          >
+            <span className="icon-tile !rounded-full bg-emerald-100 text-emerald-600">
+              <Icon name="map-pin" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Riwayat Kunjungan
+            </p>
+          </Link>
+
           <LockedTile label="Laporan Harian" gap="gap-1" />
           <LockedTile label="Absensi Tukang" gap="gap-1" />
           <LockedTile label="Kurang Material" gap="gap-1" />
