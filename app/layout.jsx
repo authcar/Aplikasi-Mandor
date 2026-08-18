@@ -13,7 +13,9 @@ export const metadata = {
     // `icon` WAJIB disebut di sini: begitu metadata.icons diisi, Next berhenti
     // memakai konvensi file app/icon.svg, jadi tanpa baris ini tab browser
     // tidak dapat <link rel="icon"> sama sekali (dan /favicon.ico 404).
-    icon: "/icon.svg",
+    // favicon.png = logo Taraco yang sama persis dengan yang dipakai
+    // Taraco-Project-Management (index.html: rel="icon" -> /favicon.png).
+    icon: "/favicon.png",
     apple: "/apple-touch-icon.png",
   },
 };
