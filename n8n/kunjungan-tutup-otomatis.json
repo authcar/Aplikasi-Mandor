@@ -1,0 +1,61 @@
+{
+  "name": "Kunjungan Supervisor -> Tutup Otomatis (jam 17:00)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Setup checklist\nMenutup kunjungan Supervisor yang diabsen masuk tapi tidak pernah diabsen keluar. Yang ditutup ditandai TIDAK_SAH dengan `selesai_at` = jam 17:00 WIB hari kunjungan itu (lihat app/api/kunjungan/tutup-otomatis).\n\n1. Buka node **Config**, isi `appBaseUrl` (URL app, TANPA garis miring di akhir) dan `callbackSecret` (harus SAMA PERSIS dengan `N8N_CALLBACK_SECRET` di .env.local — sama dengan yang dipakai workflow Defect List).\n2. Klik **Activate**.\n3. Test manual: \"Execute Workflow\" sekali, responsnya `{ ok: true, diperiksa: N, ditutup: N }`.\n\n### PENTING — zona waktu\n`triggerAtHour` memakai zona waktu instance n8n Anda, BUKAN WIB. Kalau instance-nya UTC, isi 10 (10:00 UTC = 17:00 WIB). Cek di n8n: Settings > Timezone.\n\nSalah jam TIDAK merusak data: `selesai_at` selalu dihitung server sebagai jam 17:00 WIB hari kunjungan tsb, bukan jam saat workflow jalan. Efeknya cuma penutupannya telat.\n\nWorkflow ini bukan satu-satunya penyelamat — jalur absen masuk di app juga menutup kunjungan basi milik orang yang sedang absen, jadi kalau workflow mati, supervisor tidak sampai terkunci.",
+        "height": 460,
+        "width": 460
+      },
+      "id": "note-setup",
+      "name": "Setup Checklist",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [ -400, -280 ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [ { "field": "hours", "hoursInterval": 24, "triggerAtHour": 17, "triggerAtMinute": 5 } ]
+        }
+      },
+      "id": "schedule",
+      "name": "Jadwal Harian 17:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [ -400, 40 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    // GANTI kedua nilai ini — sama dengan workflow Defect List\n    appBaseUrl: \"ISI_DENGAN_URL_APP_ANDA\",\n    callbackSecret: \"ISI_DENGAN_N8N_CALLBACK_SECRET_DARI_ENV_LOCAL\",\n  },\n}];"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ -160, 40 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.appBaseUrl }}/api/kunjungan/tutup-otomatis",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [ { "name": "x-n8n-secret", "value": "={{ $json.callbackSecret }}" } ]
+        },
+        "options": {}
+      },
+      "id": "run-tutup",
+      "name": "Tutup Kunjungan Menggantung",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 80, 40 ]
+    }
+  ],
+  "connections": {
+    "Jadwal Harian 17:00": { "main": [ [ { "node": "Config", "type": "main", "index": 0 } ] ] },
+    "Config": { "main": [ [ { "node": "Tutup Kunjungan Menggantung", "type": "main", "index": 0 } ] ] }
+  },
+  "pinData": {},
+  "meta": { "instanceId": "kunjungan-tutup-otomatis" }
+}

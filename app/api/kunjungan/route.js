@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { hitungJarak, koordinatValid } from "@/lib/geo";
+import { nilaiKunjungan, sudahKedaluwarsa, batasTutupOtomatis } from "@/lib/kunjunganAturan";
 
 // Absensi kunjungan Supervisor ke proyek.
 //
@@ -61,6 +62,21 @@ function bacaKoordinat(body) {
   return { lat, lng, akurasi };
 }
 
+// Tutup satu kunjungan yang sudah lewat jam potong. Dipakai di jalur
+// check-in; jadwal n8n memakai versi massalnya di
+// app/api/kunjungan/tutup-otomatis.
+async function tutupKedaluwarsa(kunjungan) {
+  await supabaseAdmin
+    .from("kunjungan_supervisor")
+    .update({
+      selesai_at: batasTutupOtomatis(kunjungan.mulai_at).toISOString(),
+      status: "TIDAK_SAH",
+      catatan_sistem: "Tidak absen keluar — ditutup otomatis jam 17:00.",
+    })
+    .eq("id", kunjungan.id)
+    .eq("status", "BERJALAN");
+}
+
 // ============ CHECK-IN ============
 // body: { proyek_id, lat, lng, accuracy?, set_titik? }
 export async function POST(req) {
@@ -88,11 +104,18 @@ export async function POST(req) {
   // sini supaya pesannya bisa menyebut proyek mana yang masih terbuka.
   const { data: berjalan } = await supabaseAdmin
     .from("kunjungan_supervisor")
-    .select("id, proyek:proyek_id(nama)")
+    .select("id, mulai_at, proyek:proyek_id(nama)")
     .eq("profile_id", profile.id)
     .eq("status", "BERJALAN")
     .maybeSingle();
-  if (berjalan)
+
+  // Kunjungan kemarin yang lupa diabsen keluar ditutup di sini juga, bukan
+  // cuma oleh jadwal n8n. Kalau hanya mengandalkan jadwal, sekali saja
+  // workflow-nya mati/telat, supervisor terkunci tidak bisa absen masuk di
+  // mana pun — unique index melarang dua kunjungan berjalan sekaligus.
+  if (berjalan && sudahKedaluwarsa(berjalan.mulai_at)) {
+    await tutupKedaluwarsa(berjalan);
+  } else if (berjalan)
     return NextResponse.json(
       { error: `Masih ada kunjungan berjalan di ${berjalan.proyek?.nama || "proyek lain"}. Absen keluar dulu.` },
       { status: 409 }
@@ -190,20 +213,26 @@ export async function PATCH(req) {
   // mana pun lagi. Menutup kunjungan sambil mencatat pelanggarannya jauh
   // lebih berguna daripada memaksa dia kembali ke lokasi cuma untuk menekan
   // tombol.
-  let status = "SELESAI";
-  let catatan = null;
+  const selesaiAt = new Date();
+  const menit = (selesaiAt - new Date(kunjungan.mulai_at)) / 60000;
+
+  // Jarak dihitung dengan toleransi akurasi, sama seperti saat absen masuk —
+  // supaya sinyal jelek tidak menghukum orang yang benar-benar di lokasi.
+  let jarakEfektif = null;
   if (proyek?.lat != null && proyek?.lng != null) {
-    const jarak = hitungJarak(lat, lng, proyek.lat, proyek.lng);
-    if (jarak - (akurasi || 0) > proyek.radius_meter) {
-      status = "TIDAK_SAH";
-      catatan = `Absen keluar dari ${Math.round(jarak)}m di luar radius ${proyek.radius_meter}m.`;
-    }
+    jarakEfektif = Math.max(0, hitungJarak(lat, lng, proyek.lat, proyek.lng) - (akurasi || 0));
   }
+
+  const { status, catatan } = nilaiKunjungan({
+    menit,
+    jarakKeluar: jarakEfektif,
+    radiusMeter: proyek?.radius_meter ?? null,
+  });
 
   const { data, error } = await supabaseAdmin
     .from("kunjungan_supervisor")
     .update({
-      selesai_at: new Date().toISOString(),
+      selesai_at: selesaiAt.toISOString(),
       lat_keluar: lat,
       lng_keluar: lng,
       akurasi_keluar: akurasi,
