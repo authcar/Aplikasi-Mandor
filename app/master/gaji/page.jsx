@@ -2,7 +2,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { rupiah } from "@/lib/format";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
-import NilaiJasaList from "./NilaiJasaList";
+import NilaiJasaList from "@/components/NilaiJasaList";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export default async function DompetMasterPage() {
       </div>
 
       {/* Per-Project Budget List */}
-      <NilaiJasaList proyek={proyek || []} />
+      <NilaiJasaList proyek={proyek || []} basePath="/master/proyek" />
     </main>
   );
 }

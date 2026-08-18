@@ -1,24 +1,13 @@
 "use client";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { hitungJarak } from "@/lib/geo";
 
 const TARGET = { lat: -6.215008633327863, lng: 106.73600688186137 };
 const RADIUS_METER = 500;
 const JAM_MASUK = 8;   // 08:00 WIB
 const JAM_PULANG = 17; // 17:00 WIB
 const TOLERANSI_TELAT_JAM = 0.5; // 30 menit toleransi sebelum dianggap telat
-
-function hitungJarak(lat1, lng1, lat2, lng2) {
-  const R = 6371000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 function jamWIB() {
   return new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta", hour: "numeric", hour12: false });

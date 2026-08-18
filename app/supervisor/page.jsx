@@ -5,6 +5,7 @@ import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
 import StreakWidget from "@/components/StreakWidget";
 import ProyekSayaCard from "@/components/ProyekSayaCard";
+import KunjunganCard from "@/components/KunjunganCard";
 import LockedTile from "@/components/LockedTile";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,7 @@ export default async function DashboardSupervisor() {
     { data: potongan },
     { data: checkin },
     { data: laporanBulanIni },
+    { data: kunjunganBerjalan },
   ] = await Promise.all([
     // Cuma bukti pengerjaan Mandor yang benar-benar menunggu keputusan
     // Supervisor (Disetujui/Tidak Disetujui) — konsisten dengan badge yang
@@ -93,6 +95,15 @@ export default async function DashboardSupervisor() {
           .in("proyek_id", proyekIds)
           .gte("tanggal", bulanIni)
       : Promise.resolve({ data: [] }),
+    // Kunjungan yang masih terbuka — kartu absen kunjungan perlu tahu apakah
+    // supervisor ini sedang berada di suatu proyek. Dijamin paling satu baris
+    // oleh unique index idx_kunjungan_satu_berjalan.
+    supabase
+      .from("kunjungan_supervisor")
+      .select("id, proyek_id, mulai_at")
+      .eq("profile_id", profile.id)
+      .eq("status", "BERJALAN")
+      .maybeSingle(),
   ]);
   const perbaikanAktif = pb || 0;
   const totalProyekAktif = proyekIds.length;
@@ -161,6 +172,9 @@ export default async function DashboardSupervisor() {
           totalProyek={totalProyekAktif}
         />
       </div>
+
+      {/* Absensi kunjungan ke proyek */}
+      <KunjunganCard proyeks={proyek || []} kunjunganBerjalan={kunjunganBerjalan || null} />
 
       {/* Proyek */}
       <ProyekSayaCard proyek={proyek || []} basePath="/supervisor/proyek" />

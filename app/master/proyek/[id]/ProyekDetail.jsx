@@ -3,6 +3,7 @@ import { rupiah } from "@/lib/format";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import RiwayatLaporanHarianCard from "@/app/supervisor/laporan-harian/RiwayatLaporanHarianCard";
+import TitikProyekCard from "@/components/TitikProyekCard";
 
 // Sama dengan STATUS_BADGE di app/supervisor/laporan-harian/RiwayatLaporanHarianCard.jsx
 const STATUS_BADGE = {
@@ -40,6 +41,8 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
           </p>
         </div>
       </header>
+
+      <TitikProyekCard proyek={proyek} />
 
       <div className="card p-4 mb-5 flex items-center justify-between">
         <div>

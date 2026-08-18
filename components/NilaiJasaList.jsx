@@ -7,7 +7,9 @@ import Icon from "@/components/Icon";
 // Search + dropdown filter proyek — daftar tetap nampilin semua baris
 // (biar nilai jasa antar-proyek masih bisa dibandingkan sekilas), cuma
 // jadi bisa disaring lewat ketik nama/lokasi/mandor atau pilih 1 proyek.
-export default function NilaiJasaList({ proyek = [] }) {
+// Dipakai bareng oleh halaman Gaji milik Master & Finance — cuma beda
+// tujuan link, makanya basePath jadi prop (pola sama dgn ProyekSayaCard).
+export default function NilaiJasaList({ proyek = [], basePath }) {
   const [cari, setCari] = useState("");
   const [proyekFilter, setProyekFilter] = useState("");
 
@@ -64,7 +66,7 @@ export default function NilaiJasaList({ proyek = [] }) {
           {filtered.map((p) => (
             <Link
               key={p.id}
-              href={`/master/proyek/${p.id}`}
+              href={`${basePath}/${p.id}`}
               className="flex items-center gap-3 px-4 py-3 active:bg-gray-50"
             >
               <span className="icon-tile !h-9 !w-9 shrink-0 bg-brand-50 text-brand-600">

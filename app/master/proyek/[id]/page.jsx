@@ -14,7 +14,7 @@ export default async function ProyekDetailMasterPage({ params }) {
   const [{ data: proyek }, { data: absensiTim }, { data: riwayatRows }] = await Promise.all([
     supabase
       .from("proyek")
-      .select("id, nama, lokasi, icon, nilai_proyek, sisa_budget, mandor:mandor_id(name), supervisor:supervisor_id(name)")
+      .select("id, nama, lokasi, icon, nilai_proyek, sisa_budget, lat, lng, radius_meter, titik_diset_at, mandor:mandor_id(name), supervisor:supervisor_id(name), penyet:titik_diset_oleh(name)")
       .eq("id", id)
       .single(),
     // Absensi tukang harian yang diisi Supervisor (lihat app/supervisor/absensi),
