@@ -108,6 +108,26 @@ export default async function DashboardSupervisor() {
   const perbaikanAktif = pb || 0;
   const totalProyekAktif = proyekIds.length;
 
+  // Spot-check lokasi yang masih menunggu jawaban (lihat
+  // supabase/add_kunjungan_pantau.sql). Diambil terpisah, bukan di Promise.all
+  // di atas, karena butuh id kunjungan berjalan — dan kalau tidak ada
+  // kunjungan berjalan, query-nya tidak perlu jalan sama sekali.
+  //
+  // batas_at tetap disaring di sini meski penjadwal juga menutup yang
+  // kedaluwarsa: penjadwal jalan tiap 5 menit, jadi ada jendela di mana
+  // barisnya masih berstatus terbuka padahal waktunya sudah habis — dan banner
+  // merah yang sudah tidak bisa dijawab lagi cuma bikin panik.
+  const { data: spotcheckTertunda } = kunjunganBerjalan
+    ? await supabase
+        .from("kunjungan_pantau")
+        .select("id, batas_at")
+        .eq("kunjungan_id", kunjunganBerjalan.id)
+        .eq("jenis", "SPOTCHECK")
+        .is("hasil", null)
+        .gt("batas_at", new Date().toISOString())
+        .maybeSingle()
+    : { data: null };
+
   return (
     <main className="flex min-h-dvh flex-col p-4 gap-3">
       {/* Header */}
@@ -186,7 +206,11 @@ export default async function DashboardSupervisor() {
       </div>
 
       {/* Absensi kunjungan ke proyek */}
-      <KunjunganCard proyeks={proyek || []} kunjunganBerjalan={kunjunganBerjalan || null} />
+      <KunjunganCard
+        proyeks={proyek || []}
+        kunjunganBerjalan={kunjunganBerjalan || null}
+        spotcheckTertunda={spotcheckTertunda || null}
+      />
 
       {/* Proyek */}
       <ProyekSayaCard proyek={proyek || []} basePath="/supervisor/proyek" />

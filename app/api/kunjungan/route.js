@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { getSessionProfile } from "@/lib/supabase/server";
-import { hitungJarak, koordinatValid } from "@/lib/geo";
+import { hitungJarak } from "@/lib/geo";
+import {
+  AKURASI_MAKS_SET_TITIK,
+  bacaKoordinat,
+  jarakEfektif,
+} from "@/lib/kunjunganLokasi";
 import { nilaiKunjungan, sudahKedaluwarsa, batasTutupOtomatis } from "@/lib/kunjunganAturan";
+import {
+  hitungPelanggaran,
+  jawabSpotcheckTerbuka,
+  lewatkanSpotcheckTerbuka,
+} from "@/lib/kunjunganPantau";
 
 // Absensi kunjungan Supervisor ke proyek.
 //
@@ -22,45 +32,12 @@ const supabaseAdmin = createAdminClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-// Batas akurasi GPS, bertingkat — bukan satu angka keras.
-//
-// Akurasi ±X artinya "posisi sebenarnya ada di suatu tempat dalam lingkaran
-// X meter dari titik ini". Jadi angkanya cuma berarti kalau dibandingkan
-// dengan apa yang sedang diputuskan:
-//
-//   • > 500 m  : itu bukan fix GPS sama sekali — browser menebak dari IP atau
-//                daftar WiFi. Ditolak, tidak ada yang bisa disimpulkan.
-//   • set titik: dibatasi lebih ketat, karena error titik acuan diwariskan ke
-//                SEMUA kunjungan sesudahnya di proyek itu.
-//   • cek radius: dipakai sebagai toleransi (lihat di bawah), bukan penolakan.
-const AKURASI_BUKAN_GPS = 500;
-const AKURASI_MAKS_SET_TITIK = 100;
-
 const ambilProyek = (id) =>
   supabaseAdmin
     .from("proyek")
     .select("id, nama, lokasi, lat, lng, radius_meter, is_active, supervisor_id")
     .eq("id", id)
     .maybeSingle();
-
-// Validasi payload koordinat yang sama untuk check-in maupun check-out.
-function bacaKoordinat(body) {
-  const lat = Number(body?.lat);
-  const lng = Number(body?.lng);
-  const akurasi = body?.accuracy == null ? null : Number(body.accuracy);
-
-  if (!koordinatValid(lat, lng)) return { error: "Koordinat tidak valid" };
-  if (akurasi != null && (!Number.isFinite(akurasi) || akurasi < 0))
-    return { error: "Akurasi tidak valid" };
-  if (akurasi != null && akurasi > AKURASI_BUKAN_GPS)
-    return {
-      error:
-        `Lokasi tidak akurat (±${Math.round(akurasi)}m). Ini biasanya berarti GPS mati atau ` +
-        `Anda memakai laptop — absen kunjungan harus dari HP dengan GPS aktif.`,
-    };
-
-  return { lat, lng, akurasi };
-}
 
 // Tutup satu kunjungan yang sudah lewat jam potong. Dipakai di jalur
 // check-in; jadwal n8n memakai versi massalnya di
@@ -75,6 +52,8 @@ async function tutupKedaluwarsa(kunjungan) {
     })
     .eq("id", kunjungan.id)
     .eq("status", "BERJALAN");
+
+  await lewatkanSpotcheckTerbuka(kunjungan.id);
 }
 
 // ============ CHECK-IN ============
@@ -149,12 +128,11 @@ export async function POST(req) {
       .update({ lat, lng, titik_diset_oleh: profile.id, titik_diset_at: new Date().toISOString() })
       .eq("id", proyek.id);
   } else {
+    // Yang diputuskan adalah jarak EFEKTIF (sudah dikurangi margin error GPS,
+    // lihat lib/kunjunganLokasi), tapi yang DITAMPILKAN jarak mentah — itu
+    // angka yang cocok dengan yang orangnya lihat di peta.
     const jarak = hitungJarak(lat, lng, proyek.lat, proyek.lng);
-    // Akurasi jadi toleransi: ditolak hanya kalau BAHKAN dengan memberi
-    // keuntungan sebesar margin error GPS pun posisinya masih di luar radius.
-    // Menolak berdasarkan jarak mentah membuat orang yang benar-benar berdiri
-    // di lokasi ikut ditolak setiap kali sinyalnya sedang jelek.
-    if (jarak - (akurasi || 0) > proyek.radius_meter)
+    if (jarakEfektif(lat, lng, proyek, akurasi) > proyek.radius_meter)
       return NextResponse.json(
         {
           error: `Anda ${Math.round(jarak)}m dari ${proyek.nama}. Absen hanya bisa dalam radius ${proyek.radius_meter}m.`,
@@ -218,15 +196,31 @@ export async function PATCH(req) {
 
   // Jarak dihitung dengan toleransi akurasi, sama seperti saat absen masuk —
   // supaya sinyal jelek tidak menghukum orang yang benar-benar di lokasi.
-  let jarakEfektif = null;
-  if (proyek?.lat != null && proyek?.lng != null) {
-    jarakEfektif = Math.max(0, hitungJarak(lat, lng, proyek.lat, proyek.lng) - (akurasi || 0));
-  }
+  const jarak = jarakEfektif(lat, lng, proyek, akurasi);
+
+  // Posisi absen keluar ini sekalian menjawab spot-check yang masih
+  // menggantung — harus SEBELUM hitungPelanggaran, kalau tidak barisnya masih
+  // berstatus null saat dihitung dan jawabannya jadi tidak terpakai.
+  let dijawabOlehKeluar = [];
+  if (jarak != null && proyek?.radius_meter != null)
+    dijawabOlehKeluar = await jawabSpotcheckTerbuka(kunjungan.id, {
+      lat,
+      lng,
+      akurasi,
+      jarak,
+      hasil: jarak > proyek.radius_meter ? "DI_LUAR" : "DI_DALAM",
+    });
+
+  // Baris yang barusan dijawab absen keluar dikecualikan: posisi itu sudah
+  // dinilai sebagai jarakKeluar di bawah, dan dihitung lagi di sini akan
+  // melipatgandakan satu kejadian jadi dua pelanggaran.
+  const pelanggaran = await hitungPelanggaran(kunjungan.id, dijawabOlehKeluar);
 
   const { status, catatan } = nilaiKunjungan({
     menit,
-    jarakKeluar: jarakEfektif,
+    jarakKeluar: jarak,
     radiusMeter: proyek?.radius_meter ?? null,
+    ...pelanggaran,
   });
 
   const { data, error } = await supabaseAdmin

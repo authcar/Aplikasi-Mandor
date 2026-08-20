@@ -1,0 +1,105 @@
+{
+  "name": "Kunjungan Supervisor -> Spot-check Lokasi (tiap 5 menit)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Setup checklist\nMemilih waktu ACAK selama kunjungan Supervisor berjalan, mengirim notifikasi web push \"Konfirmasi lokasi\", lalu menandai TIDAK_DIJAWAB kalau tidak dijawab dalam 10 menit (lihat app/api/kunjungan/spot-check).\n\n1. Buka node **Config**, isi `appBaseUrl` (URL app, TANPA garis miring di akhir) dan `callbackSecret` (harus SAMA PERSIS dengan `N8N_CALLBACK_SECRET` di .env.local — sama dengan workflow Tutup Otomatis).\n2. Pastikan `VAPID_PRIVATE_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, dan `VAPID_SUBJECT` sudah di-set di app (kunci yang sama yang sudah dipakai notifikasi pengajuan). Tanpa itu push tidak terkirim dan endpoint ini TIDAK membuat spot-check sama sekali — sengaja, lihat catatan di bawah.\n3. Klik **Activate**.\n4. Test manual: \"Execute Workflow\" sekali, responsnya `{ ok: true, berjalan: N, dikirim: N, kedaluwarsa: N, gagal_push: N }`.\n\n### `gagal_push` tinggi itu wajar di awal\nArtinya supervisor tsb belum punya langganan push: belum mengizinkan notifikasi, atau di iPhone belum menambahkan app ke Home Screen (iOS hanya mengizinkan push untuk PWA yang sudah di-install — lihat components/PushNotificationSetup.jsx). Selama itu dia TIDAK pernah kena spot-check dan tidak pernah dihukum karenanya.\n\n### Kenapa tiap 5 menit\nBukan karena tiap kunjungan dicek tiap 5 menit — endpoint ini melempar dadu tiap putaran (peluang 25%), jadi cek pertama datang rata-rata ~20 menit setelah kunjungan berumur 10 menit. Interval 5 menit itu resolusi keacakannya. Dinaikkan jadi 30 menit, spot-check-nya jadi mudah ditebak; diturunkan jadi 1 menit, cuma menambah beban tanpa mengubah perilaku.\n\nBatas per kunjungan tetap 2 spot-check dengan jeda minimal 30 menit, jadi tidak ada yang dibanjiri notifikasi.\n\n### Kalau workflow ini mati\nHeartbeat dari aplikasi tetap jalan, jadi pengawasan tidak hilang total — yang hilang cuma penambal untuk saat aplikasi ditutup. Tidak ada data yang rusak, dan tidak ada supervisor yang terkunci.",
+        "height": 520,
+        "width": 460
+      },
+      "id": "note-setup",
+      "name": "Setup Checklist",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Jadwal Tiap 5 Menit",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    // GANTI kedua nilai ini — sama dengan workflow Tutup Otomatis\n    appBaseUrl: \"ISI_DENGAN_URL_APP_ANDA\",\n    callbackSecret: \"ISI_DENGAN_N8N_CALLBACK_SECRET_DARI_ENV_LOCAL\",\n  },\n}];"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.appBaseUrl }}/api/kunjungan/spot-check",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-secret",
+              "value": "={{ $json.callbackSecret }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "run-spotcheck",
+      "name": "Undi & Kirim Spot-check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "Jadwal Tiap 5 Menit": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Undi & Kirim Spot-check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "kunjungan-spot-check"
+  }
+}

@@ -7,14 +7,26 @@ import { useRouter } from "next/navigation";
 //
 // Titik ini TIDAK berasal dari kolom `lokasi`: separuh proyek aktif nilainya
 // null dan yang terisi cuma turun sampai level gedung/cluster, jadi tidak
-// cukup akurat untuk geofence. Titiknya ditetapkan dari posisi orang pertama
-// yang absen masuk — dan justru karena itu perlu tombol reset di sini, kalau
-// orang pertama ternyata absen dari luar lokasi.
+// cukup akurat untuk geofence.
+//
+// Ada dua jalur menetapkannya, dan yang di kartu ini yang lebih dipercaya:
+//
+//   • Master menempel koordinat dari Google Maps (PUT /api/proyek/titik).
+//   • Posisi Supervisor pertama yang absen masuk (app/api/kunjungan/route.js).
+//
+// Jalur kedua punya cacat yang tidak bisa ditutup dengan pengaman tambahan:
+// yang menetapkan titik adalah orang yang juga dinilai oleh titik itu. Ia
+// dibiarkan hidup supaya lapangan tidak terhambat saat Master belum sempat
+// mengisi, bukan karena setara — dan justru karena itu tombol reset di sini
+// tetap perlu.
 export default function TitikProyekCard({ proyek }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [konfirmasi, setKonfirmasi] = useState(false);
   const [error, setError] = useState("");
+  const [teks, setTeks] = useState("");
+  const [simpanLoading, setSimpanLoading] = useState(false);
+  const [sukses, setSukses] = useState("");
 
   const punyaTitik = proyek.lat != null && proyek.lng != null;
 
@@ -35,6 +47,30 @@ export default function TitikProyekCard({ proyek }) {
     router.refresh();
   };
 
+  // Teks mentahnya dikirim apa adanya — penguraiannya di server (lihat
+  // uraikanKoordinat di lib/geo.js). Diurai di sini dulu berarti aturannya
+  // hidup di dua tempat, dan yang di client bisa dilewati.
+  const simpan = async () => {
+    setSimpanLoading(true);
+    setError("");
+    setSukses("");
+    const res = await fetch("/api/proyek/titik", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: proyek.id, koordinat: teks }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setSimpanLoading(false);
+    if (!res.ok) {
+      setError(json.error || "Gagal menyimpan titik.");
+      return;
+    }
+    setTeks("");
+    setSukses("Titik tersimpan ✓");
+    setTimeout(() => setSukses(""), 3000);
+    router.refresh();
+  };
+
   return (
     <div className="card mb-5 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -46,7 +82,7 @@ export default function TitikProyekCard({ proyek }) {
                 {proyek.lat.toFixed(6)}, {proyek.lng.toFixed(6)}
               </p>
               <p className="mt-0.5 text-xs text-gray-400">
-                Radius {proyek.radius_meter ?? 300}m
+                Radius {proyek.radius_meter ?? 500}m
                 {proyek.penyet?.name ? ` · diset oleh ${proyek.penyet.name}` : ""}
                 {proyek.titik_diset_at
                   ? ` · ${new Date(proyek.titik_diset_at).toLocaleDateString("id-ID", {
@@ -64,6 +100,7 @@ export default function TitikProyekCard({ proyek }) {
             </p>
           )}
           {error && <p className="mt-1 text-xs font-medium text-red-600">{error}</p>}
+          {sukses && <p className="mt-1 text-xs font-medium text-green-600">{sukses}</p>}
         </div>
 
         {punyaTitik && (
@@ -75,6 +112,31 @@ export default function TitikProyekCard({ proyek }) {
             Reset
           </button>
         )}
+      </div>
+
+      <div className="mt-3 border-t border-gray-100 pt-3">
+        <p className="text-xs font-semibold text-gray-600">
+          {punyaTitik ? "Ubah titik dari Google Maps" : "Tetapkan titik dari Google Maps"}
+        </p>
+        <p className="mt-0.5 text-[11px] leading-snug text-gray-400">
+          Buka Google Maps, klik kanan tepat di lokasi proyek, lalu klik koordinat yang muncul untuk
+          menyalinnya. Tempel di sini — link Google Maps juga bisa. Tidak perlu berada di lokasi.
+        </p>
+        <div className="mt-2 flex gap-2">
+          <input
+            value={teks}
+            onChange={(e) => setTeks(e.target.value)}
+            placeholder="-6.215008, 106.736006"
+            className="input !py-2 min-w-0 flex-1 font-mono text-xs"
+          />
+          <button
+            onClick={simpan}
+            disabled={simpanLoading || !teks.trim()}
+            className="shrink-0 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white active:bg-brand-800 disabled:opacity-50"
+          >
+            {simpanLoading ? "…" : "Simpan"}
+          </button>
+        </div>
       </div>
 
       {konfirmasi && (

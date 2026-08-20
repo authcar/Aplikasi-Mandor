@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
+import { INTERVAL_HEARTBEAT_MENIT } from "@/lib/kunjunganAturan";
 
 // Kartu "Kunjungan Proyek" di dashboard Supervisor — absen masuk saat tiba di
 // proyek, absen keluar saat pergi, yang dicatat adalah DURASI-nya.
@@ -14,6 +15,10 @@ import Icon from "@/components/Icon";
 // Semua keputusan lokasi ada di server (app/api/kunjungan/route.js). Komponen
 // ini hanya mengambil koordinat dari perangkat dan menampilkan jawabannya —
 // jangan pindahkan pengecekan radius ke sini.
+//
+// Selain dua tap absen, kartu ini juga mengirim posisi berkala selama
+// kunjungan berjalan (heartbeat) dan menjawab spot-check yang pushnya datang
+// lewat web push. Lihat app/api/kunjungan/pantau.
 
 const AKURASI_CUKUP = 30;    // meter — berhenti mencari kalau sudah setajam ini
 const TUNGGU_MAKS_MS = 12000; // batas menunggu GPS mengunci
@@ -34,12 +39,25 @@ function formatDurasi(ms) {
   return `${String(Math.floor(menit / 60)).padStart(2, "0")}:${String(menit % 60).padStart(2, "0")}`;
 }
 
-export default function KunjunganCard({ proyeks = [], kunjunganBerjalan = null }) {
+// Hitung mundur spot-check. formatDurasi memakai HH:MM — terlalu kasar untuk
+// batas 10 menit, seluruh hitungannya cuma bergerak dari 00:09 ke 00:00.
+function formatHitungMundur(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return "00:00";
+  const detik = Math.floor(ms / 1000);
+  return `${String(Math.floor(detik / 60)).padStart(2, "0")}:${String(detik % 60).padStart(2, "0")}`;
+}
+
+export default function KunjunganCard({
+  proyeks = [],
+  kunjunganBerjalan = null,
+  spotcheckTertunda = null,
+}) {
   const router = useRouter();
   const [pilihan, setPilihan] = useState(proyeks[0]?.id || "");
   const [loading, setLoading] = useState(false);
   const [pesan, setPesan] = useState(null); // { teks, jenis: "error" | "sukses" }
   const [konfirmasi, setKonfirmasi] = useState(null); // { mode, judul, sub }
+  const [pantauLoading, setPantauLoading] = useState(false);
   const [sekarang, setSekarang] = useState(() => Date.now());
   const timerRef = useRef(null);
 
@@ -65,7 +83,10 @@ export default function KunjunganCard({ proyeks = [], kunjunganBerjalan = null }
   // selesai — hasilnya absen ditolak terus padahal orangnya benar berdiri di
   // lokasi. Jadi di sini dipakai watchPosition: ambil pembacaan TERBAIK dalam
   // beberapa detik, dan berhenti lebih awal begitu sudah cukup tajam.
-  const ambilPosisi = () =>
+  // diam: true dipakai heartbeat — ia jalan sendiri tiap beberapa menit, jadi
+  // tidak boleh menimpa pesan di layar dengan "Mencari sinyal GPS…" saat
+  // orangnya sedang membaca sesuatu yang lain.
+  const ambilPosisi = ({ diam = false } = {}) =>
     new Promise((resolve, reject) => {
       if (!navigator.geolocation) return reject(new Error("Perangkat ini tidak mendukung GPS"));
 
@@ -83,7 +104,8 @@ export default function KunjunganCard({ proyeks = [], kunjunganBerjalan = null }
           if (selesai) return;
           if (!terbaik || pos.coords.accuracy < terbaik.accuracy) {
             terbaik = pos.coords;
-            setPesan({ teks: `Mencari sinyal GPS… (±${Math.round(terbaik.accuracy)}m)`, jenis: "info" });
+            if (!diam)
+              setPesan({ teks: `Mencari sinyal GPS… (±${Math.round(terbaik.accuracy)}m)`, jenis: "info" });
           }
           if (terbaik.accuracy <= AKURASI_CUKUP) {
             tutup();
@@ -117,6 +139,76 @@ export default function KunjunganCard({ proyeks = [], kunjunganBerjalan = null }
         else reject(new Error("GPS tidak merespons. Coba di luar ruangan."));
       }, TUNGGU_MAKS_MS);
     });
+
+  // Kirim posisi di TENGAH kunjungan — heartbeat berkala maupun tap manual.
+  //
+  // Server yang memutuskan di dalam/di luar radius; di sini cuma ditampilkan.
+  // Jawaban ini sekaligus menutup spot-check yang menggantung, jadi tombol
+  // konfirmasi di banner memakai fungsi yang sama persis.
+  const kirimPantau = async ({ manual = false } = {}) => {
+    if (!kunjunganBerjalan?.id) return;
+    if (manual) setPantauLoading(true);
+    try {
+      const c = await ambilPosisi({ diam: !manual });
+      const res = await fetch("/api/kunjungan/pantau", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: kunjunganBerjalan.id,
+          lat: c.latitude,
+          lng: c.longitude,
+          accuracy: c.accuracy,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (json?.hasil === "DI_LUAR")
+        tampilkan(`Terdeteksi ${json.jarak}m di luar radius ${json.radius}m.`);
+      else if (manual) tampilkan("Lokasi terkirim ✓", "sukses");
+
+      // Banner spot-check datang dari server (prop), jadi harus dimuat ulang
+      // supaya hilang setelah dijawab.
+      if (json?.spotcheck_terjawab) router.refresh();
+    } catch (err) {
+      // GPS gagal di tengah kunjungan bukan pelanggaran dan bukan sesuatu yang
+      // bisa ditindaklanjuti orangnya — didiamkan, kecuali dia sendiri yang
+      // menekan tombol dan sedang menunggu jawaban.
+      if (manual) tampilkan(err.message);
+    }
+    if (manual) setPantauLoading(false);
+  };
+
+  // Heartbeat: hidup HANYA selama kunjungan berjalan dan halaman terlihat.
+  //
+  // Browser HP tidak bisa membaca GPS di background — begitu layar dikunci
+  // atau aplikasi di-swipe ke belakang, watchPosition berhenti total dan
+  // interval ini ikut dibekukan. Itu batas yang tidak bisa diakali dari sini,
+  // dan sengaja tidak dicoba: lubangnya ditambal spot-check acak lewat
+  // web push (app/api/kunjungan/spot-check). Karena itu pula ketiadaan
+  // heartbeat tidak pernah dihitung pelanggaran di server.
+  //
+  // visibilitychange dipasang supaya begitu aplikasi dibuka kembali, posisinya
+  // langsung dikirim — itu momen paling mungkin ada spot-check menunggu
+  // dijawab.
+  useEffect(() => {
+    if (!berjalan) return;
+    let batal = false;
+
+    const detak = () => {
+      if (batal || document.hidden) return;
+      kirimPantau();
+    };
+
+    detak();
+    const id = setInterval(detak, INTERVAL_HEARTBEAT_MENIT * 60000);
+    document.addEventListener("visibilitychange", detak);
+    return () => {
+      batal = true;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", detak);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [berjalan, kunjunganBerjalan?.id]);
 
   const kirim = async (mode, { setTitik = false } = {}) => {
     setLoading(true);
@@ -190,6 +282,9 @@ export default function KunjunganCard({ proyeks = [], kunjunganBerjalan = null }
   };
 
   const durasi = berjalan ? formatDurasi(sekarang - new Date(kunjunganBerjalan.mulai_at).getTime()) : "--:--";
+  const sisaSpotcheck = spotcheckTertunda?.batas_at
+    ? Math.max(0, new Date(spotcheckTertunda.batas_at).getTime() - sekarang)
+    : null;
 
   return (
     <div className="relative">
@@ -204,6 +299,26 @@ export default function KunjunganCard({ proyeks = [], kunjunganBerjalan = null }
             {berjalan ? "DI LOKASI" : "BELUM"}
           </span>
         </div>
+
+        {spotcheckTertunda && (
+          <div className="w-full rounded-xl border border-red-200 bg-red-50 p-3 text-left">
+            <p className="text-xs font-bold text-red-700">
+              Konfirmasi lokasi diminta
+              {sisaSpotcheck != null ? ` · sisa ${formatHitungMundur(sisaSpotcheck)}` : ""}
+            </p>
+            <p className="mt-0.5 text-[11px] leading-snug text-red-600">
+              Lokasi Anda terkirim otomatis selama halaman ini terbuka. Kalau tidak dijawab sampai
+              batas waktu, kunjungan ini ditandai tidak sah.
+            </p>
+            <button
+              onClick={() => kirimPantau({ manual: true })}
+              disabled={pantauLoading}
+              className="mt-2 rounded-full bg-red-600 px-3 py-1.5 text-xs font-bold text-white active:bg-red-700 disabled:opacity-50"
+            >
+              {pantauLoading ? "Mengirim…" : "Kirim lokasi sekarang"}
+            </button>
+          </div>
+        )}
 
         {berjalan ? (
           <p className="w-full truncate text-sm font-semibold text-gray-700">

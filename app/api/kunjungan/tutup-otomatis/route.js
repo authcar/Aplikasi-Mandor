@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { batasTutupOtomatis, sudahKedaluwarsa } from "@/lib/kunjunganAturan";
+import { lewatkanSpotcheckTerbuka } from "@/lib/kunjunganPantau";
 
 // POST /api/kunjungan/tutup-otomatis — dipanggil n8n tiap hari jam 17:00 WIB.
 //
@@ -53,7 +54,14 @@ export async function POST(req) {
       })
       .eq("id", k.id)
       .eq("status", "BERJALAN"); // jaga-jaga kalau orangnya absen keluar barusan
-    if (!gagal) ditutup++;
+    if (!gagal) {
+      // Spot-check yang masih menggantung ikut ditutup. Kunjungan ini sudah
+      // TIDAK_SAH karena tidak diabsen keluar, jadi tidak mengubah penilaian —
+      // yang dijaga cuma supaya tidak ada baris menggantung selamanya di
+      // kunjungan yang sudah selesai.
+      await lewatkanSpotcheckTerbuka(k.id);
+      ditutup++;
+    }
   }
 
   return NextResponse.json({ ok: true, diperiksa: terbuka?.length || 0, ditutup });
