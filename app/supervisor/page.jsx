@@ -46,8 +46,9 @@ export default async function DashboardSupervisor() {
   const chatId = String(profile.telegram_chat_id ?? "");
   const proyekIds = (proyek || []).map((p) => p.id);
 
-  // Rollout bertahap: cuma "Defect List" (checklist_perbaikan, antar Mandor &
-  // Supervisor) yang aktif untuk sekarang — lihat LockedTile di JSX bawah.
+  // Rollout bertahap: "Defect List" (checklist_perbaikan, antar Mandor &
+  // Supervisor), Riwayat Kunjungan, dan Laporan Harian yang aktif untuk
+  // sekarang — sisanya masih LockedTile di JSX bawah.
   // Query lain yang cuma dipakai buat badge fitur yang di-lock sengaja
   // dihapus dari sini biar tidak query data yang tidak ditampilkan.
   const [
@@ -155,7 +156,7 @@ export default async function DashboardSupervisor() {
         </div>
       </div>
 
-      {/* Aksi Cepat — cuma Defect List yang aktif selama rollout bertahap */}
+      {/* Aksi Cepat — sisanya masih di-lock selama rollout bertahap */}
       <div className="shrink-0">
         <div className="grid grid-cols-4 gap-y-3">
           <Link
@@ -187,7 +188,18 @@ export default async function DashboardSupervisor() {
             </p>
           </Link>
 
-          <LockedTile label="Laporan Harian" gap="gap-1" />
+          <Link
+            href="/supervisor/laporan-harian"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
+          >
+            <span className="icon-tile !rounded-full bg-sky-100 text-sky-600">
+              <Icon name="clipboard" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Laporan Harian
+            </p>
+          </Link>
+
           <LockedTile label="Absensi Tukang" gap="gap-1" />
           <LockedTile label="Kurang Material" gap="gap-1" />
           <LockedTile label="Rekap Gaji" gap="gap-1" />
