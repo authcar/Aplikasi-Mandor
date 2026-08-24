@@ -7,22 +7,36 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  if (!event.data) return;
-
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch {
-    payload = { title: "Taraco App", body: event.data.text() };
+  // SETIAP push wajib berakhir dengan showNotification(). iOS menegakkan aturan
+  // ini keras-keras: push yang tidak memunculkan notifikasi dihitung sebagai
+  // pelanggaran, dan setelah beberapa kali Safari mencabut subscription-nya
+  // diam-diam — notifikasi berikutnya tidak akan sampai lagi sampai user
+  // mendaftar ulang. Jadi payload kosong/rusak pun tetap ditampilkan, dengan
+  // teks umum, bukan di-return begitu saja.
+  let payload = {};
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload = { body: event.data.text() };
+    }
   }
 
-  const { title = "Taraco App", body, url = "/" } = payload;
+  const {
+    title = "Taraco App",
+    body = "Ada pembaruan baru. Buka aplikasi untuk melihat.",
+    url = "/",
+  } = payload;
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: "/logoO.svg",
-      badge: "/logoO.svg",
+      // PNG, bukan SVG: sebagian browser Android tidak merender ikon SVG di
+      // notifikasi dan berakhir tanpa ikon sama sekali. iOS mengabaikan opsi
+      // ini dan selalu memakai ikon app-nya.
+      icon: "/apple-touch-icon.png",
+      badge: "/favicon.png",
+      // vibrate & actions diabaikan iOS — dibiarkan untuk Android.
       vibrate: [200, 100, 200],
       data: { url },
       actions: [{ action: "lihat", title: "Lihat" }],

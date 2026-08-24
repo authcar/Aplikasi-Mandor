@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "@/components/Icon";
+import { SISI_MAKS, KUALITAS } from "@/lib/gambar";
 
 // Modal kamera in-app (getUserMedia) — bekerja di desktop maupun HP.
 // onCapture menerima File JPEG hasil jepretan. Default kamera belakang
@@ -44,14 +45,20 @@ export default function KameraModal({ onCapture, onClose, title = "Ambil Foto" }
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
+    // Ukuran & kualitas mengikuti aturan yang sama dengan foto dari galeri
+    // (lib/gambar.js), supaya satu laporan tidak berisi campuran foto 200 KB
+    // dan 4 MB cuma karena beda cara mengambilnya.
+    const skala = Math.min(1, SISI_MAKS / Math.max(video.videoWidth, video.videoHeight));
+    canvas.width = Math.max(1, Math.round(video.videoWidth * skala));
+    canvas.height = Math.max(1, Math.round(video.videoHeight * skala));
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
       const file = new File([blob], `foto-${Date.now()}.jpg`, { type: "image/jpeg" });
       streamRef.current?.getTracks().forEach((t) => t.stop());
       onCapture(file);
-    }, "image/jpeg", 0.9);
+    }, "image/jpeg", KUALITAS);
   }, [onCapture]);
 
   return (

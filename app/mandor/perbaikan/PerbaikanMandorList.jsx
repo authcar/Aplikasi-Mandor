@@ -7,6 +7,7 @@ import Icon from "@/components/Icon";
 import MediaGallery from "@/components/MediaGallery";
 import KameraModal from "@/components/KameraModal";
 import VideoRecorderModal from "@/components/VideoRecorderModal";
+import { kompresBanyakGambar } from "@/lib/gambar";
 
 const MAX_MEDIA = 10;
 
@@ -100,15 +101,23 @@ export default function PerbaikanMandorList({ items = [] }) {
 
   // Foto & video bukti sekarang bisa banyak (maks MAX_MEDIA), ditambahkan
   // (bukan saling gantiin), sama pola dengan PerbaikanForm Supervisor.
-  const pilihMediaBukti = (e) => {
+  const pilihMediaBukti = async (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
+    // Foto dikompres dulu, baru masuk state — video dilewatkan apa adanya oleh
+    // kompresBanyakGambar. Dipotong ke MAX_MEDIA lebih dulu supaya file yang
+    // toh akan ditolak tidak ikut dikompres. `busy` dinyalakan karena
+    // mengompres beberapa foto di HP lemah bisa makan beberapa detik, dan
+    // tanpa tanda apa pun orang akan menekan tombolnya berulang kali.
+    setBusy(true);
+    const siap = await kompresBanyakGambar(files.slice(0, MAX_MEDIA));
+    setBusy(false);
     setMedia((m) => {
       const sisa = MAX_MEDIA - m.length;
       if (sisa <= 0) return m;
       if (files.length > sisa) alert(`Maksimal ${MAX_MEDIA} file. ${files.length - sisa} file tidak ditambahkan.`);
-      const baru = files.slice(0, sisa).map((file) => ({
+      const baru = siap.slice(0, sisa).map((file) => ({
         key: `${Date.now()}-${Math.random()}`,
         file,
         previewUrl: URL.createObjectURL(file),

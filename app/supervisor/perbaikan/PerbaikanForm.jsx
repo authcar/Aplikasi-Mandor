@@ -7,6 +7,7 @@ import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
 import VideoRecorderModal from "@/components/VideoRecorderModal";
 import MediaGallery from "@/components/MediaGallery";
+import { kompresBanyakGambar } from "@/lib/gambar";
 
 const MAX_MEDIA = 10;
 
@@ -174,17 +175,25 @@ export default function PerbaikanForm({ proyeks = [], items = [], sudahLaporIds 
   // Galeri: 1 input menerima banyak foto/video sekaligus, tipe tiap filenya
   // dideteksi dari file.type. Kelebihan di atas sisa slot (maks MAX_MEDIA
   // total) ditolak dengan pemberitahuan.
-  const pilihMediaRow = (id, e) => {
+  const pilihMediaRow = async (id, e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
+    // Foto dikompres dulu, baru masuk state — video dilewatkan apa adanya oleh
+    // kompresBanyakGambar. Dipotong ke MAX_MEDIA lebih dulu supaya file yang
+    // toh akan ditolak tidak ikut dikompres. `busy` dinyalakan karena
+    // mengompres beberapa foto di HP lemah bisa makan beberapa detik, dan
+    // tanpa tanda apa pun orang akan menekan tombolnya berulang kali.
+    setBusy(true);
+    const siap = await kompresBanyakGambar(files.slice(0, MAX_MEDIA));
+    setBusy(false);
     setRows((r) =>
       r.map((row) => {
         if (row.id !== id) return row;
         const sisa = MAX_MEDIA - row.media.length;
         if (sisa <= 0) return row;
         if (files.length > sisa) alert(`Maksimal ${MAX_MEDIA} file per item. ${files.length - sisa} file tidak ditambahkan.`);
-        const baru = files.slice(0, sisa).map((file) => ({
+        const baru = siap.slice(0, sisa).map((file) => ({
           key: `${Date.now()}-${Math.random()}`,
           file,
           previewUrl: URL.createObjectURL(file),

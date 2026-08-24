@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
+import { kompresGambar } from "@/lib/gambar";
 
 const TARIF = 80000;
 const rupiah = (n) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
@@ -35,11 +36,15 @@ export default function LemburForm({ proyek, riwayat = [] }) {
 
   const totalBiaya = Number(hari) * Number(orang) * TARIF;
 
-  const pilihFoto = (e) => {
+  // Foto dikompres SEBELUM masuk state, jadi preview dan file yang diupload
+  // adalah objek yang sama — HP tidak perlu menyimpan versi 8 MB-nya sama
+  // sekali. Kalau kompresinya gagal, kompresGambar mengembalikan file asli.
+  const pilihFoto = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFoto(file);
-    setPreview(URL.createObjectURL(file));
+    const kecil = await kompresGambar(file);
+    setFoto(kecil);
+    setPreview(URL.createObjectURL(kecil));
   };
 
   const pakaiFoto = (file) => {

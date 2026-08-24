@@ -6,6 +6,7 @@ import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
 import RiwayatLaporanCard from "@/components/RiwayatLaporanCard";
+import { kompresGambar } from "@/lib/gambar";
 
 // Editor absensi harian per tim.
 // Tiap baris punya counter jumlah orang (boleh dikosongkan untuk baris
@@ -54,10 +55,12 @@ export default function AbsensiTimForm({ initialTims = [], initialFotos = [], to
     setUploadBusy(false);
   };
 
-  const pilihDariGaleri = (e) => {
+  const pilihDariGaleri = async (e) => {
     const file = e.target.files?.[0];
-    if (file) unggahFoto(file);
     e.target.value = "";
+    // Dikompres dulu supaya yang naik ke Storage bukan file kamera 8 MB.
+    // Foto dari KameraModal sudah kecil sejak dijepret (lihat lib/gambar.js).
+    if (file) unggahFoto(await kompresGambar(file));
   };
 
   const hapusFoto = async (f) => {

@@ -6,6 +6,7 @@ import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
 import { rupiah } from "@/lib/format";
+import { kompresGambar } from "@/lib/gambar";
 
 const STATUS_BADGE = {
   PENDING: { label: "Menunggu", cls: "bg-amber-100 text-amber-700" },
@@ -46,11 +47,15 @@ export default function ReimburseForm({ proyeks = [], riwayat = [] }) {
     ? daftar.filter((it) => it.proyek_id === riwayatProyekFilter)
     : daftar;
 
-  const pilihFoto = (e) => {
+  // Foto dikompres SEBELUM masuk state, jadi preview dan file yang diupload
+  // adalah objek yang sama — HP tidak perlu menyimpan versi 8 MB-nya sama
+  // sekali. Kalau kompresinya gagal, kompresGambar mengembalikan file asli.
+  const pilihFoto = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setNota(file);
-    setPreview(URL.createObjectURL(file));
+    const kecil = await kompresGambar(file);
+    setNota(kecil);
+    setPreview(URL.createObjectURL(kecil));
   };
 
   const pakaiFoto = (file) => {

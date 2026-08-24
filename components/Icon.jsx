@@ -223,6 +223,21 @@ const PATHS = {
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </>
   ),
+  bell: (
+    <>
+      <path d="M10.268 21a2 2 0 0 0 3.464 0" />
+      <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
+    </>
+  ),
+  // Ikon "Share" iOS — dipakai di petunjuk Add to Home Screen, supaya yang
+  // dicari di Safari terlihat sama persis dengan yang digambar di sini.
+  share: (
+    <>
+      <path d="M12 3v13" />
+      <path d="m16 7-4-4-4 4" />
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+    </>
+  ),
 };
 
 export default function Icon({ name, className = "h-6 w-6", strokeWidth = 2 }) {

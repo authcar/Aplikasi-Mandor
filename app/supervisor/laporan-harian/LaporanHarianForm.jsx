@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
+import { kompresGambar } from "@/lib/gambar";
 import RiwayatLaporanHarianCard from "./RiwayatLaporanHarianCard";
 
 const STATUS_OPTIONS = [
@@ -57,10 +58,14 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
   const tambahEntri = () => setEntries((es) => [...es, ENTRI_KOSONG()]);
   const hapusEntri = (key) => setEntries((es) => (es.length > 1 ? es.filter((en) => en.key !== key) : es));
 
-  const pilihFoto = (key, e) => {
+  // Foto dikompres SEBELUM masuk state, jadi preview dan file yang diupload
+  // adalah objek yang sama — HP tidak perlu menyimpan versi 8 MB-nya sama
+  // sekali. Kalau kompresinya gagal, kompresGambar mengembalikan file asli.
+  const pilihFoto = async (key, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setEntri(key, { foto: file, preview: URL.createObjectURL(file) });
+    const kecil = await kompresGambar(file);
+    setEntri(key, { foto: kecil, preview: URL.createObjectURL(kecil) });
   };
 
   const pakaiFoto = (file) => {

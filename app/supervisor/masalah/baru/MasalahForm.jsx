@@ -7,6 +7,7 @@ import KameraModal from "@/components/KameraModal";
 import VideoRecorderModal from "@/components/VideoRecorderModal";
 import Icon from "@/components/Icon";
 import { perbaikiDurasiVideo } from "@/lib/video";
+import { kompresGambar } from "@/lib/gambar";
 
 const SATUAN = ["pcs", "kg", "sak", "dus", "m", "m²", "roll", "lembar", "batang", "lonjor", "liter", "unit", "set", "karung"];
 const URGENSI = ["Mendesak", "Sedang", "Rendah"];
@@ -50,11 +51,15 @@ export default function MasalahForm({ proyeks = [], laporan = [] }) {
   const [hasMore, setHasMore] = useState(laporan.length === HALAMAN);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const pilihFoto = (e) => {
+  // Foto dikompres SEBELUM masuk state, jadi preview dan file yang diupload
+  // adalah objek yang sama — HP tidak perlu menyimpan versi 8 MB-nya sama
+  // sekali. Kalau kompresinya gagal, kompresGambar mengembalikan file asli.
+  const pilihFoto = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFoto(file);
-    setPreview(URL.createObjectURL(file));
+    const kecil = await kompresGambar(file);
+    setFoto(kecil);
+    setPreview(URL.createObjectURL(kecil));
   };
 
   const pakaiFoto = (file) => {
