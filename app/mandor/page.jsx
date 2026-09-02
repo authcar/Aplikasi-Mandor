@@ -6,7 +6,6 @@ import { rupiah, tglID, labelDeadlineProyek } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import ProyekSwitcher from "./ProyekSwitcher";
 import Icon from "@/components/Icon";
-import LockedTile from "@/components/LockedTile";
 
 export const dynamic = "force-dynamic";
 
@@ -86,13 +85,11 @@ export default async function DashboardMandor({ searchParams }) {
   }
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
-  // Rollout bertahap: cuma "Perbaikan" (Defect List antar Mandor & Supervisor)
-  // yang aktif untuk sekarang, sisanya di-lock kaya level yang belum kebuka.
   const actions = [
     { href: "/mandor/perbaikan", label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
-    { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru, locked: true },
-    { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru, locked: true },
-    { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru, locked: true },
+    { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru },
+    { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru },
+    { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
   ];
 
   return (
@@ -166,29 +163,22 @@ export default async function DashboardMandor({ searchParams }) {
           </div>
 
           <div className="grid grid-cols-4 gap-y-4">
-            {actions.map((a) =>
-              a.locked ? (
-                <LockedTile key={a.href} label={a.label} />
-              ) : (
-                <Link key={a.href} href={a.href} className="relative flex flex-col items-center gap-1.5 active:opacity-70">
-                  <span className={`icon-tile !rounded-full ${a.tile}`}>
-                    <Icon name={a.icon} />
+            {actions.map((a) => (
+              <Link key={a.href} href={a.href} className="relative flex flex-col items-center gap-1.5 active:opacity-70">
+                <span className={`icon-tile !rounded-full ${a.tile}`}>
+                  <Icon name={a.icon} />
+                </span>
+                {!!a.badge && (
+                  <span className="absolute right-2 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {a.badge}
                   </span>
-                  {!!a.badge && (
-                    <span className="absolute right-2 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                      {a.badge}
-                    </span>
-                  )}
-                  <span className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
-                    {a.label}
-                  </span>
-                </Link>
-              )
-            )}
+                )}
+                <span className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+                  {a.label}
+                </span>
+              </Link>
+            ))}
           </div>
-
-          {/* pendingApr (Kasbon/Reimburse) sengaja tidak ditampilkan selama
-              kedua fitur itu masih di-lock — lihat `actions` di atas. */}
         </>
       )}
     </main>

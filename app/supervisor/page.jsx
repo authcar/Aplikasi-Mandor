@@ -6,7 +6,6 @@ import Icon from "@/components/Icon";
 import StreakWidget from "@/components/StreakWidget";
 import ProyekSayaCard from "@/components/ProyekSayaCard";
 import KunjunganCard from "@/components/KunjunganCard";
-import LockedTile from "@/components/LockedTile";
 
 export const dynamic = "force-dynamic";
 
@@ -46,11 +45,6 @@ export default async function DashboardSupervisor() {
   const chatId = String(profile.telegram_chat_id ?? "");
   const proyekIds = (proyek || []).map((p) => p.id);
 
-  // Rollout bertahap: "Defect List" (checklist_perbaikan, antar Mandor &
-  // Supervisor), Riwayat Kunjungan, dan Laporan Harian yang aktif untuk
-  // sekarang — sisanya masih LockedTile di JSX bawah.
-  // Query lain yang cuma dipakai buat badge fitur yang di-lock sengaja
-  // dihapus dari sini biar tidak query data yang tidak ditampilkan.
   const [
     { count: pb },
     { data: potongan },
@@ -141,22 +135,21 @@ export default async function DashboardSupervisor() {
         </div>
       </header>
 
-      {/* Hero: menunggu persetujuan — di-lock selama rollout bertahap */}
-      <div
-        className="shrink-0 flex items-center gap-3 rounded-2xl bg-gray-100 py-3 px-4 opacity-70"
-        aria-disabled="true"
-        title="Belum tersedia"
+      {/* Hero: menunggu persetujuan */}
+      <Link
+        href="/supervisor/persetujuan"
+        className="shrink-0 flex items-center gap-3 rounded-2xl bg-gray-100 py-3 px-4 active:bg-gray-200"
       >
-        <span className="icon-tile bg-gray-200 text-gray-400">
-          <Icon name="lock" />
+        <span className="icon-tile bg-white text-gray-600">
+          <Icon name="check-circle" />
         </span>
         <div className="flex-1">
-          <p className="text-xs text-gray-400">Menunggu Persetujuan</p>
-          <p className="text-sm font-semibold text-gray-400">Belum tersedia</p>
+          <p className="text-xs text-gray-500">Menunggu Persetujuan</p>
+          <p className="text-sm font-semibold text-gray-700">Lihat pengajuan</p>
         </div>
-      </div>
+      </Link>
 
-      {/* Aksi Cepat — sisanya masih di-lock selama rollout bertahap */}
+      {/* Aksi Cepat */}
       <div className="shrink-0">
         <div className="grid grid-cols-4 gap-y-3">
           <Link
@@ -200,10 +193,53 @@ export default async function DashboardSupervisor() {
             </p>
           </Link>
 
-          <LockedTile label="Absensi Tukang" gap="gap-1" />
-          <LockedTile label="Kurang Material" gap="gap-1" />
-          <LockedTile label="Rekap Gaji" gap="gap-1" />
-          <LockedTile label="Kasbon" gap="gap-1" />
+          <Link
+            href="/supervisor/absensi"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
+          >
+            <span className="icon-tile !rounded-full bg-teal-100 text-teal-600">
+              <Icon name="clipboard" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Absensi Tukang
+            </p>
+          </Link>
+
+          <Link
+            href="/supervisor/masalah"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
+          >
+            <span className="icon-tile !rounded-full bg-amber-100 text-amber-600">
+              <Icon name="alert-triangle" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Kurang Material
+            </p>
+          </Link>
+
+          <Link
+            href="/supervisor/gaji"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
+          >
+            <span className="icon-tile !rounded-full bg-lime-100 text-lime-600">
+              <Icon name="wallet" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Rekap Gaji
+            </p>
+          </Link>
+
+          <Link
+            href="/supervisor/kasbon"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
+          >
+            <span className="icon-tile !rounded-full bg-orange-100 text-orange-600">
+              <Icon name="wallet" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Kasbon
+            </p>
+          </Link>
         </div>
       </div>
 
