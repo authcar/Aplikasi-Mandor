@@ -12,6 +12,37 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
+// Resolve setelah registration punya worker berstatus "activated". Worker yang
+// masih installing/waiting ditunggu lewat event statechange; batas 10 detik
+// supaya tombol tidak menggantung selamanya kalau instalasinya gagal.
+function tungguAktif(registration) {
+  return new Promise((resolve, reject) => {
+    const batas = setTimeout(
+      () => reject(new Error("Service worker tidak aktif. Muat ulang halaman, lalu coba lagi.")),
+      10000
+    );
+    const selesai = () => {
+      clearTimeout(batas);
+      resolve();
+    };
+    const cek = () => {
+      if (registration.active?.state === "activated") return selesai();
+      const sw = registration.installing || registration.waiting || registration.active;
+      if (!sw) return setTimeout(cek, 100);
+      sw.addEventListener("statechange", function onChange() {
+        if (sw.state === "activated") {
+          sw.removeEventListener("statechange", onChange);
+          selesai();
+        } else if (sw.state === "redundant") {
+          sw.removeEventListener("statechange", onChange);
+          cek();
+        }
+      });
+    };
+    cek();
+  });
+}
+
 const iniIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const iniStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -51,8 +82,14 @@ export default function PushNotificationSetup() {
     // Worker". Itu persis yang terjadi di kunjungan pertama seseorang, yaitu
     // saat tombol ini paling mungkin ditekan. `ready` menunggu sampai ada
     // worker aktif, jadi ambil registration-nya dari sana.
-    await navigator.serviceWorker.register("/sw.js");
-    const registration = await navigator.serviceWorker.ready;
+    //
+    // `ready` saja ternyata belum cukup: di Chrome desktop `ready` bisa resolve
+    // dengan registration lama sementara worker yang baru didaftarkan masih
+    // installing, atau worker aktifnya keburu jadi redundant. Jadi tunggu
+    // langsung worker milik registration yang barusan di-register sampai
+    // state-nya "activated".
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    await tungguAktif(registration);
 
     if (minta && Notification.permission === "default") {
       const izin = await Notification.requestPermission();
@@ -69,10 +106,20 @@ export default function PushNotificationSetup() {
 
     let subscription = await registration.pushManager.getSubscription();
     if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
+      const opsi = {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
-      });
+      };
+      try {
+        subscription = await registration.pushManager.subscribe(opsi);
+      } catch (e) {
+        // Jaring terakhir untuk race "no active Service Worker": tunggu lagi
+        // sampai ada worker aktif, lalu coba sekali lagi.
+        if (!/active Service Worker/i.test(e?.message || "")) throw e;
+        await tungguAktif(registration);
+        const reg = await navigator.serviceWorker.ready;
+        subscription = await reg.pushManager.subscribe(opsi);
+      }
     }
 
     // Sesi dicek SETELAH subscribe supaya izin yang sudah diberikan tidak
