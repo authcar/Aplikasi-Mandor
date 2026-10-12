@@ -1,6 +1,6 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import BackButton from "@/components/BackButton";
-import RiwayatLaporanHarianCard from "@/app/supervisor/laporan-harian/RiwayatLaporanHarianCard";
+import RiwayatLaporanHarianCard from "@/app/(mandor)/supervisor/laporan-harian/RiwayatLaporanHarianCard";
 import StatusHariIniCard from "./StatusHariIniCard";
 
 export const dynamic = "force-dynamic";

@@ -1,0 +1,225 @@
+"use client";
+import { useState } from "react";
+import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapTerakhir, tahapBerikut } from "@/lib/portal/progresBoq";
+import { hariIni, tambahHari, selisihHari, tgl, tglTh, rp, pct, nilaiKontrak, persenLunas, statusProyek } from "@/lib/portal/format";
+import TabBar from "../../TabBar";
+
+const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
+
+function Ring({ p }) {
+  const r = 34, c = 2 * Math.PI * r;
+  return (
+    <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">
+      <circle cx="42" cy="42" r={r} fill="none" stroke="var(--sunk)" strokeWidth="9" />
+      <circle cx="42" cy="42" r={r} fill="none" stroke="var(--accent)" strokeWidth="9" strokeLinecap="round"
+        strokeDasharray={`${(c * p) / 100} ${c}`} transform="rotate(-90 42 42)" />
+      <text x="42" y="47" textAnchor="middle" fontFamily="var(--fd)" fontWeight="700" fontSize="17" fill="var(--fg)">
+        {Math.round(p)}%
+      </text>
+    </svg>
+  );
+}
+
+export default function Detail({ P }) {
+  const [tab, setTab] = useState("progres");
+  const now = hariIni();
+  const lalu = tambahHari(now, -7);
+  const items = P.items;
+  const p = persenProyek(items);
+  const naik = p - persenProyek(items, lalu);
+  const [st, cls] = statusProyek(P);
+  const sisaHari = P.deadline ? selisihHari(now, P.deadline) : null;
+  const areas = [...new Set(items.map((i) => i.area))];
+  const nilai = nilaiKontrak(P);
+
+  return (
+    <main className="wrap">
+      <div>
+        {P.klien && <div className="eb">Halo, {P.klien}</div>}
+        <h1>{P.nama}</h1>
+        {P.lokasi && <div className="small lok">{P.lokasi}</div>}
+      </div>
+
+      <section className="card ring">
+        <Ring p={p} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+          <span className={`badge ${cls}`} style={{ alignSelf: "flex-start" }}>{st}</span>
+          <div className="small">
+            {naik > 0 ? <><span className="delta">+{pct(naik)}</span> dalam 7 hari terakhir</> : "Tidak ada perubahan 7 hari terakhir"}
+          </div>
+          {P.deadline && (
+            <div className="small">
+              Deadline {tglTh(P.deadline)} · {sisaHari >= 0 ? `${sisaHari} hari lagi` : `lewat ${-sisaHari} hari`}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <TabBar
+        tabs={[["progres", "Progres"], nilai > 0 && ["rincian", "Rincian"], ["bayar", "Pembayaran"], ["info", "Info"]].filter(Boolean)}
+        value={tab}
+        onChange={setTab}
+      />
+
+      {tab === "progres" && (
+        !items.length ? (
+          <div className="card small">Rincian pekerjaan sedang disiapkan tim kami.</div>
+        ) : (
+          <>
+            <section className="card">
+              <div className="phasebar">
+                {FASE.map((f) => {
+                  const max = bobotFase(items, f.k);
+                  if (!max) return null;
+                  return (
+                    <div key={f.k} style={{ flex: max }}>
+                      <i style={{ width: `${(persenFase(items, f.k) / max) * 100}%`, background: WARNA[f.k] }} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="legend">
+                {FASE.filter((f) => bobotFase(items, f.k)).map((f) => (
+                  <div key={f.k} style={{ "--c": WARNA[f.k] }}>
+                    <b>{f.label}</b>
+                    <span className="num small">{pct(persenFase(items, f.k))} / {pct(bobotFase(items, f.k))}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+            {areas.map((a) => {
+              const its = items.filter((i) => i.area === a);
+              return (
+                <details key={a} className="lipat">
+                  <summary>
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <span className="row">
+                        <h2>{a}</h2>
+                        <span className="num small" style={{ margin: 0, whiteSpace: "nowrap" }}>{pct(persenProyek(its))} · {its.length} item</span>
+                      </span>
+                      <span className="bar" style={{ display: "block", marginTop: 8 }}><i style={{ width: `${persenProyek(its)}%` }} /></span>
+                    </span>
+                  </summary>
+                  <div className="lipat-b">
+                  {its.map((it) => {
+                    const v = persenItem(it);
+                    const d = v - persenItem(it, lalu);
+                    const akhir = tahapTerakhir(it);
+                    const next = tahapBerikut(it);
+                    return (
+                      <div key={it.id} className="item mini">
+                        <div className="row">
+                          <h3>{it.nama}</h3>
+                          <b className="num">{v}%</b>
+                        </div>
+                        <div className="track">
+                          {tahapItem(it).map((s) => (
+                            <span key={s.k} className={it.progres[s.k] ? "on" : ""} style={{ flex: s.w, "--c": WARNA[s.fase] }} />
+                          ))}
+                        </div>
+                        <div className="small">
+                          {akhir ? `${akhir.label} ✓ ${tgl(akhir.tgl)}` : "Belum dimulai"}
+                          {next && ` → ${next.label}`}
+                          {d > 0 && <> <span className="delta">+{d}%</span></>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  </div>
+                </details>
+              );
+            })}
+          </>
+        )
+      )}
+
+      {tab === "bayar" && (
+        !P.termin.length ? (
+          <div className="card small">Jadwal pembayaran belum tersedia.</div>
+        ) : (
+          <>
+            {nilai > 0 && (
+              <div className="grid2">
+                <div className="stat"><div className="eb">Sudah dibayar</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--ok)" }}>{rp((nilai * persenLunas(P)) / 100)}</div></div>
+                <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{rp(nilai * (1 - persenLunas(P) / 100))}</div></div>
+              </div>
+            )}
+            <section className="card">
+              <h3 style={{ marginBottom: 4 }}>Jadwal termin</h3>
+              <ul className="tl">
+                {P.termin.map((t, n) => {
+                  const telat = !t.lunas_tgl && t.jatuh_tempo && t.jatuh_tempo < now;
+                  const segera = !t.lunas_tgl && !telat && t.jatuh_tempo && selisihHari(now, t.jatuh_tempo) <= 7;
+                  const [lab, c] = t.lunas_tgl ? [`Lunas ${tgl(t.lunas_tgl)}`, "b-ok"] : telat ? ["Jatuh tempo", "b-bad"] : segera ? ["Segera", "b-warn"] : ["Belum", "b-n"];
+                  return (
+                    <li key={n}>
+                      <span className={`dot ${t.lunas_tgl ? "ok" : telat || segera ? "warn" : ""}`} />
+                      <div>
+                        <b style={{ fontWeight: 500 }}>{t.label}</b> <span className="small">({Number(t.persen)}%)</span>
+                        {t.jatuh_tempo && <div className="small">Jatuh tempo {tglTh(t.jatuh_tempo)}</div>}
+                        {nilai > 0 && <div className="num">{rp((nilai * t.persen) / 100)}</div>}
+                      </div>
+                      <span className={`badge ${c}`}>{lab}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          </>
+        )
+      )}
+
+      {tab === "rincian" && (
+        <>
+          {areas.map((a) => {
+            const its = items.filter((i) => i.area === a);
+            return (
+              <details key={a} className="lipat">
+                <summary>
+                  <span style={{ minWidth: 0, flex: 1 }}><h2>{a}</h2><span className="small">{its.length} item</span></span>
+                  <b className="num">{rp(nilaiKontrak({ items: its }))}</b>
+                </summary>
+                <div className="lipat-b garis">
+                {its.map((it) => (
+                  <div key={it.id} className="baris">
+                    <div style={{ minWidth: 0 }}>
+                      <div className="nm">{it.nama}</div>
+                      <div className="small">
+                        {[`${Number(it.qty).toLocaleString("id-ID")} ${it.satuan || ""}`.trim(), it.dimensi].filter(Boolean).join(" · ")}
+                      </div>
+                    </div>
+                    <span className="num">{Number(it.harga) > 0 ? rp(it.harga) : "—"}</span>
+                  </div>
+                ))}
+                </div>
+              </details>
+            );
+          })}
+          <div className="stat lead row" style={{ alignItems: "center" }}>
+            <div className="eb">Total nilai kontrak</div>
+            <div className="v num" style={{ fontSize: "1.15rem", marginTop: 0 }}>{rp(nilai)}</div>
+          </div>
+        </>
+      )}
+
+      {tab === "info" && (
+        <section className="card">
+          <dl className="kv">
+            <dt>Lokasi</dt><dd>{P.lokasi || "—"}</dd>
+            <dt>Mulai</dt><dd>{tglTh(P.mulai)}</dd>
+            <dt>Deadline</dt><dd>{P.deadline ? tglTh(P.deadline) : "—"}</dd>
+            <dt>Supervisor</dt><dd>{P.supervisor || "—"}</dd>
+            <dt>Rincian</dt><dd>{items.length} item · {areas.length} area</dd>
+            {nilai > 0 && (<><dt>Nilai kontrak</dt><dd className="num">{rp(nilai)}</dd></>)}
+            <dt>Update terakhir</dt>
+            <dd>
+              {P.update_terakhir
+                ? `${P.update_terakhir.oleh || "Tim Taraco"} · ${new Date(P.update_terakhir.at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "medium", timeStyle: "short" })}`
+                : "—"}
+            </dd>
+          </dl>
+        </section>
+      )}
+    </main>
+  );
+}

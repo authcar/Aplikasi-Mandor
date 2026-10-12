@@ -240,6 +240,18 @@ export default async function DashboardSupervisor() {
               Kasbon
             </p>
           </Link>
+
+          <Link
+            href="/portal"
+            className="relative flex flex-col items-center gap-1 active:opacity-70"
+          >
+            <span className="icon-tile !rounded-full bg-amber-100 text-amber-700">
+              <Icon name="share" />
+            </span>
+            <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+              Progres BOQ
+            </p>
+          </Link>
         </div>
       </div>
 

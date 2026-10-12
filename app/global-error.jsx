@@ -1,7 +1,7 @@
 "use client";
 
 import Icon from "@/components/Icon";
-import "./globals.css";
+import "./(mandor)/globals.css";
 
 // Menangani error di root layout (app/layout.jsx) itu sendiri — kasus yang
 // tidak bisa ditangkap app/error.jsx. Harus menyediakan <html>/<body> sendiri

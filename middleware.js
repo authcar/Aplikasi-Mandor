@@ -31,7 +31,8 @@ export async function middleware(request) {
     path.startsWith("/supervisor") ||
     path.startsWith("/master") ||
     path.startsWith("/finance") ||
-    path.startsWith("/tukang-harian");
+    path.startsWith("/tukang-harian") ||
+    path.startsWith("/portal");
 
   if (!user && isProtected) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -56,11 +57,15 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL(home, request.url));
     if (path.startsWith("/tukang-harian") && role !== "TUKANG_HARIAN")
       return NextResponse.redirect(new URL(home, request.url));
+    // Portal Klien (area staf): MASTER = admin, SUPERVISOR = centang progres.
+    // Halaman klien /k/[token] sengaja TIDAK masuk matcher (tanpa login).
+    if (path.startsWith("/portal") && role !== "MASTER" && role !== "SUPERVISOR")
+      return NextResponse.redirect(new URL(home, request.url));
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/mandor/:path*", "/supervisor/:path*", "/master/:path*", "/finance/:path*", "/tukang-harian/:path*"],
+  matcher: ["/mandor/:path*", "/supervisor/:path*", "/master/:path*", "/finance/:path*", "/tukang-harian/:path*", "/portal/:path*"],
 };

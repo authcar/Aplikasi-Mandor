@@ -1,8 +1,7 @@
 import Link from "next/link";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
-import RiwayatLaporanHarianCard from "@/app/supervisor/laporan-harian/RiwayatLaporanHarianCard";
-import EditableAngkaField from "./EditableAngkaField";
+import RiwayatLaporanHarianCard from "@/app/(mandor)/supervisor/laporan-harian/RiwayatLaporanHarianCard";
 
 // Sama dengan STATUS_BADGE di app/supervisor/laporan-harian/RiwayatLaporanHarianCard.jsx
 const STATUS_BADGE = {
@@ -18,16 +17,15 @@ const labelTanggal = (tgl) =>
     month: "long",
   });
 
-// Sebagian besar data proyek datang dari Taraco (satu-satunya sumber) dan
-// read-only di sini — kecuali nilai_proyek (Nilai Jasa Tukang) & sisa_budget
-// (Sisa Budget) yang bisa diinput manual oleh Finance lewat EditableAngkaField.
-// `riwayat` dari laporan_harian (laporan manual Supervisor), terurut terbaru dulu.
-export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riwayat = [] }) {
+// Read-only — data proyek (nama, lokasi, mandor) datang dari Taraco.
+// `riwayat` dari laporan_harian (laporan manual di web app), terurut terbaru
+// dulu — dipakai buat kartu "Laporan Terakhir" & riwayat lengkap di bawah.
+export default function ProyekDetail({ proyek, jumlahHadir, tidakAdaPengerjaan = false, riwayat = [] }) {
   const laporanTerakhir = riwayat[0] || null;
 
   return (
     <main className="p-4 pb-8">
-      <BackButton href="/finance" />
+      <BackButton href="/supervisor" />
       <header className="mb-5 flex items-center gap-3">
         <span className="icon-tile bg-brand-50 text-brand-600">
           <Icon name={proyek.icon || "building"} />
@@ -44,8 +42,12 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
       <div className="card p-4 mb-5 flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500">Hadir Hari Ini</p>
-          <p className="text-2xl font-bold">
-            {jumlahHadir === null ? "—" : `${jumlahHadir} orang`}
+          <p className={tidakAdaPengerjaan ? "text-base font-semibold text-amber-600" : "text-2xl font-bold"}>
+            {tidakAdaPengerjaan
+              ? "Tidak ada pengerjaan"
+              : jumlahHadir === null
+              ? "—"
+              : `${jumlahHadir} orang`}
           </p>
         </div>
         <span className="icon-tile bg-green-100 text-green-600">
@@ -53,35 +55,14 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
         </span>
       </div>
 
-      <div className="card p-4 mb-5 space-y-3">
-        <EditableAngkaField proyekId={proyek.id} field="nilai_proyek" label="Nilai Jasa Tukang" nilaiAwal={proyek.nilai_proyek} />
-        <EditableAngkaField proyekId={proyek.id} field="sisa_budget" label="Sisa Budget" nilaiAwal={proyek.sisa_budget} />
-        <div>
-          <p className="label">Supervisor</p>
-          <p className="text-lg font-semibold">{proyek.supervisor?.name || "— Belum ditetapkan —"}</p>
-        </div>
-        <div>
-          <p className="label">Mandor Penanggung Jawab</p>
-          <p className="text-lg font-semibold">{proyek.mandor?.name || "— Belum ditetapkan —"}</p>
-        </div>
-      </div>
-
       <Link
-        href={`/finance/proyek/${proyek.id}/biaya`}
-        className="card-tap mb-5 flex items-center gap-3 p-4"
+        href="/supervisor/laporan-harian"
+        className="card mb-5 block p-4 space-y-2 active:bg-gray-50"
       >
-        <span className="icon-tile bg-emerald-100 text-emerald-600">
-          <Icon name="receipt" />
-        </span>
-        <div className="flex-1">
-          <p className="font-semibold text-sm">Biaya & Profit Proyek</p>
-          <p className="text-xs text-gray-500">Pos biaya, penerimaan klien, profit/loss</p>
+        <div className="flex items-center justify-between">
+          <p className="font-bold text-gray-700 text-sm">Laporan Terakhir</p>
+          <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-gray-300" />
         </div>
-        <Icon name="chevron-right" className="h-4 w-4 text-gray-300" />
-      </Link>
-
-      <div className="card p-4 mb-5 space-y-2">
-        <p className="font-bold text-gray-700 text-sm">Laporan Terakhir</p>
         {laporanTerakhir ? (
           <>
             <div className="flex items-center justify-between gap-2">
@@ -95,8 +76,15 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
             <p className="line-clamp-2 text-sm text-gray-600">{laporanTerakhir.deskripsi}</p>
           </>
         ) : (
-          <p className="text-sm text-gray-400">Belum ada laporan harian dari Supervisor untuk proyek ini.</p>
+          <p className="text-sm text-gray-400">Belum ada laporan harian untuk proyek ini.</p>
         )}
+      </Link>
+
+      <div className="card p-4 mb-5 space-y-3">
+        <div>
+          <p className="label">Mandor Penanggung Jawab</p>
+          <p className="text-lg font-semibold">{proyek.mandor?.name || "— Belum ditetapkan —"}</p>
+        </div>
       </div>
 
       <RiwayatLaporanHarianCard riwayat={riwayat} />
