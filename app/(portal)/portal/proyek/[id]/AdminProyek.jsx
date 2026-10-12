@@ -3,13 +3,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
+import UnggahBoq from "../../UnggahBoq";
 import TabBar from "../../../TabBar";
 import {
   FASE, JENIS, JENIS_LABEL, tahapItem, persenItem, persenProyek, pakaiHarga,
   tahapTerakhir, tahapBerikut,
 } from "@/lib/portal/progresBoq";
 import { hariIni, tgl, rp, pct, angka } from "@/lib/portal/format";
-import { bacaBoq } from "@/lib/portal/imporBoq";
+import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
@@ -164,9 +165,11 @@ function TabProgres({ items, aksi }) {
 /* ---------- Item BOQ: impor + edit ---------- */
 function TabItem({ proyek, items, aksi }) {
   const [teks, setTeks] = useState("");
+  const [file, setFile] = useState(null); // { sheet, rows } dari UnggahBoq
+  const [unggahKe, setUnggahKe] = useState(0); // ganti key = kosongkan pilihan file
   const [buka, setBuka] = useState(null);
-  const parse = () => bacaBoq(teks, items.length);
-  const preview = teks ? parse() : [];
+  const preview = file ? bacaBaris(file.rows, items.length) : teks ? bacaBoq(teks, items.length) : [];
+  const perArea = preview.reduce((a, p) => ((a[p.area] = (a[p.area] || 0) + 1), a), {});
   const ubah = (id, patch) => aksi.jalankan(() => A.ubahItem(id, patch));
   const areas = [...new Set(items.map((i) => i.area))];
 
@@ -229,26 +232,55 @@ function TabItem({ proyek, items, aksi }) {
       <div className="card stack">
         <h3>Impor dari Excel</h3>
         <p className="small" style={{ margin: 0 }}>
-          Buka sheet proyek di file <b>BoQ</b>, pilih semua (Ctrl+A), salin (Ctrl+C), lalu tempel di sini.
-          Yang diambil hanya item bernomor (kabinet, wardrobe, dll.) beserta area, kode, dimensi, dan qty-nya;
-          aksesoris tanpa nomor seperti LED, handle, dan stopkontak dilewati. Jenis (HPL / Duco / Vendor / Sipil)
-          ditebak dari uraian dan bisa diubah per item. Harga diisi setelah impor.
+          Pilih file <b>BoQ</b>, lalu sheet proyeknya. Yang diambil hanya item bernomor (kabinet, wardrobe, dll.)
+          beserta area, kode, dimensi, dan qty-nya; aksesoris tanpa nomor seperti LED, handle, dan stopkontak dilewati.
+          Jenis (HPL / Duco / Vendor / Sipil) ditebak dari uraian dan bisa diubah per item. Harga diisi setelah impor.
         </p>
-        <textarea className="inp" value={teks} onChange={(e) => setTeks(e.target.value)}
-          placeholder={"No.\tUraian\tPanjang\tLebar\tTinggi\tQty\nA\tFOYER\n1\tShoe Rack (FF.01)\t1,65\t0,4\t2,3\t1"} />
-        {teks.trim() && !preview.length && (
+        <UnggahBoq key={unggahKe} petunjuk={[proyek.nama, proyek.kode]} onPilih={(f) => { setFile(f); aksi.setMsg(""); }} />
+        {!file && (
+          <details>
+            <summary className="small" style={{ cursor: "pointer", minHeight: "var(--tap)", display: "flex", alignItems: "center" }}>
+              Atau tempel baris dari Excel
+            </summary>
+            <div className="stack">
+              <p className="small" style={{ margin: 0 }}>
+                Buka sheet proyek, pilih semua (Ctrl+A), salin (Ctrl+C), lalu tempel di sini.
+              </p>
+              <textarea className="inp" value={teks} onChange={(e) => setTeks(e.target.value)}
+                placeholder={"No.\tUraian\tPanjang\tLebar\tTinggi\tQty\nA\tFOYER\n1\tShoe Rack (FF.01)\t1,65\t0,4\t2,3\t1"} />
+            </div>
+          </details>
+        )}
+        {file && !preview.length && (
+          <p className="note b-warn">Tidak ada item yang terbaca di sheet “{file.sheet}”. Pastikan ini sheet BoQ proyeknya.</p>
+        )}
+        {!file && teks.trim() && !preview.length && (
           <p className="note b-warn">
             Belum ada item yang terbaca. Salin langsung dari Excel mulai kolom <b>No.</b> sampai <b>Qty</b>, dan pastikan baris item punya nomor.
           </p>
         )}
         {preview.length > 0 && (
           <p className="small" style={{ margin: 0 }}>
-            Terbaca <b>{preview.length}</b> item di <b>{new Set(preview.map((p) => p.area)).size}</b> area:{" "}
+            Terbaca <b>{preview.length}</b> item di <b>{Object.keys(perArea).length}</b> area (
             {Object.entries(preview.reduce((a, p) => ((a[p.jenis] = (a[p.jenis] || 0) + 1), a), {})).map(([j, n]) => `${n} ${JENIS_LABEL[j]}`).join(", ")}
+            ): {Object.entries(perArea).map(([a, n]) => `${a} ${n}`).join(" · ")}
           </p>
         )}
+        {file && preview.length > 0 && formatLama(file.rows) && (
+          <p className="note b-warn">
+            Sheet ini tidak memakai nomor item, jadi item ditebak dari baris yang punya dimensi. Periksa hasilnya dan hapus yang tidak perlu setelah impor.
+          </p>
+        )}
+        {preview.length > 0 && items.length > 0 && (
+          <p className="note b-warn">Proyek ini sudah punya {items.length} item. Impor ini menambah, bukan mengganti.</p>
+        )}
         <button type="button" className="btn" disabled={aksi.sibuk || !preview.length}
-          onClick={async () => { if (await aksi.jalankan(() => A.tambahItem(proyek.id, parse()), `${preview.length} item ditambahkan.`)) setTeks(""); }}>
+          onClick={async () => {
+            if (!(await aksi.jalankan(() => A.tambahItem(proyek.id, preview), `${preview.length} item ditambahkan.`))) return;
+            setTeks("");
+            setFile(null);
+            setUnggahKe((n) => n + 1);
+          }}>
           Tambahkan {preview.length || ""} item
         </button>
       </div>
