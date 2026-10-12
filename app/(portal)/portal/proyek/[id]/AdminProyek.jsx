@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
@@ -54,6 +54,23 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
       {tab === "klien" && <TabKlien proyek={proyek} klien={klien} aksi={aksi} />}
       {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
     </main>
+  );
+}
+
+// Kolom harga: angka langsung tampil sebagai rupiah saat diketik ("Rp 4.500.000")
+// dan disimpan saat pindah dari kolom. Kosong = harga belum diisi.
+const rupiah = (n) => (n ? `Rp ${Number(n).toLocaleString("id-ID")}` : "");
+
+function InputRupiah({ nilai, onSimpan }) {
+  const [teks, setTeks] = useState(rupiah(nilai));
+  useEffect(() => setTeks(rupiah(nilai)), [nilai]);
+  const angkaNya = (s) => Number(s.replace(/\D/g, "")) || null;
+  return (
+    <input className="inp num" inputMode="numeric" placeholder="Rp 0" style={{ textAlign: "right" }}
+      value={teks}
+      onChange={(e) => setTeks(rupiah(angkaNya(e.target.value)))}
+      onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+      onBlur={() => { const v = angkaNya(teks); if (v !== (nilai == null ? null : Number(nilai))) onSimpan(v); }} />
   );
 }
 
@@ -170,7 +187,8 @@ function TabItem({ proyek, items, aksi }) {
   const [buka, setBuka] = useState(null);
   const preview = file ? bacaBaris(file.rows, items.length) : teks ? bacaBoq(teks, items.length) : [];
   const perArea = preview.reduce((a, p) => ((a[p.area] = (a[p.area] || 0) + 1), a), {});
-  const ubah = (id, patch) => aksi.jalankan(() => A.ubahItem(id, patch));
+  // `ok` = pesan hijau setelah tersimpan.
+  const ubah = (id, patch, ok) => aksi.jalankan(() => A.ubahItem(id, patch), ok);
   const areas = [...new Set(items.map((i) => i.area))];
 
   return (
@@ -199,22 +217,21 @@ function TabItem({ proyek, items, aksi }) {
                       <div className="seg">
                         {JENIS.map((j) => (
                           <button key={j} type="button" aria-pressed={it.jenis === j} disabled={aksi.sibuk}
-                            onClick={() => it.jenis !== j && ubah(it.id, { jenis: j })}>
+                            onClick={() => it.jenis !== j && ubah(it.id, { jenis: j }, `Jenis ${it.nama} diubah ke ${JENIS_LABEL[j]}.`)}>
                             {JENIS_PENDEK[j]}
                           </button>
                         ))}
                       </div>
                     </div>
                     <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) 96px" }}>
-                      <label className="lbl">Harga (Rp)
-                        <input className="inp num" inputMode="numeric" placeholder="—" style={{ textAlign: "right" }}
-                          defaultValue={it.harga ? Number(it.harga).toLocaleString("id-ID") : ""}
-                          onBlur={(e) => { const v = angka(e.target.value); if (v !== (it.harga == null ? null : Number(it.harga))) ubah(it.id, { harga: v }); }} />
+                      <label className="lbl">Harga
+                        <InputRupiah nilai={it.harga}
+                          onSimpan={(v) => ubah(it.id, { harga: v }, v ? `Harga ${it.nama} disimpan: ${rp(v)}` : `Harga ${it.nama} dikosongkan.`)} />
                       </label>
                       <label className="lbl">Bobot
                         <input className="inp num" inputMode="decimal" style={{ textAlign: "right" }}
                           defaultValue={Number(it.bobot).toLocaleString("id-ID")}
-                          onBlur={(e) => { const v = angka(e.target.value); if (v > 0 && v !== Number(it.bobot)) ubah(it.id, { bobot: v }); }} />
+                          onBlur={(e) => { const v = angka(e.target.value); if (v > 0 && v !== Number(it.bobot)) ubah(it.id, { bobot: v }, `Bobot ${it.nama} disimpan: ${v.toLocaleString("id-ID")}`); }} />
                       </label>
                     </div>
                     <button type="button" className="act bahaya" disabled={aksi.sibuk}

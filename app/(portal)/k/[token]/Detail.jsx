@@ -103,7 +103,7 @@ export default function Detail({ P }) {
                   <div className="lipat-b">
                   {its.map((it) => {
                     const v = persenItem(it);
-                    const d = v - persenItem(it, lalu);
+                    const d = Math.round((v - persenItem(it, lalu)) * 100) / 100;
                     const akhir = tahapTerakhir(it);
                     const next = tahapBerikut(it);
                     return (

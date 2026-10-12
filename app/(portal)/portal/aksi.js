@@ -103,6 +103,30 @@ export async function hapusTermin(id) {
   return jalan(() => hapus("portal_termin", id));
 }
 
+/* ---------- Bobot tahap (per jenis, semua proyek) ---------- */
+// bobot = { [tahap]: persen } lengkap untuk satu jenis, berjumlah 100.
+export async function simpanBobotTahap(jenis, bobot) {
+  return jalan(async (staf) => {
+    const tahap = TAHAP[jenis];
+    if (!tahap) throw new Error("Jenis tidak valid.");
+    const rows = tahap.map((s) => ({ jenis, tahap: s.k, bobot: Number(bobot?.[s.k]) }));
+    if (rows.some((r) => !(r.bobot >= 0 && r.bobot <= 100))) throw new Error("Tiap tahap harus diisi 0–100.");
+    const total = rows.reduce((a, r) => a + r.bobot, 0);
+    if (Math.abs(total - 100) > 0.001) throw new Error(`Total harus 100%, sekarang ${total}%.`);
+    await hasil(
+      db().from("portal_bobot_tahap").upsert(rows.map((r) => ({ ...r, diubah_oleh: staf.id, diubah_at: new Date().toISOString() })))
+    );
+  });
+}
+
+// Hapus pengaturan -> jenis ini kembali memakai bobot bawaan.
+export async function resetBobotTahap(jenis) {
+  return jalan(async () => {
+    if (!TAHAP[jenis]) throw new Error("Jenis tidak valid.");
+    await hasil(db().from("portal_bobot_tahap").delete().eq("jenis", jenis));
+  });
+}
+
 /* ---------- Link klien ---------- */
 export async function buatLink(proyekId, nama) {
   return jalan(async () => {

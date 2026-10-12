@@ -13,9 +13,12 @@ export default async function PortalBeranda() {
 
   return (
     <main className="wrap">
-      <div>
-        <div className="eb">{admin ? "Admin" : "Supervisor"}</div>
-        <h1>Proyek</h1>
+      <div className="row" style={{ alignItems: "center" }}>
+        <div>
+          <div className="eb">{admin ? "Admin" : "Supervisor"}</div>
+          <h1>Proyek</h1>
+        </div>
+        {admin && <Link href="/portal/bobot" className="act">Bobot tahap</Link>}
       </div>
 
       {admin && <ProyekBaru supervisors={supervisors} />}
