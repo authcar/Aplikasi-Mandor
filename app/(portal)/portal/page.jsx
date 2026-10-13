@@ -9,7 +9,7 @@ export default async function PortalBeranda() {
   const { staf } = await ambilStaf();
   const admin = staf.role === "ADMIN";
   const [proyek, supervisors] = await Promise.all([ambilProyekStaf(staf), admin ? ambilSupervisor() : []]);
-  const items = await ambilItem(proyek.map((p) => p.id));
+  const items = await ambilItem(proyek);
 
   return (
     <main className="wrap">

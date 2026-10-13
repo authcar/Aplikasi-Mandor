@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapTerakhir, tahapBerikut } from "@/lib/portal/progresBoq";
-import { hariIni, tambahHari, selisihHari, tgl, tglTh, rp, pct, nilaiKontrak, persenLunas, statusProyek } from "@/lib/portal/format";
+import { hariIni, tambahHari, selisihHari, tgl, tglTh, rp, pct, nilaiKontrak, tagihanTermin, dibayarTermin, totalDibayar, statusProyek } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
@@ -31,6 +31,7 @@ export default function Detail({ P }) {
   const sisaHari = P.deadline ? selisihHari(now, P.deadline) : null;
   const areas = [...new Set(items.map((i) => i.area))];
   const nilai = nilaiKontrak(P);
+  const dibayar = totalDibayar(P.termin, nilai);
 
   return (
     <main className="wrap">
@@ -138,10 +139,10 @@ export default function Detail({ P }) {
           <div className="card small">Jadwal pembayaran belum tersedia.</div>
         ) : (
           <>
-            {nilai > 0 && (
+            {(nilai > 0 || dibayar > 0) && (
               <div className="grid2">
-                <div className="stat"><div className="eb">Sudah dibayar</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--ok)" }}>{rp((nilai * persenLunas(P)) / 100)}</div></div>
-                <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{rp(nilai * (1 - persenLunas(P) / 100))}</div></div>
+                <div className="stat"><div className="eb">Sudah dibayar</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--ok)" }}>{rp(dibayar)}</div></div>
+                <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{nilai > 0 ? rp(Math.max(0, nilai - dibayar)) : "—"}</div></div>
               </div>
             )}
             <section className="card">
@@ -150,14 +151,17 @@ export default function Detail({ P }) {
                 {P.termin.map((t, n) => {
                   const telat = !t.lunas_tgl && t.jatuh_tempo && t.jatuh_tempo < now;
                   const segera = !t.lunas_tgl && !telat && t.jatuh_tempo && selisihHari(now, t.jatuh_tempo) <= 7;
-                  const [lab, c] = t.lunas_tgl ? [`Lunas ${tgl(t.lunas_tgl)}`, "b-ok"] : telat ? ["Jatuh tempo", "b-bad"] : segera ? ["Segera", "b-warn"] : ["Belum", "b-n"];
+                  const masuk = dibayarTermin(t, nilai);
+                  const sebagian = !t.lunas_tgl && masuk > 0;
+                  const [lab, c] = t.lunas_tgl ? [`Lunas ${tgl(t.lunas_tgl)}`, "b-ok"] : telat ? ["Jatuh tempo", "b-bad"] : segera ? ["Segera", "b-warn"] : sebagian ? ["Sebagian", "b-warn"] : ["Belum", "b-n"];
                   return (
                     <li key={n}>
                       <span className={`dot ${t.lunas_tgl ? "ok" : telat || segera ? "warn" : ""}`} />
                       <div>
                         <b style={{ fontWeight: 500 }}>{t.label}</b> <span className="small">({Number(t.persen)}%)</span>
                         {t.jatuh_tempo && <div className="small">Jatuh tempo {tglTh(t.jatuh_tempo)}</div>}
-                        {nilai > 0 && <div className="num">{rp((nilai * t.persen) / 100)}</div>}
+                        {nilai > 0 && <div className="num">{rp(tagihanTermin(t, nilai))}</div>}
+                        {sebagian && <div className="small">Sudah diterima {rp(masuk)}</div>}
                       </div>
                       <span className={`badge ${c}`}>{lab}</span>
                     </li>

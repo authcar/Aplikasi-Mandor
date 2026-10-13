@@ -1,15 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
 import TabBar from "../../../TabBar";
 import {
-  FASE, JENIS, JENIS_LABEL, tahapItem, persenItem, persenProyek, pakaiHarga,
+  FASE, JENIS, JENIS_LABEL, tahapItem, persenItem, persenProyek, pakaiHarga, semuaBerharga, beriBerat,
   tahapTerakhir, tahapBerikut,
 } from "@/lib/portal/progresBoq";
-import { hariIni, tgl, rp, pct, angka } from "@/lib/portal/format";
+import { hariIni, tgl, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar } from "@/lib/portal/format";
 import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
 
@@ -36,7 +36,7 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
         <div className="stat lead">
           <div className="eb">Progres</div>
           <div className="v num">{pct(persenProyek(items))}</div>
-          <div className="s">{items.length} item · {pakaiHarga(items) ? "ditimbang harga" : "ditimbang bobot"}</div>
+          <div className="s">{items.length} item · {pakaiHarga(items, proyek.timbang_harga) ? "ditimbang harga" : "ditimbang bobot"}</div>
         </div>
         <div className="stat">
           <div className="eb">Nilai kontrak</div>
@@ -179,20 +179,90 @@ function TabProgres({ items, aksi }) {
   );
 }
 
-/* ---------- Item BOQ: impor + edit ---------- */
+/* ---------- Item BOQ: penimbang, edit, tambah, impor ---------- */
+const teksQty = (i) => `${Number(i.qty).toLocaleString("id-ID")} ${i.satuan || ""}`.trim();
+// Item dianggap sama kalau area, nama, dan kodenya sama.
+const kunciItem = (i) => [i.area, i.nama, i.kode].map((x) => (x || "").toLowerCase().replace(/\s+/g, " ").trim()).join("|");
+
+// Kolom yang tersimpan saat pindah dari kolom (atau Enter). onSimpan(v)
+// mengembalikan false kalau ditolak; isi kolom lalu kembali ke nilai semula.
+function Isian({ label, nilai, onSimpan, ...rest }) {
+  const awal = String(nilai ?? "");
+  return (
+    <label className="lbl">{label}
+      <input className="inp" defaultValue={awal} {...rest}
+        onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+        onBlur={async (e) => {
+          const el = e.target, v = el.value.trim();
+          if (v !== awal && !(await onSimpan(v))) el.value = awal;
+        }} />
+    </label>
+  );
+}
+
+// Penimbang progres antar item: bobot atau harga. Dipilih admin, supaya angka
+// yang dilihat klien tidak berubah sendiri saat harga terakhir diisi.
+function Penimbang({ proyek, items, aksi }) {
+  if (!items.length) return null;
+  const pilih = proyek.timbang_harga;
+  const lengkap = semuaBerharga(items);
+  const kosong = items.filter((i) => !(Number(i.harga) > 0)).length;
+  const pBobot = pct(persenProyek(beriBerat(items, false)));
+  const pHarga = lengkap ? pct(persenProyek(beriBerat(items, true))) : null;
+  const ganti = (ke) =>
+    confirm(`Progres proyek yang dilihat klien berubah dari ${ke ? pBobot : pHarga} menjadi ${ke ? pHarga : pBobot}. Lanjutkan?`) &&
+    aksi.jalankan(() => A.ubahProyek(proyek.id, { timbang_harga: ke }), `Progres sekarang ditimbang ${ke ? "harga" : "bobot"}.`);
+
+  return (
+    <div className="card stack">
+      <div className="row" style={{ alignItems: "center" }}>
+        <h3>Penimbang progres</h3>
+        <span className="badge b-n">{pakaiHarga(items, pilih) ? "Harga" : "Bobot"}</span>
+      </div>
+      {pilih == null ? (
+        <p className="small" style={{ margin: 0 }}>
+          Progres ditimbang harga kalau semua item sudah berharga, selain itu bobot. Untuk memilih sendiri, jalankan{" "}
+          <b>supabase/add_portal_pembayaran.sql</b> di Supabase.
+        </p>
+      ) : !pilih ? (
+        <>
+          <p className="small" style={{ margin: 0 }}>
+            Item berbobot besar menyumbang lebih banyak ke progres proyek (sekarang {pBobot}). Mengisi harga tidak mengubah angka ini.{" "}
+            {lengkap
+              ? `Semua harga sudah terisi; kalau ditimbang harga, progres menjadi ${pHarga}.`
+              : `${kosong} item belum ada harga, jadi penimbang harga belum bisa dipakai.`}
+          </p>
+          {lengkap && <button type="button" className="act" disabled={aksi.sibuk} onClick={() => ganti(true)}>Timbang dengan harga</button>}
+        </>
+      ) : lengkap ? (
+        <>
+          <p className="small" style={{ margin: 0 }}>
+            Item yang lebih mahal menyumbang lebih banyak ke progres proyek (sekarang {pHarga}). Kalau ditimbang bobot: {pBobot}.
+          </p>
+          <button type="button" className="act" disabled={aksi.sibuk} onClick={() => ganti(false)}>Kembali ke bobot</button>
+        </>
+      ) : (
+        <p className="note b-warn">
+          Proyek ini ditimbang harga, tetapi {kosong} item belum ada harga, jadi sementara progres ditimbang bobot ({pBobot}).
+          Isi harganya supaya kembali ditimbang harga.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function TabItem({ proyek, items, aksi }) {
-  const [teks, setTeks] = useState("");
-  const [file, setFile] = useState(null); // { sheet, rows } dari UnggahBoq
-  const [unggahKe, setUnggahKe] = useState(0); // ganti key = kosongkan pilihan file
   const [buka, setBuka] = useState(null);
-  const preview = file ? bacaBaris(file.rows, items.length) : teks ? bacaBoq(teks, items.length) : [];
-  const perArea = preview.reduce((a, p) => ((a[p.area] = (a[p.area] || 0) + 1), a), {});
   // `ok` = pesan hijau setelah tersimpan.
   const ubah = (id, patch, ok) => aksi.jalankan(() => A.ubahItem(id, patch), ok);
   const areas = [...new Set(items.map((i) => i.area))];
+  const urutan = items.reduce((m, i) => Math.max(m, i.urutan), -1) + 1; // untuk item baru
 
   return (
     <>
+      <Penimbang proyek={proyek} items={items} aksi={aksi} />
+      <datalist id="daftar-area">{areas.map((a) => <option key={a} value={a} />)}</datalist>
+
       {areas.map((a) => (
         <div key={a} className="stack" style={{ gap: 8 }}>
           <div className="area"><h2>{a}</h2></div>
@@ -204,7 +274,7 @@ function TabItem({ proyek, items, aksi }) {
                   <span className="t">
                     <span className="nm">{it.nama}</span>
                     <span className="small">
-                      {[it.kode, JENIS_PENDEK[it.jenis], `${Number(it.qty).toLocaleString("id-ID")} ${it.satuan || ""}`.trim(), it.dimensi].filter(Boolean).join(" · ")}
+                      {[it.kode, JENIS_PENDEK[it.jenis], teksQty(it), it.dimensi].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                   <span className="num small">{it.harga ? rp(it.harga) : "—"}</span>
@@ -212,6 +282,22 @@ function TabItem({ proyek, items, aksi }) {
                 </button>
                 {open && (
                   <div className="acc-b">
+                    <Isian label="Nama item" nilai={it.nama}
+                      onSimpan={(v) => !!v && ubah(it.id, { nama: v }, `Nama item disimpan: ${v}`)} />
+                    <div className="g2">
+                      <Isian label="Area" nilai={it.area} list="daftar-area"
+                        onSimpan={(v) => !!v && ubah(it.id, { area: v }, `${it.nama} dipindah ke ${v}.`)} />
+                      <Isian label="Kode" nilai={it.kode}
+                        onSimpan={(v) => ubah(it.id, { kode: v || null }, `Kode ${it.nama} disimpan.`)} />
+                    </div>
+                    <div className="g2" style={{ gridTemplateColumns: "72px 88px minmax(0,1fr)" }}>
+                      <Isian label="Qty" inputMode="decimal" nilai={Number(it.qty).toLocaleString("id-ID")}
+                        onSimpan={(v) => angka(v) > 0 && ubah(it.id, { qty: angka(v) }, `Qty ${it.nama} disimpan.`)} />
+                      <Isian label="Satuan" nilai={it.satuan}
+                        onSimpan={(v) => ubah(it.id, { satuan: v || null }, `Satuan ${it.nama} disimpan.`)} />
+                      <Isian label="Dimensi" nilai={it.dimensi}
+                        onSimpan={(v) => ubah(it.id, { dimensi: v || null }, `Dimensi ${it.nama} disimpan.`)} />
+                    </div>
                     <div>
                       <div className="fl">Jenis pekerjaan</div>
                       <div className="seg">
@@ -224,15 +310,12 @@ function TabItem({ proyek, items, aksi }) {
                       </div>
                     </div>
                     <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) 96px" }}>
-                      <label className="lbl">Harga
+                      <label className="lbl">Harga (total item)
                         <InputRupiah nilai={it.harga}
                           onSimpan={(v) => ubah(it.id, { harga: v }, v ? `Harga ${it.nama} disimpan: ${rp(v)}` : `Harga ${it.nama} dikosongkan.`)} />
                       </label>
-                      <label className="lbl">Bobot
-                        <input className="inp num" inputMode="decimal" style={{ textAlign: "right" }}
-                          defaultValue={Number(it.bobot).toLocaleString("id-ID")}
-                          onBlur={(e) => { const v = angka(e.target.value); if (v > 0 && v !== Number(it.bobot)) ubah(it.id, { bobot: v }, `Bobot ${it.nama} disimpan: ${v.toLocaleString("id-ID")}`); }} />
-                      </label>
+                      <Isian label="Bobot" inputMode="decimal" style={{ textAlign: "right" }} nilai={Number(it.bobot).toLocaleString("id-ID")}
+                        onSimpan={(v) => angka(v) > 0 && ubah(it.id, { bobot: angka(v) }, `Bobot ${it.nama} disimpan: ${angka(v).toLocaleString("id-ID")}`)} />
                     </div>
                     <button type="button" className="act bahaya" disabled={aksi.sibuk}
                       onClick={() => confirm(`Hapus "${it.nama}" beserta progresnya?`) && aksi.jalankan(() => A.hapusItem(it.id), `${it.nama} dihapus.`)}>
@@ -246,69 +329,190 @@ function TabItem({ proyek, items, aksi }) {
         </div>
       ))}
 
-      <div className="card stack">
-        <h3>Impor dari Excel</h3>
-        <p className="small" style={{ margin: 0 }}>
-          Pilih file <b>BoQ</b>, lalu sheet proyeknya. Yang diambil hanya item bernomor (kabinet, wardrobe, dll.)
-          beserta area, kode, dimensi, dan qty-nya; aksesoris tanpa nomor seperti LED, handle, dan stopkontak dilewati.
-          Jenis (HPL / Duco / Vendor / Sipil) ditebak dari uraian dan bisa diubah per item. Harga diisi setelah impor.
-        </p>
-        <UnggahBoq key={unggahKe} petunjuk={[proyek.nama, proyek.kode]} onPilih={(f) => { setFile(f); aksi.setMsg(""); }} />
-        {!file && (
-          <details>
-            <summary className="small" style={{ cursor: "pointer", minHeight: "var(--tap)", display: "flex", alignItems: "center" }}>
-              Atau tempel baris dari Excel
-            </summary>
-            <div className="stack">
-              <p className="small" style={{ margin: 0 }}>
-                Buka sheet proyek, pilih semua (Ctrl+A), salin (Ctrl+C), lalu tempel di sini.
-              </p>
-              <textarea className="inp" value={teks} onChange={(e) => setTeks(e.target.value)}
-                placeholder={"No.\tUraian\tPanjang\tLebar\tTinggi\tQty\nA\tFOYER\n1\tShoe Rack (FF.01)\t1,65\t0,4\t2,3\t1"} />
-            </div>
-          </details>
-        )}
-        {file && !preview.length && (
-          <p className="note b-warn">Tidak ada item yang terbaca di sheet “{file.sheet}”. Pastikan ini sheet BoQ proyeknya.</p>
-        )}
-        {!file && teks.trim() && !preview.length && (
-          <p className="note b-warn">
-            Belum ada item yang terbaca. Salin langsung dari Excel mulai kolom <b>No.</b> sampai <b>Qty</b>, dan pastikan baris item punya nomor.
-          </p>
-        )}
-        {preview.length > 0 && (
-          <p className="small" style={{ margin: 0 }}>
-            Terbaca <b>{preview.length}</b> item di <b>{Object.keys(perArea).length}</b> area (
-            {Object.entries(preview.reduce((a, p) => ((a[p.jenis] = (a[p.jenis] || 0) + 1), a), {})).map(([j, n]) => `${n} ${JENIS_LABEL[j]}`).join(", ")}
-            ): {Object.entries(perArea).map(([a, n]) => `${a} ${n}`).join(" · ")}
-          </p>
-        )}
-        {file && preview.length > 0 && formatLama(file.rows) && (
-          <p className="note b-warn">
-            Sheet ini tidak memakai nomor item, jadi item ditebak dari baris yang punya dimensi. Periksa hasilnya dan hapus yang tidak perlu setelah impor.
-          </p>
-        )}
-        {preview.length > 0 && items.length > 0 && (
-          <p className="note b-warn">Proyek ini sudah punya {items.length} item. Impor ini menambah, bukan mengganti.</p>
-        )}
-        <button type="button" className="btn" disabled={aksi.sibuk || !preview.length}
-          onClick={async () => {
-            if (!(await aksi.jalankan(() => A.tambahItem(proyek.id, preview), `${preview.length} item ditambahkan.`))) return;
-            setTeks("");
-            setFile(null);
-            setUnggahKe((n) => n + 1);
-          }}>
-          Tambahkan {preview.length || ""} item
-        </button>
-      </div>
+      <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />
+      <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
     </>
+  );
+}
+
+function TambahItem({ proyek, areas, urutan, aksi }) {
+  const kosong = { area: areas[areas.length - 1] || "", nama: "", kode: "", jenis: "HPL", qty: "1", satuan: "unit", dimensi: "", harga: null };
+  const [f, setF] = useState(kosong);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  return (
+    <details className="lipat">
+      <summary><b>+ Tambah item manual</b></summary>
+      <form className="lipat-b" style={{ gap: 12 }} onSubmit={async (e) => {
+        e.preventDefault();
+        const nama = f.nama.trim();
+        const ok = await aksi.jalankan(() => A.tambahItem(proyek.id, [{
+          area: f.area.trim(), nama, kode: f.kode.trim() || null, jenis: f.jenis, qty: angka(f.qty) || 1,
+          satuan: f.satuan.trim() || null, dimensi: f.dimensi.trim() || null, harga: f.harga, bobot: 1, urutan,
+        }]), `${nama} ditambahkan.`);
+        // Area dan jenis dipertahankan untuk item berikutnya.
+        if (ok) setF({ ...kosong, area: f.area, jenis: f.jenis });
+      }}>
+        <label className="lbl">Nama item<input className="inp" required value={f.nama} onChange={set("nama")} placeholder="Lemari pakaian 2 pintu" /></label>
+        <div className="g2">
+          <label className="lbl">Area<input className="inp" required list="daftar-area" value={f.area} onChange={set("area")} placeholder="Kamar Anak" /></label>
+          <label className="lbl">Kode<input className="inp" value={f.kode} onChange={set("kode")} placeholder="FF.01" /></label>
+        </div>
+        <div className="g2" style={{ gridTemplateColumns: "72px 88px minmax(0,1fr)" }}>
+          <label className="lbl">Qty<input className="inp" inputMode="decimal" value={f.qty} onChange={set("qty")} /></label>
+          <label className="lbl">Satuan<input className="inp" value={f.satuan} onChange={set("satuan")} /></label>
+          <label className="lbl">Dimensi<input className="inp" value={f.dimensi} onChange={set("dimensi")} placeholder="1,8 × 0,6 × 2,4 m" /></label>
+        </div>
+        <div>
+          <div className="fl">Jenis pekerjaan</div>
+          <div className="seg">
+            {JENIS.map((j) => (
+              <button key={j} type="button" aria-pressed={f.jenis === j} onClick={() => setF({ ...f, jenis: j })}>{JENIS_PENDEK[j]}</button>
+            ))}
+          </div>
+        </div>
+        <label className="lbl">Harga (total item, boleh kosong)
+          <InputRupiah nilai={f.harga} onSimpan={(v) => setF((x) => ({ ...x, harga: v }))} />
+        </label>
+        <button className="btn" disabled={aksi.sibuk || !f.nama.trim() || !f.area.trim()}>Tambah item</button>
+      </form>
+    </details>
+  );
+}
+
+function ImporBoq({ proyek, items, urutan, aksi }) {
+  const [teks, setTeks] = useState("");
+  const [file, setFile] = useState(null); // { sheet, rows } dari UnggahBoq
+  const [unggahKe, setUnggahKe] = useState(0); // ganti key = kosongkan pilihan file
+  const [ganti, setGanti] = useState(false); // false = menambah, true = mengganti seluruh BOQ
+  const [centang, setCentang] = useState({}); // { [n]: true/false } centang yang diubah admin
+  const [jenis, setJenis] = useState({}); // { [n]: jenis } tebakan jenis yang dibetulkan admin
+  const preview = useMemo(() => (file ? bacaBaris(file.rows, urutan) : teks ? bacaBoq(teks, urutan) : []), [file, teks, urutan]);
+  const sudahAda = useMemo(() => new Set(items.map(kunciItem)), [items]);
+
+  // Saat menambah, baris yang sudah ada di proyek tidak dicentang (impor dua kali tidak menggandakan).
+  const kembar = (p) => !ganti && sudahAda.has(kunciItem(p));
+  const dipakai = (p, n) => centang[n] ?? !kembar(p);
+  const terpilih = preview.map((p, n) => ({ ...p, jenis: jenis[n] || p.jenis })).filter((p, n) => dipakai(p, n));
+  const nKembar = preview.filter(kembar).length;
+  const nProgres = items.reduce((a, i) => a + Object.keys(i.progres).length, 0);
+  const areaPv = [...new Set(preview.map((p) => p.area))];
+  const sumberBaru = () => { setCentang({}); setJenis({}); };
+
+  async function simpan() {
+    if (ganti && !confirm(`Ganti seluruh BOQ? ${items.length} item lama${nProgres ? ` dan ${nProgres} centang progresnya` : ""} akan dihapus.`)) return;
+    const ok = await aksi.jalankan(
+      () => (ganti ? A.gantiItem(proyek.id, terpilih) : A.tambahItem(proyek.id, terpilih)),
+      ganti ? `BOQ diganti dengan ${terpilih.length} item.` : `${terpilih.length} item ditambahkan.`
+    );
+    if (!ok) return;
+    setTeks("");
+    setFile(null);
+    setGanti(false);
+    sumberBaru();
+    setUnggahKe((n) => n + 1);
+  }
+
+  return (
+    <div className="card stack">
+      <h3>Impor dari Excel</h3>
+      <p className="small" style={{ margin: 0 }}>
+        Pilih file <b>BoQ</b>, lalu sheet proyeknya. Yang diambil hanya item bernomor (kabinet, wardrobe, dll.)
+        beserta area, kode, dimensi, dan qty-nya; aksesoris tanpa nomor seperti LED, handle, dan stopkontak dilewati.
+        Jenis (HPL / Duco / Vendor / Sipil) ditebak dari uraian, dan bobot awal diperkirakan dari ukuran item;
+        keduanya bisa diubah. Harga diisi setelah impor.
+      </p>
+      <UnggahBoq key={unggahKe} petunjuk={[proyek.nama, proyek.kode]} onPilih={(f) => { setFile(f); sumberBaru(); aksi.setMsg(""); }} />
+      {!file && (
+        <details>
+          <summary className="small" style={{ cursor: "pointer", minHeight: "var(--tap)", display: "flex", alignItems: "center" }}>
+            Atau tempel baris dari Excel
+          </summary>
+          <div className="stack">
+            <p className="small" style={{ margin: 0 }}>
+              Buka sheet proyek, pilih semua (Ctrl+A), salin (Ctrl+C), lalu tempel di sini.
+            </p>
+            <textarea className="inp" value={teks} onChange={(e) => { setTeks(e.target.value); sumberBaru(); }}
+              placeholder={"No.\tUraian\tPanjang\tLebar\tTinggi\tQty\nA\tFOYER\n1\tShoe Rack (FF.01)\t1,65\t0,4\t2,3\t1"} />
+          </div>
+        </details>
+      )}
+      {file && !preview.length && (
+        <p className="note b-warn">Tidak ada item yang terbaca di sheet “{file.sheet}”. Pastikan ini sheet BoQ proyeknya.</p>
+      )}
+      {!file && teks.trim() && !preview.length && (
+        <p className="note b-warn">
+          Belum ada item yang terbaca. Salin langsung dari Excel mulai kolom <b>No.</b> sampai <b>Qty</b>, dan pastikan baris item punya nomor.
+        </p>
+      )}
+      {preview.length > 0 && (
+        <>
+          {file && formatLama(file.rows) && (
+            <p className="note b-warn">
+              Sheet ini tidak memakai nomor item, jadi item ditebak dari baris yang punya dimensi. Periksa daftarnya dan hilangkan centang yang bukan item.
+            </p>
+          )}
+          {items.length > 0 && (
+            <div>
+              <div className="fl">Proyek ini sudah punya {items.length} item</div>
+              <div className="seg">
+                <button type="button" aria-pressed={!ganti} onClick={() => { setGanti(false); setCentang({}); }}>Tambahkan</button>
+                <button type="button" aria-pressed={ganti} onClick={() => { setGanti(true); setCentang({}); }}>Ganti seluruh BOQ</button>
+              </div>
+            </div>
+          )}
+          {ganti && (
+            <p className="note b-bad">
+              Semua {items.length} item lama dihapus{nProgres ? ` beserta ${nProgres} centang progresnya` : ""}, lalu diganti item yang dicentang di bawah.
+            </p>
+          )}
+          {nKembar > 0 && (
+            <p className="note b-warn">
+              {nKembar} item sudah ada di proyek ini (area, nama, dan kode sama), jadi tidak dicentang.
+            </p>
+          )}
+          <p className="small" style={{ margin: 0 }}>
+            Terbaca <b>{preview.length}</b> item di <b>{areaPv.length}</b> area, <b>{terpilih.length}</b> dicentang.
+            Hilangkan centang untuk melewati baris, dan betulkan jenisnya kalau tebakannya salah.
+          </p>
+          <div>
+            {areaPv.map((a) => (
+              <div key={a}>
+                <div className="fl" style={{ margin: "12px 0 0" }}>{a}</div>
+                {preview.map((p, n) => p.area !== a ? null : (
+                  <div key={n} className={`pv${dipakai(p, n) ? "" : " off"}`}>
+                    <input type="checkbox" aria-label={`Impor ${p.nama}`} checked={dipakai(p, n)}
+                      onChange={(e) => setCentang({ ...centang, [n]: e.target.checked })} />
+                    <span className="t">
+                      <span className="nm">{p.nama}</span>
+                      <span className="small">{[p.kode, teksQty(p), p.dimensi, kembar(p) && "sudah ada"].filter(Boolean).join(" · ")}</span>
+                    </span>
+                    <select className="inp" aria-label={`Jenis ${p.nama}`} value={jenis[n] || p.jenis}
+                      onChange={(e) => setJenis({ ...jenis, [n]: e.target.value })}>
+                      {JENIS.map((j) => <option key={j} value={j}>{JENIS_PENDEK[j]}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      <button type="button" className="btn" disabled={aksi.sibuk || !terpilih.length} onClick={simpan}>
+        {ganti ? `Ganti dengan ${terpilih.length} item` : `Tambahkan ${terpilih.length || ""} item`}
+      </button>
+    </div>
   );
 }
 
 /* ---------- Termin ---------- */
 function TabTermin({ proyek, termin, nilai, aksi }) {
-  const total = termin.reduce((a, t) => a + Number(t.persen), 0);
-  const ubah = (id, patch) => aksi.jalankan(() => A.ubahTermin(id, patch));
+  const total = Math.round(termin.reduce((a, t) => a + Number(t.persen), 0) * 100) / 100;
+  const masuk = totalDibayar(termin, nilai);
+  const ubah = (id, patch, ok) => aksi.jalankan(() => A.ubahTermin(id, patch), ok);
+  // Menandai lunas mengunci nominalnya, supaya tidak ikut berubah kalau harga item diubah belakangan.
+  const kunci = (t) => (nilai ? { dibayar: tagihanTermin(t, nilai) } : {});
+  const lunas = (t, tanggal) => ubah(t.id, { lunas_tgl: tanggal, ...kunci(t) }, `${t.label} lunas ${tgl(tanggal)}.`);
 
   if (!termin.length)
     return (
@@ -325,43 +529,81 @@ function TabTermin({ proyek, termin, nilai, aksi }) {
 
   return (
     <>
-      {total !== 100 && <p className="note b-warn">Total persen termin {total}%, seharusnya 100%.</p>}
-      {termin.map((t) => (
-        <div key={t.id} className="item">
-          <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) 84px" }}>
-            <label className="lbl">Nama termin
-              <input className="inp" style={{ fontWeight: 600 }} defaultValue={t.label}
-                onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== t.label && ubah(t.id, { label: e.target.value.trim() })} />
-            </label>
-            <label className="lbl">Persen
-              <input className="inp num" inputMode="decimal" style={{ textAlign: "right" }} defaultValue={Number(t.persen)}
-                onBlur={(e) => { const v = angka(e.target.value); if (v > 0 && v <= 100 && v !== Number(t.persen)) ubah(t.id, { persen: v }); }} />
-            </label>
-          </div>
-          <div className="g2">
-            <label className="lbl">Jatuh tempo<input className="inp" type="date" defaultValue={t.jatuh_tempo || ""} onChange={(e) => ubah(t.id, { jatuh_tempo: e.target.value || null })} /></label>
-            <label className="lbl">Lunas tanggal<input className="inp" type="date" defaultValue={t.lunas_tgl || ""} onChange={(e) => ubah(t.id, { lunas_tgl: e.target.value || null })} /></label>
-          </div>
-          <div className="row" style={{ alignItems: "center" }}>
-            <span className={nilai ? "num" : "small"}>{nilai ? rp((nilai * t.persen) / 100) : "Nominal muncul setelah harga diisi"}</span>
-            {t.lunas_tgl && <span className="badge b-ok">Lunas {tgl(t.lunas_tgl)}</span>}
-          </div>
-          <div className="acts">
-            {!t.lunas_tgl && (
-              <button type="button" className="act" disabled={aksi.sibuk} onClick={() => ubah(t.id, { lunas_tgl: hariIni() })}>Lunas hari ini</button>
-            )}
-            <button type="button" className="act bahaya" disabled={aksi.sibuk}
-              onClick={() => confirm(`Hapus termin "${t.label}"?`) && aksi.jalankan(() => A.hapusTermin(t.id), "Termin dihapus.")}>
-              Hapus
-            </button>
-          </div>
+      {(nilai > 0 || masuk > 0) && (
+        <div className="grid2">
+          <div className="stat"><div className="eb">Sudah diterima</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--ok)" }}>{rp(masuk)}</div></div>
+          <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{nilai > 0 ? rp(Math.max(0, nilai - masuk)) : "—"}</div></div>
         </div>
-      ))}
-      <button type="button" className="btn2" disabled={aksi.sibuk}
+      )}
+      {total !== 100 && (
+        <p className="note b-warn">
+          Total persen termin {total.toLocaleString("id-ID")}%, {total < 100 ? `kurang ${(100 - total).toLocaleString("id-ID")}%` : `lebih ${(total - 100).toLocaleString("id-ID")}%`} dari 100%.
+        </p>
+      )}
+      {termin.map((t) => {
+        const diterima = dibayarTermin(t, nilai);
+        return (
+          <div key={t.id} className="item">
+            <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) 84px" }}>
+              <Isian label="Nama termin" style={{ fontWeight: 600 }} nilai={t.label}
+                onSimpan={(v) => !!v && ubah(t.id, { label: v })} />
+              <Isian label="Persen" inputMode="decimal" style={{ textAlign: "right" }} nilai={Number(t.persen).toLocaleString("id-ID")}
+                onSimpan={(v) => angka(v) > 0 && angka(v) <= 100 && ubah(t.id, { persen: angka(v) })} />
+            </div>
+            <div className="g2">
+              <label className="lbl">Jatuh tempo<input key={t.jatuh_tempo || ""} className="inp" type="date" defaultValue={t.jatuh_tempo || ""} onChange={(e) => ubah(t.id, { jatuh_tempo: e.target.value || null })} /></label>
+              <label className="lbl">Lunas tanggal
+                <input key={t.lunas_tgl || ""} className="inp" type="date" defaultValue={t.lunas_tgl || ""} max={hariIni()}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (!v) ubah(t.id, { lunas_tgl: null, dibayar: null }, `Status lunas ${t.label} dibatalkan.`);
+                    else if (t.lunas_tgl) ubah(t.id, { lunas_tgl: v });
+                    else lunas(t, v);
+                  }} />
+              </label>
+            </div>
+            <label className="lbl">Sudah diterima (boleh sebagian)
+              <InputRupiah nilai={t.dibayar}
+                onSimpan={(v) => ubah(
+                  t.id,
+                  // Pembayaran yang menutup tagihan sekaligus menandai termin lunas.
+                  { dibayar: v, ...(v && nilai && !t.lunas_tgl && v >= tagihanTermin(t, nilai) ? { lunas_tgl: hariIni() } : {}) },
+                  v ? `Pembayaran ${t.label} dicatat: ${rp(v)}` : `Pembayaran ${t.label} dikosongkan.`
+                )} />
+            </label>
+            <div className="row" style={{ alignItems: "center" }}>
+              <span className={nilai ? "num" : "small"}>{nilai ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : "Tagihan muncul setelah harga diisi"}</span>
+              {t.lunas_tgl ? <span className="badge b-ok">Lunas {tgl(t.lunas_tgl)}</span> : diterima > 0 ? <span className="badge b-warn">Sebagian</span> : null}
+            </div>
+            {t.lunas_tgl && t.dibayar == null && (
+              <p className="small" style={{ margin: 0 }}>
+                Nominal lunas belum dikunci, jadi masih mengikuti harga item. {nilai ? "Ketuk “Kunci nominal” atau isi" : "Isi"} kolom “Sudah diterima” untuk menguncinya.
+              </p>
+            )}
+            <div className="acts">
+              {!t.lunas_tgl && (
+                <button type="button" className="act" disabled={aksi.sibuk} onClick={() => lunas(t, hariIni())}>Lunas hari ini</button>
+              )}
+              {t.lunas_tgl && t.dibayar == null && nilai > 0 && (
+                <button type="button" className="act" disabled={aksi.sibuk}
+                  onClick={() => ubah(t.id, kunci(t), `Nominal ${t.label} dikunci: ${rp(tagihanTermin(t, nilai))}`)}>
+                  Kunci nominal
+                </button>
+              )}
+              <button type="button" className="act bahaya" disabled={aksi.sibuk}
+                onClick={() => confirm(`Hapus termin "${t.label}"?`) && aksi.jalankan(() => A.hapusTermin(t.id), "Termin dihapus.")}>
+                Hapus
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      <button type="button" className="btn2" disabled={aksi.sibuk || total >= 100}
         onClick={() => aksi.jalankan(() => A.tambahTermin(proyek.id, [{
-          urutan: termin.length, label: `Termin ${termin.length + 1}`, persen: Math.max(1, Math.min(100, 100 - total)),
+          urutan: termin.reduce((m, t) => Math.max(m, t.urutan), -1) + 1,
+          label: `Termin ${termin.length + 1}`, persen: Math.round((100 - total) * 100) / 100,
         }]))}>
-        + Tambah termin
+        {total >= 100 ? "Total termin sudah 100%" : "+ Tambah termin"}
       </button>
     </>
   );

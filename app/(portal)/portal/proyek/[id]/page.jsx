@@ -11,7 +11,7 @@ export default async function PortalProyekPage({ params }) {
 
   const admin = staf.role === "ADMIN";
   const [items, termin, klien, supervisors] = await Promise.all([
-    ambilItem([proyek.id]),
+    ambilItem([proyek]),
     ambilTermin(proyek.id),
     admin ? ambilKlien(proyek.id) : [],
     admin ? ambilSupervisor() : [],
