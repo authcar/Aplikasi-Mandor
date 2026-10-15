@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapBerikut, tahapBar } from "@/lib/portal/progresBoq";
+import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapBerikut, tahapTerakhir, tahapBar } from "@/lib/portal/progresBoq";
 import {
   hariIni, tambahHari, selisihHari, tgl, tglTh, rp, pct, nilaiKontrak, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai,
@@ -131,7 +131,7 @@ export default function Detail({ P }) {
                   <div className="lipat-b">
                   {its.map((it) => {
                     const v = persenItem(it);
-                    const next = tahapBerikut(it);
+                    const kini = tahapTerakhir(it), selesai = !tahapBerikut(it);
                     return (
                       <div key={it.id} className="item mini">
                         <div className="row">
@@ -143,8 +143,8 @@ export default function Detail({ P }) {
                             <span key={s.k} className={it.progres[s.k] ? "on" : ""} style={{ flex: s.w, "--c": WARNA[s.fase] }} />
                           ))}
                         </div>
-                        {/* Next stage = tahap pertama (menurut urutan) yang belum selesai. */}
-                        <div className="small">{next ? `Next Stage = ${next.label}` : "Selesai"}</div>
+                        {/* Stage saat ini = tahap yang terakhir dicatat (tanggal paling baru). */}
+                        <div className="small">{selesai ? "Selesai" : kini ? `Stage saat ini: ${kini.label}` : "Belum dimulai"}</div>
                       </div>
                     );
                   })}
