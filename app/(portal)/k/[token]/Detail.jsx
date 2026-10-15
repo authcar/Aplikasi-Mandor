@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapBerikut } from "@/lib/portal/progresBoq";
+import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapBerikut, tahapBar } from "@/lib/portal/progresBoq";
 import {
   hariIni, tambahHari, selisihHari, tgl, tglTh, rp, pct, nilaiKontrak, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai,
@@ -139,7 +139,7 @@ export default function Detail({ P }) {
                           <b className="num">{v}%</b>
                         </div>
                         <div className="track">
-                          {tahapItem(it).map((s) => (
+                          {tahapBar(it).map((s) => (
                             <span key={s.k} className={it.progres[s.k] ? "on" : ""} style={{ flex: s.w, "--c": WARNA[s.fase] }} />
                           ))}
                         </div>
