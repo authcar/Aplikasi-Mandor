@@ -121,7 +121,8 @@ function TabProgres({ items, aksi }) {
         </label>
       </div>
       <p className="small" style={{ margin: 0 }}>
-        Ketuk tombol <b>✓</b> untuk mencatat tahap berikutnya. Ketuk nama item untuk semua tahap.
+        Ketuk bagian bar untuk mencatat tahap, ketuk lagi untuk membatalkan. Urutannya bebas.
+        Ketuk nama item untuk melihat nama semua tahap.
       </p>
       <Chips areas={areas} value={area} onChange={setArea} />
       {areas.filter((a) => area === "all" || a === area).map((a) => {
@@ -141,8 +142,15 @@ function TabProgres({ items, aksi }) {
                     <b className="num">{persenItem(it)}%</b>
                     <i className="chev" aria-hidden="true" />
                   </button>
-                  <div className="track">
-                    {tahapItem(it).map((s) => <span key={s.k} className={it.progres[s.k] ? "on" : ""} style={{ flex: s.w, "--c": WARNA[s.fase] }} />)}
+                  {/* Tiap bagian bar = satu tahap; boleh dicentang tidak berurutan. */}
+                  <div className="track tap">
+                    {tahapItem(it).map((s) => (
+                      <button key={s.k} type="button" className={it.progres[s.k] ? "on" : ""} disabled={kunci}
+                        style={{ flex: s.w, "--c": WARNA[s.fase], ...(busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null) }}
+                        title={it.progres[s.k] ? `${s.label} ✓ ${tgl(it.progres[s.k])}` : s.label}
+                        aria-label={it.progres[s.k] ? `Batalkan ${s.label}` : `Catat ${s.label}`} aria-pressed={!!it.progres[s.k]}
+                        onClick={() => toggle(it, s)} />
+                    ))}
                   </div>
                   {open ? (
                     <div className="acc-b">
@@ -169,9 +177,7 @@ function TabProgres({ items, aksi }) {
                   ) : (
                     <div className="acc-q">
                       <span className="small">{akhir ? `${akhir.label} ✓ ${tgl(akhir.tgl)}` : "Belum mulai"}</span>
-                      {next
-                        ? <button type="button" className="quick" disabled={kunci} onClick={() => toggle(it, next)}>✓ {next.label}</button>
-                        : <span className="badge b-ok">Selesai 100%</span>}
+                      {!next && <span className="badge b-ok">Selesai 100%</span>}
                     </div>
                   )}
                 </div>

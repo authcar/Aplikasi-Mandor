@@ -66,6 +66,7 @@ h3{font-size:1rem;font-weight:700}
 .item.mini h3{font-size:.92rem;font-weight:600;font-family:var(--fb);letter-spacing:0}
 .track{display:flex;gap:2px;height:6px}.track span{border-radius:1px;background:var(--sunk)}.track span.on{background:var(--c)}
 .item.mini .track{height:4px}
+.track.tap{height:24px;gap:3px}.track.tap button{min-width:0;padding:0;border:0;border-radius:3px;background:var(--sunk);cursor:pointer}.track.tap button.on{background:var(--c)}.track.tap button:disabled{cursor:default}
 .tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .tl li{display:grid;grid-template-columns:14px 1fr auto;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}
 .tl li:last-child{border-bottom:0}
@@ -115,8 +116,6 @@ h3{font-size:1rem;font-weight:700}
 .acts{display:flex;gap:8px}
 .acts>.act{flex:1;min-width:0;padding:0 8px}
 .acts>.act.bahaya{flex:none;padding:0 14px}
-.quick{flex:none;max-width:62%;min-height:var(--tap);padding:0 14px;border:0;background:var(--accent);color:var(--on-accent);border-radius:var(--r);font-size:.84rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.quick:disabled{opacity:.45}
 .pills{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pill{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;min-height:var(--tap);padding:0 12px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);font-size:.88rem;font-weight:500;text-align:left}
 .pill>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -132,7 +131,7 @@ h3{font-size:1rem;font-weight:700}
 .seg button{min-width:0;min-height:var(--tap);padding:0 4px;border:0;border-right:1px solid var(--line);background:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .seg button:last-child{border-right:0}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
-.btn:active:not(:disabled),.btn2:active:not(:disabled),.act:active:not(:disabled),.quick:active:not(:disabled),.pill:active:not(:disabled),.chip:active{transform:scale(.98)}
+.btn:active:not(:disabled),.btn2:active:not(:disabled),.act:active:not(:disabled),.pill:active:not(:disabled),.chip:active{transform:scale(.98)}
 
 /* ---- form: huruf 16px supaya iPhone tidak zoom saat mengetik ---- */
 .inp{width:100%;min-width:0;min-height:var(--tap);padding:0 12px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);font-size:16px;color:var(--fg)}
