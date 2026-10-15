@@ -117,7 +117,7 @@ function TabProgres({ proyek, items, aksi, admin }) {
   const grupOf = (i) => (perTim ? i.tim || TANPA_TIM : i.area);
   const grup = [...new Set(items.map(grupOf))].sort((a, b) => perTim ? (a === TANPA_TIM) - (b === TANPA_TIM) : 0);
 
-  if (!items.length) return <div className="card small">Belum ada item BOQ. Admin perlu mengimpor item di tab Item BOQ.</div>;
+  if (!items.length) return <div className="card small">Belum ada item. Admin perlu mengimpor item di tab Jasa tukang.</div>;
 
   async function toggle(it, s) {
     const batal = !!it.progres[s.k];
