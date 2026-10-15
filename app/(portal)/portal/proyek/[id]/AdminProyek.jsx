@@ -6,7 +6,7 @@ import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
 import TabBar from "../../../TabBar";
 import {
-  FASE, JENIS, JENIS_LABEL, tahapItem, persenItem, persenProyek, pakaiHarga, semuaBerharga, beriBerat,
+  FASE, JENIS_LABEL, tahapItem, persenItem, persenProyek,
   tahapTerakhir, tahapBerikut, tahapBar, areaProgres, faseKini,
 } from "@/lib/portal/progresBoq";
 import {
@@ -17,8 +17,7 @@ import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
-const JENIS_PENDEK = { HPL: "HPL", DUCO: "Duco", VENDOR: "Vendor", SIPIL: "Sipil" };
-const TABS = [["progres", "Progres"], ["item", "Item BOQ"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]];
+const TABS = [["progres", "Progres"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]];
 
 export default function AdminProyek({ proyek, items, termin, klien, supervisors, staf }) {
   const admin = staf.role === "ADMIN";
@@ -52,13 +51,13 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
         <div className="stat lead">
           <div className="eb">Progres</div>
           <div className="v num">{pct(persenProyek(items))}</div>
-          <div className="s">{items.length} item · {pakaiHarga(items, proyek.timbang_harga) ? "ditimbang harga" : "ditimbang bobot"}</div>
+          <div className="s">{items.length} item</div>
         </div>
         <div className="stat">
           <div className="eb">Nilai kontrak</div>
           <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{totalNilai(nilaiT) ? rp(totalNilai(nilaiT)) : "—"}</div>
           <div className="s">
-            {nilaiT.perancangan ? (nilai ? "BOQ + jasa perancangan" : "jasa perancangan · harga BOQ belum diisi") : nilai ? "jumlah harga item" : "harga belum diisi"}
+            {nilaiT.perancangan ? (nilai ? "BOQ + jasa perancangan" : "jasa perancangan · nilai jasa tukang belum diisi") : nilai ? "jumlah nilai jasa tukang" : "nilai jasa tukang belum diisi"}
           </div>
         </div>
       </div>
@@ -223,7 +222,7 @@ function TabProgres({ proyek, items, aksi }) {
   );
 }
 
-/* ---------- Item BOQ: penimbang, edit, tambah, impor ---------- */
+/* ---------- Jasa tukang (item BOQ): edit, tambah, impor ---------- */
 const teksQty = (i) => `${Number(i.qty).toLocaleString("id-ID")} ${i.satuan || ""}`.trim();
 // Item dianggap sama kalau area, nama, dan kodenya sama.
 const kunciItem = (i) => [i.area, i.nama, i.kode].map((x) => (x || "").toLowerCase().replace(/\s+/g, " ").trim()).join("|");
@@ -244,57 +243,6 @@ function Isian({ label, nilai, onSimpan, ...rest }) {
   );
 }
 
-// Penimbang progres antar item: bobot atau harga. Dipilih admin, supaya angka
-// yang dilihat klien tidak berubah sendiri saat harga terakhir diisi.
-function Penimbang({ proyek, items, aksi }) {
-  if (!items.length) return null;
-  const pilih = proyek.timbang_harga;
-  const lengkap = semuaBerharga(items);
-  const kosong = items.filter((i) => !(Number(i.harga) > 0)).length;
-  const pBobot = pct(persenProyek(beriBerat(items, false)));
-  const pHarga = lengkap ? pct(persenProyek(beriBerat(items, true))) : null;
-  const ganti = (ke) =>
-    confirm(`Progres proyek yang dilihat klien berubah dari ${ke ? pBobot : pHarga} menjadi ${ke ? pHarga : pBobot}. Lanjutkan?`) &&
-    aksi.jalankan(() => A.ubahProyek(proyek.id, { timbang_harga: ke }), `Progres sekarang ditimbang ${ke ? "harga" : "bobot"}.`);
-
-  return (
-    <div className="card stack">
-      <div className="row" style={{ alignItems: "center" }}>
-        <h3>Penimbang progres</h3>
-        <span className="badge b-n">{pakaiHarga(items, pilih) ? "Harga" : "Bobot"}</span>
-      </div>
-      {pilih == null ? (
-        <p className="small" style={{ margin: 0 }}>
-          Progres ditimbang harga kalau semua item sudah berharga, selain itu bobot. Untuk memilih sendiri, jalankan{" "}
-          <b>supabase/add_portal_pembayaran.sql</b> di Supabase.
-        </p>
-      ) : !pilih ? (
-        <>
-          <p className="small" style={{ margin: 0 }}>
-            Item berbobot besar menyumbang lebih banyak ke progres proyek (sekarang {pBobot}). Mengisi harga tidak mengubah angka ini.{" "}
-            {lengkap
-              ? `Semua harga sudah terisi; kalau ditimbang harga, progres menjadi ${pHarga}.`
-              : `${kosong} item belum ada harga, jadi penimbang harga belum bisa dipakai.`}
-          </p>
-          {lengkap && <button type="button" className="act" disabled={aksi.sibuk} onClick={() => ganti(true)}>Timbang dengan harga</button>}
-        </>
-      ) : lengkap ? (
-        <>
-          <p className="small" style={{ margin: 0 }}>
-            Item yang lebih mahal menyumbang lebih banyak ke progres proyek (sekarang {pHarga}). Kalau ditimbang bobot: {pBobot}.
-          </p>
-          <button type="button" className="act" disabled={aksi.sibuk} onClick={() => ganti(false)}>Kembali ke bobot</button>
-        </>
-      ) : (
-        <p className="note b-warn">
-          Proyek ini ditimbang harga, tetapi {kosong} item belum ada harga, jadi sementara progres ditimbang bobot ({pBobot}).
-          Isi harganya supaya kembali ditimbang harga.
-        </p>
-      )}
-    </div>
-  );
-}
-
 function TabItem({ proyek, items, aksi }) {
   const [buka, setBuka] = useState(null);
   // `ok` = pesan hijau setelah tersimpan.
@@ -304,7 +252,6 @@ function TabItem({ proyek, items, aksi }) {
 
   return (
     <>
-      <Penimbang proyek={proyek} items={items} aksi={aksi} />
       <datalist id="daftar-area">{areas.map((a) => <option key={a} value={a} />)}</datalist>
 
       {areas.map((a) => (
@@ -318,7 +265,7 @@ function TabItem({ proyek, items, aksi }) {
                   <span className="t">
                     <span className="nm">{it.nama}</span>
                     <span className="small">
-                      {[it.kode, JENIS_PENDEK[it.jenis], teksQty(it), it.dimensi].filter(Boolean).join(" · ")}
+                      {[it.kode, teksQty(it), it.dimensi].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                   <span className="num small">{it.harga ? rp(it.harga) : "—"}</span>
@@ -342,25 +289,10 @@ function TabItem({ proyek, items, aksi }) {
                       <Isian label="Dimensi" nilai={it.dimensi}
                         onSimpan={(v) => ubah(it.id, { dimensi: v || null }, `Dimensi ${it.nama} disimpan.`)} />
                     </div>
-                    <div>
-                      <div className="fl">Jenis pekerjaan</div>
-                      <div className="seg">
-                        {JENIS.map((j) => (
-                          <button key={j} type="button" aria-pressed={it.jenis === j} disabled={aksi.sibuk}
-                            onClick={() => it.jenis !== j && ubah(it.id, { jenis: j }, `Jenis ${it.nama} diubah ke ${JENIS_LABEL[j]}.`)}>
-                            {JENIS_PENDEK[j]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) 96px" }}>
-                      <label className="lbl">Harga (total item)
-                        <InputRupiah nilai={it.harga}
-                          onSimpan={(v) => ubah(it.id, { harga: v }, v ? `Harga ${it.nama} disimpan: ${rp(v)}` : `Harga ${it.nama} dikosongkan.`)} />
-                      </label>
-                      <Isian label="Bobot" inputMode="decimal" style={{ textAlign: "right" }} nilai={Number(it.bobot).toLocaleString("id-ID")}
-                        onSimpan={(v) => angka(v) > 0 && ubah(it.id, { bobot: angka(v) }, `Bobot ${it.nama} disimpan: ${angka(v).toLocaleString("id-ID")}`)} />
-                    </div>
+                    <label className="lbl">Nilai jasa tukang
+                      <InputRupiah nilai={it.harga}
+                        onSimpan={(v) => ubah(it.id, { harga: v }, v ? `Nilai jasa tukang ${it.nama} disimpan: ${rp(v)}` : `Nilai jasa tukang ${it.nama} dikosongkan.`)} />
+                    </label>
                     <button type="button" className="act bahaya" disabled={aksi.sibuk}
                       onClick={() => confirm(`Hapus "${it.nama}" beserta progresnya?`) && aksi.jalankan(() => A.hapusItem(it.id), `${it.nama} dihapus.`)}>
                       Hapus item
@@ -394,8 +326,8 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
           area: f.area.trim(), nama, kode: f.kode.trim() || null, jenis: f.jenis, qty: angka(f.qty) || 1,
           satuan: f.satuan.trim() || null, dimensi: f.dimensi.trim() || null, harga: f.harga, bobot: 1, urutan,
         }]), `${nama} ditambahkan.`);
-        // Area dan jenis dipertahankan untuk item berikutnya.
-        if (ok) setF({ ...kosong, area: f.area, jenis: f.jenis });
+        // Area dipertahankan untuk item berikutnya.
+        if (ok) setF({ ...kosong, area: f.area });
       }}>
         <label className="lbl">Nama item<input className="inp" required value={f.nama} onChange={set("nama")} placeholder="Lemari pakaian 2 pintu" /></label>
         <div className="g2">
@@ -407,15 +339,7 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
           <label className="lbl">Satuan<input className="inp" value={f.satuan} onChange={set("satuan")} /></label>
           <label className="lbl">Dimensi<input className="inp" value={f.dimensi} onChange={set("dimensi")} placeholder="1,8 × 0,6 × 2,4 m" /></label>
         </div>
-        <div>
-          <div className="fl">Jenis pekerjaan</div>
-          <div className="seg">
-            {JENIS.map((j) => (
-              <button key={j} type="button" aria-pressed={f.jenis === j} onClick={() => setF({ ...f, jenis: j })}>{JENIS_PENDEK[j]}</button>
-            ))}
-          </div>
-        </div>
-        <label className="lbl">Harga (total item, boleh kosong)
+        <label className="lbl">Nilai jasa tukang (boleh kosong)
           <InputRupiah nilai={f.harga} onSimpan={(v) => setF((x) => ({ ...x, harga: v }))} />
         </label>
         <button className="btn" disabled={aksi.sibuk || !f.nama.trim() || !f.area.trim()}>Tambah item</button>
@@ -430,18 +354,17 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
   const [unggahKe, setUnggahKe] = useState(0); // ganti key = kosongkan pilihan file
   const [ganti, setGanti] = useState(false); // false = menambah, true = mengganti seluruh BOQ
   const [centang, setCentang] = useState({}); // { [n]: true/false } centang yang diubah admin
-  const [jenis, setJenis] = useState({}); // { [n]: jenis } tebakan jenis yang dibetulkan admin
   const preview = useMemo(() => (file ? bacaBaris(file.rows, urutan) : teks ? bacaBoq(teks, urutan) : []), [file, teks, urutan]);
   const sudahAda = useMemo(() => new Set(items.map(kunciItem)), [items]);
 
   // Saat menambah, baris yang sudah ada di proyek tidak dicentang (impor dua kali tidak menggandakan).
   const kembar = (p) => !ganti && sudahAda.has(kunciItem(p));
   const dipakai = (p, n) => centang[n] ?? !kembar(p);
-  const terpilih = preview.map((p, n) => ({ ...p, jenis: jenis[n] || p.jenis })).filter((p, n) => dipakai(p, n));
+  const terpilih = preview.filter((p, n) => dipakai(p, n));
   const nKembar = preview.filter(kembar).length;
   const nProgres = items.reduce((a, i) => a + Object.keys(i.progres).length, 0);
   const areaPv = [...new Set(preview.map((p) => p.area))];
-  const sumberBaru = () => { setCentang({}); setJenis({}); };
+  const sumberBaru = () => setCentang({});
 
   async function simpan() {
     if (ganti && !confirm(`Ganti seluruh BOQ? ${items.length} item lama${nProgres ? ` dan ${nProgres} centang progresnya` : ""} akan dihapus.`)) return;
@@ -463,8 +386,7 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
       <p className="small" style={{ margin: 0 }}>
         Pilih file <b>BoQ</b>, lalu sheet proyeknya. Yang diambil hanya item bernomor (kabinet, wardrobe, dll.)
         beserta area, kode, dimensi, dan qty-nya; aksesoris tanpa nomor seperti LED, handle, dan stopkontak dilewati.
-        Jenis (HPL / Duco / Vendor / Sipil) ditebak dari uraian, dan bobot awal diperkirakan dari ukuran item;
-        keduanya bisa diubah. Harga diisi setelah impor.
+        Nilai jasa tukang diisi setelah impor.
       </p>
       <UnggahBoq key={unggahKe} petunjuk={[proyek.nama, proyek.kode]} onPilih={(f) => { setFile(f); sumberBaru(); aksi.setMsg(""); }} />
       {!file && (
@@ -517,7 +439,7 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
           )}
           <p className="small" style={{ margin: 0 }}>
             Terbaca <b>{preview.length}</b> item di <b>{areaPv.length}</b> area, <b>{terpilih.length}</b> dicentang.
-            Hilangkan centang untuk melewati baris, dan betulkan jenisnya kalau tebakannya salah.
+            Hilangkan centang untuk melewati baris.
           </p>
           <div>
             {areaPv.map((a) => (
@@ -531,10 +453,6 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
                       <span className="nm">{p.nama}</span>
                       <span className="small">{[p.kode, teksQty(p), p.dimensi, kembar(p) && "sudah ada"].filter(Boolean).join(" · ")}</span>
                     </span>
-                    <select className="inp" aria-label={`Jenis ${p.nama}`} value={jenis[n] || p.jenis}
-                      onChange={(e) => setJenis({ ...jenis, [n]: e.target.value })}>
-                      {JENIS.map((j) => <option key={j} value={j}>{JENIS_PENDEK[j]}</option>)}
-                    </select>
                   </div>
                 ))}
               </div>
@@ -551,7 +469,7 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
 
 /* ---------- Termin ---------- */
 // Termin dibagi dua: jasa perancangan (dari nilai perancangan) dan jasa produksi
-// (dari jumlah harga item BOQ). Persen tiap jenis berjumlah 100%.
+// (dari jumlah nilai jasa tukang item BOQ). Persen tiap jenis berjumlah 100%.
 function TabTermin({ proyek, items, termin, nilai, aksi }) {
   const masuk = totalDibayar(termin, nilai);
   const total = totalNilai(nilai);
@@ -605,8 +523,8 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
         </label>
       ) : (
         <div className="row small">
-          <span>Nilai = jumlah harga item BOQ</span>
-          <span className="num">{n ? rp(n) : "harga belum diisi"}</span>
+          <span>Nilai = jumlah nilai jasa tukang</span>
+          <span className="num">{n ? rp(n) : "belum diisi"}</span>
         </div>
       )}
       <p className="small" style={{ margin: 0 }}>Aturan: {aturan}</p>
@@ -674,7 +592,7 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                   </label>
                 </div>
                 <div className="row" style={{ alignItems: "center" }}>
-                  <span className={n ? "num" : "small"}>{n ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : `Tagihan muncul setelah ${jenis === "produksi" ? "harga item" : "nilai perancangan"} diisi`}</span>
+                  <span className={n ? "num" : "small"}>{n ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : `Tagihan muncul setelah ${jenis === "produksi" ? "nilai jasa tukang" : "nilai perancangan"} diisi`}</span>
                   {t.lunas_tgl ? <span className="badge b-ok">Lunas {tgl(t.lunas_tgl)}</span> : diterima > 0 ? <span className="badge b-warn">Sebagian</span> : null}
                 </div>
                 {t.lunas_tgl && t.dibayar == null && (
