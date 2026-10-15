@@ -9,13 +9,15 @@ import {
   FASE, JENIS, JENIS_LABEL, tahapItem, persenItem, persenProyek, pakaiHarga, semuaBerharga, beriBerat,
   tahapTerakhir, tahapBerikut,
 } from "@/lib/portal/progresBoq";
-import { hariIni, tgl, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar } from "@/lib/portal/format";
+import {
+  hariIni, tgl, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar,
+  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, BATAS_PERANCANGAN,
+} from "@/lib/portal/format";
 import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const JENIS_PENDEK = { HPL: "HPL", DUCO: "Duco", VENDOR: "Vendor", SIPIL: "Sipil" };
-const TERMIN_DEFAULT = [["DP", 30], ["Termin 2 · progres 50%", 30], ["Termin 3 · serah terima", 35], ["Retensi", 5]];
 const TABS = [["progres", "Progres"], ["item", "Item BOQ"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]];
 
 export default function AdminProyek({ proyek, items, termin, klien, supervisors, staf }) {
@@ -23,6 +25,7 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
   const [tab, setTab] = useState("progres");
   const aksi = useAksi();
   const nilai = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
+  const nilaiT = nilaiTermin({ ...proyek, items });
 
   return (
     <main className="wrap">
@@ -40,8 +43,10 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
         </div>
         <div className="stat">
           <div className="eb">Nilai kontrak</div>
-          <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{nilai ? rp(nilai) : "—"}</div>
-          <div className="s">{nilai ? "jumlah harga item" : "harga belum diisi"}</div>
+          <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{totalNilai(nilaiT) ? rp(totalNilai(nilaiT)) : "—"}</div>
+          <div className="s">
+            {nilaiT.perancangan ? (nilai ? "BOQ + jasa perancangan" : "jasa perancangan · harga BOQ belum diisi") : nilai ? "jumlah harga item" : "harga belum diisi"}
+          </div>
         </div>
       </div>
       {/* Supervisor hanya punya tab Progres, jadi tidak perlu navigasi. */}
@@ -50,7 +55,7 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
 
       {tab === "progres" && <TabProgres items={items} aksi={aksi} />}
       {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
-      {tab === "termin" && <TabTermin proyek={proyek} termin={termin} nilai={nilai} aksi={aksi} />}
+      {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} nilai={nilaiT} aksi={aksi} />}
       {tab === "klien" && <TabKlien proyek={proyek} klien={klien} aksi={aksi} />}
       {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
     </main>
@@ -506,106 +511,164 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
 }
 
 /* ---------- Termin ---------- */
-function TabTermin({ proyek, termin, nilai, aksi }) {
-  const total = Math.round(termin.reduce((a, t) => a + Number(t.persen), 0) * 100) / 100;
+// Termin dibagi dua: jasa perancangan (dari nilai perancangan) dan jasa produksi
+// (dari jumlah harga item BOQ). Persen tiap jenis berjumlah 100%.
+function TabTermin({ proyek, items, termin, nilai, aksi }) {
   const masuk = totalDibayar(termin, nilai);
-  const ubah = (id, patch, ok) => aksi.jalankan(() => A.ubahTermin(id, patch), ok);
-  // Menandai lunas mengunci nominalnya, supaya tidak ikut berubah kalau harga item diubah belakangan.
-  const kunci = (t) => (nilai ? { dibayar: tagihanTermin(t, nilai) } : {});
-  const lunas = (t, tanggal) => ubah(t.id, { lunas_tgl: tanggal, ...kunci(t) }, `${t.label} lunas ${tgl(tanggal)}.`);
-
-  if (!termin.length)
-    return (
-      <div className="card stack" style={{ textAlign: "center" }}>
-        <p className="small" style={{ margin: 0 }}>Belum ada jadwal termin.</p>
-        <button type="button" className="btn" disabled={aksi.sibuk}
-          onClick={() => aksi.jalankan(() => A.tambahTermin(proyek.id, TERMIN_DEFAULT.map(([label, persen], n) => ({
-            urutan: n, label, persen, jatuh_tempo: n === 2 ? proyek.deadline : null,
-          }))), "Termin standar dibuat. Silakan sesuaikan.")}>
-          Buat termin standar (30 / 30 / 35 / 5)
-        </button>
-      </div>
-    );
-
+  const total = totalNilai(nilai);
   return (
     <>
-      {(nilai > 0 || masuk > 0) && (
+      {(total > 0 || masuk > 0) && (
         <div className="grid2">
           <div className="stat"><div className="eb">Sudah diterima</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--ok)" }}>{rp(masuk)}</div></div>
-          <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{nilai > 0 ? rp(Math.max(0, nilai - masuk)) : "—"}</div></div>
+          <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{total > 0 ? rp(Math.max(0, total - masuk)) : "—"}</div></div>
         </div>
       )}
-      {total !== 100 && (
-        <p className="note b-warn">
-          Total persen termin {total.toLocaleString("id-ID")}%, {total < 100 ? `kurang ${(100 - total).toLocaleString("id-ID")}%` : `lebih ${(total - 100).toLocaleString("id-ID")}%`} dari 100%.
-        </p>
+      {JENIS_TERMIN.map(([jenis, judul]) => (
+        <KelompokTermin key={jenis} jenis={jenis} judul={judul} proyek={proyek} progres={persenProyek(items)}
+          termin={termin.filter((t) => jenisTermin(t) === jenis)} nilai={nilai} aksi={aksi} />
+      ))}
+    </>
+  );
+}
+
+const polaPersen = (rows) => rows.map((p) => Number(p).toLocaleString("id-ID")).join(" / ");
+
+function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) {
+  const n = nilai[jenis];
+  const total = Math.round(termin.reduce((a, t) => a + Number(t.persen), 0) * 100) / 100;
+  const ubah = (id, patch, ok) => aksi.jalankan(() => A.ubahTermin(id, patch), ok);
+  // Menandai lunas mengunci nominalnya, supaya tidak ikut berubah kalau harga diubah belakangan.
+  const kunci = (t) => (n ? { dibayar: tagihanTermin(t, nilai) } : {});
+  const lunas = (t, tanggal) => ubah(t.id, { lunas_tgl: tanggal, ...kunci(t) }, `${t.label} lunas ${tgl(tanggal)}.`);
+  const standar = polaPersen(terminStandar(jenis, n).map(([, p]) => p));
+  const sesuai = polaPersen(termin.map((t) => t.persen)) === standar;
+  const adaBayar = termin.some((t) => t.lunas_tgl || Number(t.dibayar) > 0);
+  // Perancangan dibagi 3 atau 4 tergantung nilainya, jadi nilainya harus ada dulu.
+  const bisaStandar = jenis === "produksi" || n > 0;
+  const buatStandar = () =>
+    aksi.jalankan(() => A.buatTerminStandar(proyek.id, jenis), `Termin ${judul.toLowerCase()} dibuat (${standar}).`);
+  const aturan = jenis === "produksi"
+    ? "DP 50%, 40% saat progres 50%, pelunasan 10%."
+    : `di bawah ${rp(BATAS_PERANCANGAN)} dibagi 3 (50 / 40 / 10), ${rp(BATAS_PERANCANGAN)} ke atas dibagi 4 (40 / 30 / 20 / 10).`;
+
+  return (
+    <section className="stack">
+      <div className="row" style={{ marginTop: 6 }}>
+        <h2>{judul}</h2>
+        {jenis === "produksi" && <span className="small num">progres {pct(progres)}</span>}
+      </div>
+      {jenis === "perancangan" ? (
+        <label className="lbl">Nilai jasa perancangan
+          <InputRupiah nilai={proyek.nilai_perancangan}
+            onSimpan={(v) => aksi.jalankan(() => A.ubahProyek(proyek.id, { nilai_perancangan: v }),
+              v ? `Nilai jasa perancangan ${rp(v)}.` : "Nilai jasa perancangan dikosongkan.")} />
+        </label>
+      ) : (
+        <div className="row small">
+          <span>Nilai = jumlah harga item BOQ</span>
+          <span className="num">{n ? rp(n) : "harga belum diisi"}</span>
+        </div>
       )}
-      {termin.map((t) => {
-        const diterima = dibayarTermin(t, nilai);
-        return (
-          <div key={t.id} className="item">
-            <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) 84px" }}>
-              <Isian label="Nama termin" style={{ fontWeight: 600 }} nilai={t.label}
-                onSimpan={(v) => !!v && ubah(t.id, { label: v })} />
-              <Isian label="Persen" inputMode="decimal" style={{ textAlign: "right" }} nilai={Number(t.persen).toLocaleString("id-ID")}
-                onSimpan={(v) => angka(v) > 0 && angka(v) <= 100 && ubah(t.id, { persen: angka(v) })} />
-            </div>
-            <div className="g2">
-              <label className="lbl">Jatuh tempo<input key={t.jatuh_tempo || ""} className="inp" type="date" defaultValue={t.jatuh_tempo || ""} onChange={(e) => ubah(t.id, { jatuh_tempo: e.target.value || null })} /></label>
-              <label className="lbl">Lunas tanggal
-                <input key={t.lunas_tgl || ""} className="inp" type="date" defaultValue={t.lunas_tgl || ""} max={hariIni()}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (!v) ubah(t.id, { lunas_tgl: null, dibayar: null }, `Status lunas ${t.label} dibatalkan.`);
-                    else if (t.lunas_tgl) ubah(t.id, { lunas_tgl: v });
-                    else lunas(t, v);
-                  }} />
-              </label>
-            </div>
-            <label className="lbl">Sudah diterima (boleh sebagian)
-              <InputRupiah nilai={t.dibayar}
-                onSimpan={(v) => ubah(
-                  t.id,
-                  // Pembayaran yang menutup tagihan sekaligus menandai termin lunas.
-                  { dibayar: v, ...(v && nilai && !t.lunas_tgl && v >= tagihanTermin(t, nilai) ? { lunas_tgl: hariIni() } : {}) },
-                  v ? `Pembayaran ${t.label} dicatat: ${rp(v)}` : `Pembayaran ${t.label} dikosongkan.`
-                )} />
-            </label>
-            <div className="row" style={{ alignItems: "center" }}>
-              <span className={nilai ? "num" : "small"}>{nilai ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : "Tagihan muncul setelah harga diisi"}</span>
-              {t.lunas_tgl ? <span className="badge b-ok">Lunas {tgl(t.lunas_tgl)}</span> : diterima > 0 ? <span className="badge b-warn">Sebagian</span> : null}
-            </div>
-            {t.lunas_tgl && t.dibayar == null && (
-              <p className="small" style={{ margin: 0 }}>
-                Nominal lunas belum dikunci, jadi masih mengikuti harga item. {nilai ? "Ketuk “Kunci nominal” atau isi" : "Isi"} kolom “Sudah diterima” untuk menguncinya.
-              </p>
-            )}
-            <div className="acts">
-              {!t.lunas_tgl && (
-                <button type="button" className="act" disabled={aksi.sibuk} onClick={() => lunas(t, hariIni())}>Lunas hari ini</button>
-              )}
-              {t.lunas_tgl && t.dibayar == null && nilai > 0 && (
-                <button type="button" className="act" disabled={aksi.sibuk}
-                  onClick={() => ubah(t.id, kunci(t), `Nominal ${t.label} dikunci: ${rp(tagihanTermin(t, nilai))}`)}>
-                  Kunci nominal
+      <p className="small" style={{ margin: 0 }}>Aturan: {aturan}</p>
+
+      {!termin.length ? (
+        <div className="card stack" style={{ textAlign: "center" }}>
+          <p className="small" style={{ margin: 0 }}>
+            {bisaStandar ? "Belum ada jadwal termin." : "Isi nilai jasa perancangan dulu. Kosongkan kalau proyek ini tanpa jasa perancangan."}
+          </p>
+          {bisaStandar && (
+            <button type="button" className="btn" disabled={aksi.sibuk} onClick={buatStandar}>
+              Buat termin standar ({standar})
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          {total !== 100 && (
+            <p className="note b-warn">
+              Total persen termin {total.toLocaleString("id-ID")}%, {total < 100 ? `kurang ${(100 - total).toLocaleString("id-ID")}%` : `lebih ${(total - 100).toLocaleString("id-ID")}%`} dari 100%.
+            </p>
+          )}
+          {!sesuai && bisaStandar && (
+            <div className="note b-warn stack" style={{ gap: 8 }}>
+              <span>Pola termin belum sesuai aturan, seharusnya {standar}.</span>
+              {!adaBayar && (
+                <button type="button" className="act" style={{ alignSelf: "flex-start" }} disabled={aksi.sibuk}
+                  onClick={() => confirm(`Ganti semua termin ${judul.toLowerCase()} dengan pola ${standar}?`) && buatStandar()}>
+                  Susun ulang sesuai aturan
                 </button>
               )}
-              <button type="button" className="act bahaya" disabled={aksi.sibuk}
-                onClick={() => confirm(`Hapus termin "${t.label}"?`) && aksi.jalankan(() => A.hapusTermin(t.id), "Termin dihapus.")}>
-                Hapus
-              </button>
             </div>
-          </div>
-        );
-      })}
-      <button type="button" className="btn2" disabled={aksi.sibuk || total >= 100}
-        onClick={() => aksi.jalankan(() => A.tambahTermin(proyek.id, [{
-          urutan: termin.reduce((m, t) => Math.max(m, t.urutan), -1) + 1,
-          label: `Termin ${termin.length + 1}`, persen: Math.round((100 - total) * 100) / 100,
-        }]))}>
-        {total >= 100 ? "Total termin sudah 100%" : "+ Tambah termin"}
-      </button>
-    </>
+          )}
+          {termin.map((t) => {
+            const diterima = dibayarTermin(t, nilai);
+            return (
+              <div key={t.id} className="item">
+                <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) 84px" }}>
+                  <Isian label="Nama termin" style={{ fontWeight: 600 }} nilai={t.label}
+                    onSimpan={(v) => !!v && ubah(t.id, { label: v })} />
+                  <Isian label="Persen" inputMode="decimal" style={{ textAlign: "right" }} nilai={Number(t.persen).toLocaleString("id-ID")}
+                    onSimpan={(v) => angka(v) > 0 && angka(v) <= 100 && ubah(t.id, { persen: angka(v) })} />
+                </div>
+                <div className="g2">
+                  <label className="lbl">Jatuh tempo<input key={t.jatuh_tempo || ""} className="inp" type="date" defaultValue={t.jatuh_tempo || ""} onChange={(e) => ubah(t.id, { jatuh_tempo: e.target.value || null })} /></label>
+                  <label className="lbl">Lunas tanggal
+                    <input key={t.lunas_tgl || ""} className="inp" type="date" defaultValue={t.lunas_tgl || ""} max={hariIni()}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (!v) ubah(t.id, { lunas_tgl: null, dibayar: null }, `Status lunas ${t.label} dibatalkan.`);
+                        else if (t.lunas_tgl) ubah(t.id, { lunas_tgl: v });
+                        else lunas(t, v);
+                      }} />
+                  </label>
+                </div>
+                <label className="lbl">Sudah diterima (boleh sebagian)
+                  <InputRupiah nilai={t.dibayar}
+                    onSimpan={(v) => ubah(
+                      t.id,
+                      // Pembayaran yang menutup tagihan sekaligus menandai termin lunas.
+                      { dibayar: v, ...(v && n && !t.lunas_tgl && v >= tagihanTermin(t, nilai) ? { lunas_tgl: hariIni() } : {}) },
+                      v ? `Pembayaran ${t.label} dicatat: ${rp(v)}` : `Pembayaran ${t.label} dikosongkan.`
+                    )} />
+                </label>
+                <div className="row" style={{ alignItems: "center" }}>
+                  <span className={n ? "num" : "small"}>{n ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : `Tagihan muncul setelah ${jenis === "produksi" ? "harga item" : "nilai perancangan"} diisi`}</span>
+                  {t.lunas_tgl ? <span className="badge b-ok">Lunas {tgl(t.lunas_tgl)}</span> : diterima > 0 ? <span className="badge b-warn">Sebagian</span> : null}
+                </div>
+                {t.lunas_tgl && t.dibayar == null && (
+                  <p className="small" style={{ margin: 0 }}>
+                    Nominal lunas belum dikunci, jadi masih mengikuti harga. {n ? "Ketuk “Kunci nominal” atau isi" : "Isi"} kolom “Sudah diterima” untuk menguncinya.
+                  </p>
+                )}
+                <div className="acts">
+                  {!t.lunas_tgl && (
+                    <button type="button" className="act" disabled={aksi.sibuk} onClick={() => lunas(t, hariIni())}>Lunas hari ini</button>
+                  )}
+                  {t.lunas_tgl && t.dibayar == null && n > 0 && (
+                    <button type="button" className="act" disabled={aksi.sibuk}
+                      onClick={() => ubah(t.id, kunci(t), `Nominal ${t.label} dikunci: ${rp(tagihanTermin(t, nilai))}`)}>
+                      Kunci nominal
+                    </button>
+                  )}
+                  <button type="button" className="act bahaya" disabled={aksi.sibuk}
+                    onClick={() => confirm(`Hapus termin "${t.label}"?`) && aksi.jalankan(() => A.hapusTermin(t.id), "Termin dihapus.")}>
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          <button type="button" className="btn2" disabled={aksi.sibuk || total >= 100}
+            onClick={() => aksi.jalankan(() => A.tambahTermin(proyek.id, [{
+              jenis, urutan: termin.reduce((m, t) => Math.max(m, t.urutan), -1) + 1,
+              label: `Termin ${termin.length + 1}`, persen: Math.round((100 - total) * 100) / 100,
+            }]))}>
+            {total >= 100 ? "Total termin sudah 100%" : "+ Tambah termin"}
+          </button>
+        </>
+      )}
+    </section>
   );
 }
 

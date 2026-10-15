@@ -7,12 +7,13 @@ import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek } from "@/lib/portal/data";
 import { JENIS, TAHAP } from "@/lib/portal/progresBoq";
+import { JENIS_TERMIN, terminStandar } from "@/lib/portal/format";
 
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
 
-const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "supervisor_id", "aktif", "timbang_harga"];
+const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "supervisor_id", "aktif", "timbang_harga", "nilai_perancangan"];
 const F_ITEM = ["area", "kode", "nama", "jenis", "qty", "satuan", "dimensi", "harga", "bobot", "urutan"];
-const F_TERMIN = ["urutan", "label", "persen", "jatuh_tempo", "lunas_tgl", "dibayar"];
+const F_TERMIN = ["urutan", "jenis", "label", "persen", "jatuh_tempo", "lunas_tgl", "dibayar"];
 
 async function jalan(fn, { admin = true } = {}) {
   try {
@@ -24,9 +25,14 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql dan add_portal_termin_jenis.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
+}
+
+function cekProyek(r) {
+  if (r.nilai_perancangan != null && !(Number(r.nilai_perancangan) >= 0)) throw new Error("Nilai perancangan tidak valid.");
+  return r;
 }
 
 function cekItem(r) {
@@ -40,17 +46,19 @@ function cekItem(r) {
 }
 
 function cekTermin(r) {
+  if ("jenis" in r && !JENIS_TERMIN.some(([k]) => k === r.jenis)) throw new Error("Jenis termin tidak valid.");
   if ("persen" in r && !(r.persen > 0 && r.persen <= 100)) throw new Error("Persen harus 1–100.");
   if (r.dibayar != null && !(Number(r.dibayar) >= 0)) throw new Error("Nominal diterima tidak valid.");
   return r;
 }
 
-// Total persen termin satu proyek tidak boleh lewat 100 (sisa tagihan jadi minus).
-async function cekTotalTermin(proyekId, tambahan, kecualiId) {
-  const rows = await hasil(db().from("portal_termin").select("id, persen").eq("proyek_id", proyekId));
+// Total persen termin satu jenis (perancangan / produksi) tidak boleh lewat
+// 100 (sisa tagihan jadi minus).
+async function cekTotalTermin(proyekId, jenis, tambahan, kecualiId) {
+  const rows = await hasil(db().from("portal_termin").select("id, persen").eq("proyek_id", proyekId).eq("jenis", jenis));
   const total = rows.filter((t) => t.id !== kecualiId).reduce((a, t) => a + Number(t.persen), 0) + tambahan;
   if (total > 100.001)
-    throw new Error(`total termin jadi ${Math.round(total * 100) / 100}%, maksimal 100%. Kurangi termin lain dulu.`);
+    throw new Error(`total termin ${jenis} jadi ${Math.round(total * 100) / 100}%, maksimal 100%. Kurangi termin lain dulu.`);
 }
 
 const ubah = (tabel, id, patch) => hasil(db().from(tabel).update(patch).eq("id", id)).then(() => {});
@@ -68,7 +76,7 @@ export async function buatProyek(f) {
 }
 
 export async function ubahProyek(id, patch) {
-  return jalan(() => ubah("portal_proyek", id, pilih(patch, F_PROYEK)));
+  return jalan(() => ubah("portal_proyek", id, cekProyek(pilih(patch, F_PROYEK))));
 }
 
 /* ---------- Progres (admin & supervisor proyek) ---------- */
@@ -121,19 +129,46 @@ export async function hapusItem(id) {
 /* ---------- Termin ---------- */
 export async function tambahTermin(proyekId, rows) {
   return jalan(async () => {
-    const baru = rows.map((r) => ({ ...cekTermin(pilih(r, F_TERMIN)), proyek_id: proyekId }));
-    await cekTotalTermin(proyekId, baru.reduce((a, r) => a + Number(r.persen), 0));
+    const baru = rows.map((r) => ({ jenis: "produksi", ...cekTermin(pilih(r, F_TERMIN)), proyek_id: proyekId }));
+    for (const [jenis] of JENIS_TERMIN) {
+      const tambahan = baru.filter((r) => r.jenis === jenis).reduce((a, r) => a + Number(r.persen), 0);
+      if (tambahan) await cekTotalTermin(proyekId, jenis, tambahan);
+    }
     await hasil(db().from("portal_termin").insert(baru));
+  });
+}
+
+// Ganti seluruh termin satu jenis dengan pola standar (lihat terminStandar).
+// Ditolak kalau sudah ada pembayaran di jenis itu, supaya catatan bayar tidak hilang.
+export async function buatTerminStandar(proyekId, jenis) {
+  return jalan(async () => {
+    if (!JENIS_TERMIN.some(([k]) => k === jenis)) throw new Error("Jenis termin tidak valid.");
+    const p = await ambilProyek(proyekId);
+    if (!p) throw new Error("Proyek tidak ditemukan.");
+    const nilai = Number(p.nilai_perancangan) || 0;
+    if (jenis === "perancangan" && !nilai) throw new Error("isi nilai jasa perancangan dulu.");
+    const lama = await hasil(
+      db().from("portal_termin").select("id, lunas_tgl, dibayar").eq("proyek_id", proyekId).eq("jenis", jenis)
+    );
+    if (lama.some((t) => t.lunas_tgl || Number(t.dibayar) > 0))
+      throw new Error("sudah ada pembayaran di termin ini. Ubah persennya satu per satu.");
+    await hasil(
+      db().from("portal_termin").insert(
+        terminStandar(jenis, nilai).map(([label, persen], n) => ({ proyek_id: proyekId, jenis, urutan: n, label, persen }))
+      )
+    );
+    if (lama.length) await hasil(db().from("portal_termin").delete().in("id", lama.map((t) => t.id)));
   });
 }
 
 export async function ubahTermin(id, patch) {
   return jalan(async () => {
-    const p = cekTermin(pilih(patch, F_TERMIN));
+    // Jenis termin tidak diubah setelah dibuat.
+    const { jenis, ...p } = cekTermin(pilih(patch, F_TERMIN));
     if ("persen" in p) {
-      const t = await hasil(db().from("portal_termin").select("proyek_id").eq("id", id).maybeSingle());
+      const t = await hasil(db().from("portal_termin").select("*").eq("id", id).maybeSingle());
       if (!t) throw new Error("Termin tidak ditemukan.");
-      await cekTotalTermin(t.proyek_id, Number(p.persen), id);
+      await cekTotalTermin(t.proyek_id, t.jenis || "produksi", Number(p.persen), id);
     }
     await ubah("portal_termin", id, p);
   });
