@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapBerikut, tahapTerakhir, tahapBar } from "@/lib/portal/progresBoq";
+import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapTerakhir, faseKini, areaProgres } from "@/lib/portal/progresBoq";
 import {
   hariIni, tambahHari, selisihHari, tgl, tglTh, rp, pct, nilaiKontrak, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
-  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai,
+  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, labelDeadline,
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
 
@@ -53,7 +53,7 @@ export default function Detail({ P }) {
   const p = persenProyek(items);
   const naik = p - persenProyek(items, lalu);
   const [st, cls] = statusProyek(P);
-  const sisaHari = P.deadline ? selisihHari(now, P.deadline) : null;
+  const [sisa, kelasSisa] = P.deadline ? labelDeadline(P.deadline) : [];
   const areas = [...new Set(items.map((i) => i.area))];
   const nilai = nilaiKontrak(P);
   const nilaiT = nilaiTermin(P);
@@ -76,8 +76,8 @@ export default function Detail({ P }) {
             {naik > 0 ? <><span className="delta">+{pct(naik)}</span> dalam 7 hari terakhir</> : "Tidak ada perubahan 7 hari terakhir"}
           </div>
           {P.deadline && (
-            <div className="small">
-              Deadline {tglTh(P.deadline)} · {sisaHari >= 0 ? `${sisaHari} hari lagi` : `lewat ${-sisaHari} hari`}
+            <div className="small" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+              Deadline {tglTh(P.deadline)} <span className={`badge ${kelasSisa}`}>{sisa}</span>
             </div>
           )}
         </div>
@@ -115,7 +115,7 @@ export default function Detail({ P }) {
                 ))}
               </div>
             </section>
-            {areas.map((a) => {
+            {areas.filter(areaProgres).map((a) => {
               const its = items.filter((i) => i.area === a);
               return (
                 <details key={a} className="lipat">
@@ -131,20 +131,25 @@ export default function Detail({ P }) {
                   <div className="lipat-b">
                   {its.map((it) => {
                     const v = persenItem(it);
-                    const kini = tahapTerakhir(it), selesai = !tahapBerikut(it);
+                    const kini = tahapTerakhir(it), fase = faseKini(it);
                     return (
                       <div key={it.id} className="item mini">
                         <div className="row">
-                          <h3>{it.nama}</h3>
+                          <div style={{ minWidth: 0 }}>
+                            {it.kode && <div className="small num">{it.kode}</div>}
+                            <h3>{it.nama}</h3>
+                          </div>
                           <b className="num">{v}%</b>
                         </div>
-                        <div className="track">
-                          {tahapBar(it).map((s) => (
-                            <span key={s.k} className={it.progres[s.k] ? "on" : ""} style={{ flex: s.w, "--c": WARNA[s.fase] }} />
-                          ))}
-                        </div>
+                        {/* Klien cukup melihat satu bar polos untuk fase yang sedang berjalan
+                            (Produksi -> Pengiriman -> ...), tanpa rincian tiap tahap. */}
+                        <span className="bar" style={{ display: "block" }}>
+                          <i style={{ width: `${fase ? fase.persen : 100}%`, background: fase ? WARNA[fase.k] : "var(--ok)" }} />
+                        </span>
                         {/* Stage saat ini = tahap yang terakhir dicatat (tanggal paling baru). */}
-                        <div className="small">{selesai ? "Selesai" : kini ? `Stage saat ini: ${kini.label}` : "Belum dimulai"}</div>
+                        <div className="small">
+                          {!fase ? "Selesai" : <>{fase.label} {pct(fase.persen)} · {kini ? `Stage saat ini: ${kini.label}` : "Belum dimulai"}</>}
+                        </div>
                       </div>
                     );
                   })}

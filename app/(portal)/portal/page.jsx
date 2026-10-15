@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ambilStaf } from "@/lib/portal/server";
 import { ambilItem, ambilProyekStaf, ambilSupervisor } from "@/lib/portal/data";
 import { persenProyek } from "@/lib/portal/progresBoq";
-import { tglTh, pct, statusProyek } from "@/lib/portal/format";
+import { tglTh, pct, statusProyek, labelDeadline, lewatDeadline } from "@/lib/portal/format";
 import ProyekBaru from "./ProyekBaru";
 
 export default async function PortalBeranda() {
@@ -40,8 +40,12 @@ export default async function PortalBeranda() {
               <span className={`badge ${p.aktif ? cls : "b-n"}`}>{p.aktif ? st : "Arsip"}</span>
             </div>
             <h3>{p.nama}</h3>
-            <div className="small">
+            <div className="small" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
               {its.length} item{p.deadline ? ` · Deadline ${tglTh(p.deadline)}` : ""}
+              {p.deadline && p.aktif && (() => {
+                const [teks, kelas] = labelDeadline(p.deadline);
+                return <span className={`badge ${kelas}`}>{lewatDeadline(p) ? "Terkunci" : teks}</span>;
+              })()}
             </div>
             <div className="row" style={{ alignItems: "center" }}>
               <div className="bar" style={{ flex: 1 }}><i style={{ width: `${v}%` }} /></div>

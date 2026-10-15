@@ -7,10 +7,10 @@ import UnggahBoq from "../../UnggahBoq";
 import TabBar from "../../../TabBar";
 import {
   FASE, JENIS, JENIS_LABEL, tahapItem, persenItem, persenProyek, pakaiHarga, semuaBerharga, beriBerat,
-  tahapTerakhir, tahapBerikut, tahapBar,
+  tahapTerakhir, tahapBerikut, tahapBar, areaProgres, faseKini,
 } from "@/lib/portal/progresBoq";
 import {
-  hariIni, tgl, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar,
+  hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, BATAS_PERANCANGAN,
 } from "@/lib/portal/format";
 import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
@@ -26,6 +26,8 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
   const aksi = useAksi();
   const nilai = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
   const nilaiT = nilaiTermin({ ...proyek, items });
+  const kunci = lewatDeadline(proyek);
+  const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
 
   return (
     <main className="wrap">
@@ -34,7 +36,18 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
         <div className="eb">{[proyek.kode, proyek.klien_nama].filter(Boolean).join(" · ")}</div>
         <h1>{proyek.nama}</h1>
         {proyek.lokasi && <div className="small lok">{proyek.lokasi}</div>}
+        {proyek.deadline && (
+          <div className="row" style={{ justifyContent: "flex-start", alignItems: "center", marginTop: 8 }}>
+            <span className="small">Deadline {tglTh(proyek.deadline)}</span>
+            <span className={`badge ${kelasSisa}`}>{sisa}</span>
+          </div>
+        )}
       </div>
+      {kunci && (
+        <p className="note b-bad">
+          Proyek sudah lewat deadline, jadi terkunci. Progres, item, termin, link klien, dan info proyek tidak bisa diubah lagi.
+        </p>
+      )}
       <div className="grid2" style={{ gridTemplateColumns: "minmax(0,5fr) minmax(0,7fr)" }}>
         <div className="stat lead">
           <div className="eb">Progres</div>
@@ -53,11 +66,18 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
       {admin && <TabBar tabs={TABS} value={tab} onChange={(k) => { setTab(k); aksi.setMsg(""); }} />}
       <Pesan aksi={aksi} />
 
-      {tab === "progres" && <TabProgres items={items} aksi={aksi} />}
-      {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
-      {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} nilai={nilaiT} aksi={aksi} />}
-      {tab === "klien" && <TabKlien proyek={proyek} klien={klien} aksi={aksi} />}
-      {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
+      {/* Lewat deadline: semua isian & tombol dimatikan sekaligus lewat fieldset. Tab Klien
+          di luar fieldset supaya link masih bisa disalin / dikirim; tombolnya diatur sendiri. */}
+      {tab === "klien" ? (
+        <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
+      ) : (
+        <fieldset className="kunci" disabled={kunci}>
+          {tab === "progres" && <TabProgres items={items} aksi={aksi} />}
+          {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
+          {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} nilai={nilaiT} aksi={aksi} />}
+          {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
+        </fieldset>
+      )}
     </main>
   );
 }
@@ -79,15 +99,16 @@ function InputRupiah({ nilai, onSimpan }) {
   );
 }
 
-function Chips({ areas, value, onChange }) {
+// Saring area lewat dropdown ("Semua area" atau satu area).
+function PilihArea({ areas, value, onChange }) {
   if (areas.length < 2) return null;
   return (
-    <div className="chips" role="group" aria-label="Saring area">
-      <button type="button" className="chip" aria-pressed={value === "all"} onClick={() => onChange("all")}>Semua</button>
-      {areas.map((a) => (
-        <button key={a} type="button" className="chip" aria-pressed={value === a} onClick={() => onChange(a)}>{a}</button>
-      ))}
-    </div>
+    <label className="lbl">Area
+      <select className="inp" value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="all">Semua area</option>
+        {areas.map((a) => <option key={a} value={a}>{a}</option>)}
+      </select>
+    </label>
   );
 }
 
@@ -97,6 +118,7 @@ function TabProgres({ items, aksi }) {
   const [area, setArea] = useState("all");
   const [buka, setBuka] = useState(null);
   const [busy, setBusy] = useState(null);
+  items = items.filter((i) => areaProgres(i.area));
   const areas = [...new Set(items.map((i) => i.area))];
   const kunci = !!busy || aksi.sibuk;
 
@@ -121,10 +143,10 @@ function TabProgres({ items, aksi }) {
         </label>
       </div>
       <p className="small" style={{ margin: 0 }}>
-        Ketuk bagian bar untuk mencatat tahap, ketuk lagi untuk membatalkan. Urutannya bebas.
-        Ketuk nama item untuk melihat nama semua tahap.
+        Bar hanya menampilkan tahap di fase yang sedang berjalan (Produksi, lalu Pengiriman, dst.). Ketuk bagian
+        bar untuk mencatat tahap, ketuk lagi untuk membatalkan. Ketuk nama item untuk semua tahap di semua fase.
       </p>
-      <Chips areas={areas} value={area} onChange={setArea} />
+      <PilihArea areas={areas} value={area} onChange={setArea} />
       {areas.filter((a) => area === "all" || a === area).map((a) => {
         const its = items.filter((i) => i.area === a);
         return (
@@ -132,6 +154,9 @@ function TabProgres({ items, aksi }) {
             <div className="area"><h2>{a}</h2><span className="num small">{pct(persenProyek(its))}</span></div>
             {its.map((it) => {
               const akhir = tahapTerakhir(it), next = tahapBerikut(it), open = buka === it.id;
+              const fase = faseKini(it);
+              // Fase berjalan saja; kalau semua selesai, tampilkan semua tahap (penuh).
+              const bar = fase ? tahapBar(it).filter((s) => s.fase === fase.k && s.w > 0) : tahapBar(it);
               return (
                 <div key={it.id} className={`item acc${open ? " open" : ""}`}>
                   <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
@@ -142,9 +167,9 @@ function TabProgres({ items, aksi }) {
                     <b className="num">{persenItem(it)}%</b>
                     <i className="chev" aria-hidden="true" />
                   </button>
-                  {/* Tiap bagian bar = satu tahap; boleh dicentang tidak berurutan. */}
+                  {/* Tiap bagian bar = satu tahap di fase berjalan; boleh dicentang tidak berurutan. */}
                   <div className="track tap">
-                    {tahapBar(it).map((s) => (
+                    {bar.map((s) => (
                       <button key={s.k} type="button" className={it.progres[s.k] ? "on" : ""} disabled={kunci}
                         style={{ flex: s.w, "--c": WARNA[s.fase], ...(busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null) }}
                         title={it.progres[s.k] ? `${s.label} ✓ ${tgl(it.progres[s.k])}` : s.label}
@@ -176,7 +201,10 @@ function TabProgres({ items, aksi }) {
                     </div>
                   ) : (
                     <div className="acc-q">
-                      <span className="small">{akhir ? `${akhir.label} ✓ ${tgl(akhir.tgl)}` : "Belum mulai"}</span>
+                      <span className="small">
+                        {fase && <b style={{ fontWeight: 600 }}>{fase.label} {pct(fase.persen)} · </b>}
+                        {akhir ? `${akhir.label} ✓ ${tgl(akhir.tgl)}` : "Belum mulai"}
+                      </span>
                       {!next && <span className="badge b-ok">Selesai 100%</span>}
                     </div>
                   )}
@@ -682,7 +710,7 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
 }
 
 /* ---------- Link klien ---------- */
-function TabKlien({ proyek, klien, aksi }) {
+function TabKlien({ proyek, klien, aksi, kunci }) {
   const [nama, setNama] = useState(proyek.klien_nama || "");
   const [disalin, setDisalin] = useState(null);
   const url = (token) => `${location.origin}/k/${token}`;
@@ -714,14 +742,16 @@ function TabKlien({ proyek, klien, aksi }) {
           <div className="acts">
             <button type="button" className="act" onClick={() => salin(k)}>{disalin === k.id ? "Tersalin ✓" : "Salin link"}</button>
             <a className="act" href={`https://wa.me/?text=${encodeURIComponent(pesan(k))}`} target="_blank" rel="noreferrer">Kirim WA</a>
-            <button type="button" className="act bahaya" disabled={aksi.sibuk}
-              onClick={() => confirm(`Hapus link ${k.nama || ""}? Link ini tidak bisa dibuka lagi.`) && aksi.jalankan(() => A.cabutLink(k.id), "Link dihapus.")}>
-              Hapus
-            </button>
+            {!kunci && (
+              <button type="button" className="act bahaya" disabled={aksi.sibuk}
+                onClick={() => confirm(`Hapus link ${k.nama || ""}? Link ini tidak bisa dibuka lagi.`) && aksi.jalankan(() => A.cabutLink(k.id), "Link dihapus.")}>
+                Hapus
+              </button>
+            )}
           </div>
         </div>
       ))}
-      {!klien.length && (
+      {!klien.length && !kunci && (
         <div className="card stack">
           <label className="lbl">Nama klien<input className="inp" value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Bpk. Alfeus" /></label>
           <button type="button" className="btn" disabled={aksi.sibuk}
@@ -747,7 +777,8 @@ function TabInfo({ proyek, supervisors, aksi }) {
       e.preventDefault();
       aksi.jalankan(() => A.ubahProyek(proyek.id, {
         nama: f.nama.trim(), kode: f.kode.trim() || null, klien_nama: f.klien_nama.trim() || null, lokasi: f.lokasi.trim() || null,
-        mulai: f.mulai, deadline: f.deadline || null, supervisor_id: f.supervisor_id || null, aktif: f.aktif,
+        mulai: f.mulai, supervisor_id: f.supervisor_id || null, aktif: f.aktif,
+        ...(proyek.deadline ? {} : { deadline: f.deadline || null }),
       }), "Info proyek disimpan.");
     }}>
       <label className="lbl">Nama proyek<input className="inp" required value={f.nama} onChange={set("nama")} /></label>
@@ -758,8 +789,16 @@ function TabInfo({ proyek, supervisors, aksi }) {
       <label className="lbl">Lokasi<input className="inp" value={f.lokasi} onChange={set("lokasi")} /></label>
       <div className="g2">
         <label className="lbl">Mulai<input className="inp" type="date" required value={f.mulai} onChange={set("mulai")} /></label>
-        <label className="lbl">Deadline<input className="inp" type="date" value={f.deadline} onChange={set("deadline")} /></label>
+        {/* Deadline hanya bisa diisi sekali; setelah tersimpan tidak bisa diubah. */}
+        <label className="lbl">Deadline
+          <input className="inp" type="date" value={f.deadline} onChange={set("deadline")} disabled={!!proyek.deadline} min={f.mulai} />
+        </label>
       </div>
+      <p className="small" style={{ margin: 0 }}>
+        {proyek.deadline
+          ? "Deadline sudah ditetapkan dan tidak bisa diubah. Setelah lewat deadline, proyek terkunci."
+          : "Deadline hanya bisa diisi sekali dan tidak bisa diubah setelah disimpan."}
+      </p>
       <label className="lbl">Supervisor
         <select className="inp" value={f.supervisor_id} onChange={set("supervisor_id")}>
           <option value="">— Belum ditentukan —</option>

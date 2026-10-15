@@ -80,8 +80,11 @@ export default function ProyekBaru({ supervisors }) {
       <label className="lbl">Lokasi<input className="inp" value={f.lokasi} onChange={set("lokasi")} placeholder="Cluster Viola, Bekasi" /></label>
       <div className="g2">
         <label className="lbl">Mulai<input className="inp" type="date" required value={f.mulai} onChange={set("mulai")} /></label>
-        <label className="lbl">Deadline<input className="inp" type="date" value={f.deadline} onChange={set("deadline")} /></label>
+        <label className="lbl">Deadline<input className="inp" type="date" value={f.deadline} onChange={set("deadline")} min={f.mulai} /></label>
       </div>
+      <p className="small" style={{ margin: 0 }}>
+        Deadline tidak bisa diubah setelah disimpan. Setelah lewat deadline, proyek terkunci.
+      </p>
       <label className="lbl">
         Supervisor
         <select className="inp" value={f.supervisor_id} onChange={set("supervisor_id")}>

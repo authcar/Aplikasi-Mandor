@@ -7,7 +7,7 @@ import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek } from "@/lib/portal/data";
 import { JENIS, TAHAP } from "@/lib/portal/progresBoq";
-import { JENIS_TERMIN, terminStandar } from "@/lib/portal/format";
+import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh } from "@/lib/portal/format";
 
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
 
@@ -61,6 +61,21 @@ async function cekTotalTermin(proyekId, jenis, tambahan, kecualiId) {
     throw new Error(`total termin ${jenis} jadi ${Math.round(total * 100) / 100}%, maksimal 100%. Kurangi termin lain dulu.`);
 }
 
+// Proyek yang sudah lewat deadline terkunci: tidak ada data yang boleh diubah.
+async function cekTerbuka(proyekId) {
+  const p = await ambilProyek(proyekId);
+  if (!p) throw new Error("Proyek tidak ditemukan.");
+  if (lewatDeadline(p)) throw new Error(`proyek sudah lewat deadline ${tglTh(p.deadline)}, jadi terkunci.`);
+  return p;
+}
+
+// proyek_id pemilik satu baris (item / termin / link).
+async function proyekDari(tabel, kolom, nilai) {
+  const r = await hasil(db().from(tabel).select("proyek_id").eq(kolom, nilai).maybeSingle());
+  if (!r) throw new Error("Data tidak ditemukan.");
+  return r.proyek_id;
+}
+
 const ubah = (tabel, id, patch) => hasil(db().from(tabel).update(patch).eq("id", id)).then(() => {});
 const hapus = (tabel, id) => hasil(db().from(tabel).delete().eq("id", id)).then(() => {});
 
@@ -75,8 +90,15 @@ export async function buatProyek(f) {
   });
 }
 
+// Deadline hanya bisa diisi sekali; setelah itu tidak bisa diubah atau dikosongkan.
 export async function ubahProyek(id, patch) {
-  return jalan(() => ubah("portal_proyek", id, cekProyek(pilih(patch, F_PROYEK))));
+  return jalan(async () => {
+    const lama = await cekTerbuka(id);
+    const p = cekProyek(pilih(patch, F_PROYEK));
+    if ("deadline" in p && lama.deadline && p.deadline !== lama.deadline)
+      throw new Error("deadline sudah ditetapkan dan tidak bisa diubah.");
+    await ubah("portal_proyek", id, p);
+  });
 }
 
 /* ---------- Progres (admin & supervisor proyek) ---------- */
@@ -84,7 +106,9 @@ export async function setProgres(itemId, tahap, tanggal) {
   return jalan(async (staf) => {
     const item = await hasil(db().from("portal_item").select("proyek_id, jenis").eq("id", itemId).maybeSingle());
     if (!item) throw new Error("Item tidak ditemukan.");
-    if (!bolehProyek(staf, await ambilProyek(item.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    const p = await ambilProyek(item.proyek_id);
+    if (!bolehProyek(staf, p)) throw new Error("Tidak punya akses ke proyek ini.");
+    if (lewatDeadline(p)) throw new Error(`proyek sudah lewat deadline ${tglTh(p.deadline)}, jadi terkunci.`);
     if (!TAHAP[item.jenis]?.some((s) => s.k === tahap)) throw new Error("Tahap tidak valid.");
     if (!tanggal) return void (await hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap)));
     await hasil(
@@ -98,13 +122,17 @@ export async function setProgres(itemId, tahap, tanggal) {
 /* ---------- Item BOQ ---------- */
 export async function tambahItem(proyekId, rows) {
   return jalan(async () => {
+    await cekTerbuka(proyekId);
     const baru = rows.filter((r) => r.nama).map((r) => ({ ...cekItem(pilih(r, F_ITEM)), proyek_id: proyekId }));
     if (baru.length) await hasil(db().from("portal_item").insert(baru));
   });
 }
 
 export async function ubahItem(id, patch) {
-  return jalan(() => ubah("portal_item", id, cekItem(pilih(patch, F_ITEM))));
+  return jalan(async () => {
+    await cekTerbuka(await proyekDari("portal_item", "id", id));
+    await ubah("portal_item", id, cekItem(pilih(patch, F_ITEM)));
+  });
 }
 
 // Ganti seluruh BOQ proyek. Item baru disimpan dulu, baru yang lama dihapus,
@@ -112,6 +140,7 @@ export async function ubahItem(id, patch) {
 // Progres item lama ikut terhapus (on delete cascade).
 export async function gantiItem(proyekId, rows) {
   return jalan(async () => {
+    await cekTerbuka(proyekId);
     const baru = rows.filter((r) => r.nama).map((r) => ({ ...cekItem(pilih(r, F_ITEM)), proyek_id: proyekId }));
     if (!baru.length) throw new Error("Tidak ada item pengganti.");
     const lama = await hasil(db().from("portal_item").select("id").eq("proyek_id", proyekId));
@@ -123,12 +152,16 @@ export async function gantiItem(proyekId, rows) {
 
 // Progres item ikut terhapus (on delete cascade).
 export async function hapusItem(id) {
-  return jalan(() => hapus("portal_item", id));
+  return jalan(async () => {
+    await cekTerbuka(await proyekDari("portal_item", "id", id));
+    await hapus("portal_item", id);
+  });
 }
 
 /* ---------- Termin ---------- */
 export async function tambahTermin(proyekId, rows) {
   return jalan(async () => {
+    await cekTerbuka(proyekId);
     const baru = rows.map((r) => ({ jenis: "produksi", ...cekTermin(pilih(r, F_TERMIN)), proyek_id: proyekId }));
     for (const [jenis] of JENIS_TERMIN) {
       const tambahan = baru.filter((r) => r.jenis === jenis).reduce((a, r) => a + Number(r.persen), 0);
@@ -143,8 +176,7 @@ export async function tambahTermin(proyekId, rows) {
 export async function buatTerminStandar(proyekId, jenis) {
   return jalan(async () => {
     if (!JENIS_TERMIN.some(([k]) => k === jenis)) throw new Error("Jenis termin tidak valid.");
-    const p = await ambilProyek(proyekId);
-    if (!p) throw new Error("Proyek tidak ditemukan.");
+    const p = await cekTerbuka(proyekId);
     const nilai = Number(p.nilai_perancangan) || 0;
     if (jenis === "perancangan" && !nilai) throw new Error("isi nilai jasa perancangan dulu.");
     const lama = await hasil(
@@ -165,17 +197,19 @@ export async function ubahTermin(id, patch) {
   return jalan(async () => {
     // Jenis termin tidak diubah setelah dibuat.
     const { jenis, ...p } = cekTermin(pilih(patch, F_TERMIN));
-    if ("persen" in p) {
-      const t = await hasil(db().from("portal_termin").select("*").eq("id", id).maybeSingle());
-      if (!t) throw new Error("Termin tidak ditemukan.");
-      await cekTotalTermin(t.proyek_id, t.jenis || "produksi", Number(p.persen), id);
-    }
+    const t = await hasil(db().from("portal_termin").select("*").eq("id", id).maybeSingle());
+    if (!t) throw new Error("Termin tidak ditemukan.");
+    await cekTerbuka(t.proyek_id);
+    if ("persen" in p) await cekTotalTermin(t.proyek_id, t.jenis || "produksi", Number(p.persen), id);
     await ubah("portal_termin", id, p);
   });
 }
 
 export async function hapusTermin(id) {
-  return jalan(() => hapus("portal_termin", id));
+  return jalan(async () => {
+    await cekTerbuka(await proyekDari("portal_termin", "id", id));
+    await hapus("portal_termin", id);
+  });
 }
 
 /* ---------- Bobot tahap (per jenis, semua proyek) ---------- */
@@ -207,7 +241,7 @@ export async function resetBobotTahap(jenis) {
 // dibuat ulang; link baru hanya bisa dibuat setelah link lama dihapus.
 export async function buatLink(proyekId, nama) {
   return jalan(async () => {
-    if (!(await ambilProyek(proyekId))) throw new Error("Proyek tidak ditemukan.");
+    await cekTerbuka(proyekId);
     const ada = await hasil(db().from("portal_link").select("token").eq("proyek_id", proyekId).limit(1));
     if (ada.length) throw new Error("proyek ini sudah punya link klien. Hapus link lama dulu kalau mau membuat yang baru.");
     const token = randomBytes(32).toString("base64url");
@@ -218,6 +252,7 @@ export async function buatLink(proyekId, nama) {
 
 export async function cabutLink(token) {
   return jalan(async () => {
+    await cekTerbuka(await proyekDari("portal_link", "token", token));
     await hasil(db().from("portal_link").delete().eq("token", token));
   });
 }
