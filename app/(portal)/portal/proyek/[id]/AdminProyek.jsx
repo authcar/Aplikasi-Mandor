@@ -107,15 +107,18 @@ function TabProgres({ proyek, items, aksi, admin }) {
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [buka, setBuka] = useState(null);
   const [busy, setBusy] = useState(null);
-  const [kelompok, setKelompok] = useState("area"); // "area" | "tim"
+  const [tim, setTim] = useState(""); // "" = semua tim
+  const [area, setArea] = useState(""); // "" = semua area
   items = items.filter((i) => areaProgres(i.area));
   const kunci = !!busy || aksi.sibuk;
-  // Pengelompokan item: per area (bawaan) atau per tim tukang. Item tanpa tim di akhir.
-  const adaTim = items.some((i) => i.tim);
-  const perTim = adaTim && kelompok === "tim";
+  // Saring lewat dua dropdown (Tim, Area) supaya daftar item langsung terlihat
+  // tanpa buka-tutup bertingkat. Item dikelompokkan per area dengan judul biasa.
   const TANPA_TIM = "Belum ada tim";
-  const grupOf = (i) => (perTim ? i.tim || TANPA_TIM : i.area);
-  const grup = [...new Set(items.map(grupOf))].sort((a, b) => perTim ? (a === TANPA_TIM) - (b === TANPA_TIM) : 0);
+  const tims = [...new Set(items.map((i) => i.tim || TANPA_TIM))].sort((a, b) => (a === TANPA_TIM) - (b === TANPA_TIM));
+  const adaTim = items.some((i) => i.tim);
+  const diTim = items.filter((i) => !tim || (i.tim || TANPA_TIM) === tim);
+  const areas = [...new Set(diTim.map((i) => i.area))];
+  const tampil = diTim.filter((i) => !area || i.area === area);
 
   if (!items.length) return <div className="card small">Belum ada item. Admin perlu mengimpor item di tab Jasa tukang.</div>;
 
@@ -140,7 +143,7 @@ function TabProgres({ proyek, items, aksi, admin }) {
         <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
           <span className="t">
             <span className="nm">{it.nama}</span>
-            <span className="small">{[it.kode, JENIS_LABEL[it.jenis], !perTim && it.tim].filter(Boolean).join(" · ")}</span>
+            <span className="small">{[it.kode, JENIS_LABEL[it.jenis], !tim && it.tim].filter(Boolean).join(" · ")}</span>
           </span>
           <b className="num">{persenItem(it)}%</b>
           <i className="chev" aria-hidden="true" />
@@ -184,54 +187,38 @@ function TabProgres({ proyek, items, aksi, admin }) {
         )}
       </div>
       <p className="small" style={{ margin: 0 }}>
-        Bar hanya menampilkan tahap di fase yang sedang berjalan (Produksi, lalu Pengiriman, dst.). Ketuk bagian
-        bar untuk mencatat tahap, ketuk lagi untuk membatalkan. Ketuk nama item untuk semua tahap di semua fase.
+        Ketuk bagian bar untuk mencatat tahap fase berjalan, ketuk lagi untuk membatalkan. Ketuk nama item untuk semua tahap.
       </p>
-      {adaTim && (
-        <div className="seg" role="group" aria-label="Kelompokkan progres">
-          <button type="button" aria-pressed={!perTim} onClick={() => setKelompok("area")}>Per area</button>
-          <button type="button" aria-pressed={perTim} onClick={() => setKelompok("tim")}>Per tim</button>
+      <div className="card" style={{ padding: "10px 14px" }}>
+        <div className="g2" style={adaTim ? null : { gridTemplateColumns: "1fr" }}>
+          {adaTim && (
+            <label className="lbl">Tim
+              <select className="inp" value={tim} onChange={(e) => { setTim(e.target.value); setArea(""); }}>
+                <option value="">Semua tim</option>
+                {tims.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+          )}
+          <label className="lbl">Area
+            <select className="inp" value={area} onChange={(e) => setArea(e.target.value)}>
+              <option value="">Semua area</option>
+              {areas.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
         </div>
-      )}
-      {/* Tiap kelompok (area / tim) bisa dibuka-tutup, sama seperti di halaman klien. */}
-      {grup.map((a) => {
-        const its = items.filter((i) => grupOf(i) === a);
-        const p = persenProyek(its);
+        <div className="row small" style={{ marginTop: 10 }}>
+          <span>{tampil.length} item{tim || area ? " tersaring" : ""}</span>
+          <b className="num">{pct(persenProyek(tampil))}</b>
+        </div>
+        <span className="bar" style={{ display: "block", marginTop: 6 }}><i style={{ width: `${persenProyek(tampil)}%` }} /></span>
+      </div>
+      {areas.filter((a) => !area || a === area).map((a) => {
+        const its = tampil.filter((i) => i.area === a);
         return (
-          <details key={a} className="lipat">
-            <summary>
-              <span style={{ minWidth: 0, flex: 1 }}>
-                <span className="row">
-                  <h2>{a}</h2>
-                  <span className="num small" style={{ whiteSpace: "nowrap" }}>{pct(p)} · {its.length} item</span>
-                </span>
-                <span className="bar" style={{ display: "block", marginTop: 8 }}><i style={{ width: `${p}%` }} /></span>
-              </span>
-            </summary>
-            <div className="lipat-b">
-            {perTim
-              ? [...new Set(its.map((i) => i.area))].map((ar) => {
-                  // Per tim: area di dalam tim juga bisa dibuka-tutup.
-                  const isi = its.filter((i) => i.area === ar);
-                  const pa = persenProyek(isi);
-                  return (
-                    <details key={ar} className="lipat">
-                      <summary>
-                        <span style={{ minWidth: 0, flex: 1 }}>
-                          <span className="row">
-                            <b>{ar}</b>
-                            <span className="num small" style={{ whiteSpace: "nowrap" }}>{pct(pa)} · {isi.length} item</span>
-                          </span>
-                          <span className="bar" style={{ display: "block", marginTop: 6 }}><i style={{ width: `${pa}%` }} /></span>
-                        </span>
-                      </summary>
-                      <div className="lipat-b">{isi.map(kartu)}</div>
-                    </details>
-                  );
-                })
-              : its.map(kartu)}
-            </div>
-          </details>
+          <div key={a} className="stack" style={{ gap: 8 }}>
+            <div className="area"><h2>{a}</h2><span className="num small">{pct(persenProyek(its))} · {its.length} item</span></div>
+            {its.map(kartu)}
+          </div>
         );
       })}
     </>
