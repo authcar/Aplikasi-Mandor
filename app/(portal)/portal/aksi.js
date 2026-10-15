@@ -214,7 +214,8 @@ export async function hapusTermin(id) {
 }
 
 /* ---------- Bobot tahap khusus satu item ---------- */
-// bobot = { [tahap]: persen } lengkap untuk jenis item itu, berjumlah 100.
+// bobot = { [tahap]: persen } lengkap untuk jenis item itu. Tidak harus
+// berjumlah 100: progres item dihitung dari perbandingannya (lihat persenItem).
 // null = kembali memakai bobot jenisnya (halaman Bobot tahap / bawaan).
 export async function simpanBobotItem(itemId, bobot) {
   return jalan(async () => {
@@ -225,8 +226,7 @@ export async function simpanBobotItem(itemId, bobot) {
     if (bobot) {
       isi = Object.fromEntries((TAHAP[item.jenis] || TAHAP.HPL).map((s) => [s.k, Number(bobot[s.k])]));
       if (Object.values(isi).some((v) => !(v >= 0 && v <= 100))) throw new Error("tiap tahap harus 0–100%.");
-      const total = Object.values(isi).reduce((a, v) => a + v, 0);
-      if (Math.abs(total - 100) > 0.001) throw new Error(`total bobot harus 100%, sekarang ${Math.round(total * 100) / 100}%.`);
+      if (!(Object.values(isi).reduce((a, v) => a + v, 0) > 0)) throw new Error("minimal satu tahap harus punya bobot.");
     }
     await ubah("portal_item", itemId, { bobot_tahap: isi });
   });

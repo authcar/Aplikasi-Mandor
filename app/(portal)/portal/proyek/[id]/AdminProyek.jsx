@@ -204,16 +204,18 @@ function TabProgres({ proyek, items, aksi, admin }) {
 }
 
 // Semua tahap satu item per fase: tombol centang, dan (master) slider bobot
-// langsung di bawah tiap tahap. Bobot khusus item ini saja; total harus 100%.
+// langsung di bawah tiap tahap. Bobot khusus item ini saja. Tiap slider berdiri
+// sendiri (tahap lain tidak ikut berubah); total tidak harus 100 karena progres
+// item dihitung dari perbandingan bobotnya.
 function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
   const tahap = tahapItem(it);
   const awal = Object.fromEntries(tahap.map((s) => [s.k, s.w]));
   const kunciAwal = JSON.stringify(awal);
   const [b, setB] = useState(awal);
   useEffect(() => setB(JSON.parse(kunciAwal)), [kunciAwal]);
-  const total = Math.round(tahap.reduce((a, s) => a + b[s.k], 0) * 100) / 100;
   const berubah = tahap.some((s) => b[s.k] !== s.w);
-  const selisih = (n) => (Math.round(n * 100) / 100).toLocaleString("id-ID");
+  const total = tahap.reduce((a, s) => a + b[s.k], 0);
+  const geser = (k, v) => setB({ ...b, [k]: v });
 
   return (
     <div className="acc-b">
@@ -235,7 +237,7 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
                   {admin && (
                     <label className="geser mini">
                       <input type="range" min="0" max="100" step="1" value={b[s.k]} aria-label={`Bobot ${s.label}`}
-                        style={{ accentColor: WARNA[s.fase] }} onChange={(e) => setB({ ...b, [s.k]: Number(e.target.value) })} />
+                        style={{ accentColor: WARNA[s.fase] }} onChange={(e) => geser(s.k, Number(e.target.value))} />
                       <b className="num">{b[s.k]}%</b>
                     </label>
                   )}
@@ -247,17 +249,15 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
       })}
       {admin && (berubah || it.bobot_khusus) && (
         <div className="stack" style={{ gap: 8 }}>
-          <div className="row small">
-            <span>Total bobot{it.bobot_khusus && !berubah ? " (khusus item ini)" : ""}</span>
-            <b className="num" style={{ color: total === 100 ? "var(--ok)" : "var(--bad)" }}>{total.toLocaleString("id-ID")}%</b>
-          </div>
-          {total !== 100 && (
-            <p className="note b-warn">Total harus 100%, sekarang {total < 100 ? `kurang ${selisih(100 - total)}%` : `lebih ${selisih(total - 100)}%`}.</p>
-          )}
+          <p className="small" style={{ margin: 0 }}>
+            Total bobot <b className="num">{total.toLocaleString("id-ID")}</b>
+            {total !== 100 && " · tidak harus 100, progres item tetap dihitung 0–100% dari perbandingannya"}.
+            {!berubah && " Item ini memakai bobot khusus (bukan bobot bawaan jenisnya)."}
+          </p>
           <div className="acts">
             {berubah && (
               <>
-                <button type="button" className="act" disabled={aksi.sibuk || total !== 100}
+                <button type="button" className="act" disabled={aksi.sibuk || total <= 0}
                   onClick={() => aksi.jalankan(() => A.simpanBobotItem(it.id, b), `Bobot tahap ${it.nama} disimpan.`)}>
                   Simpan bobot
                 </button>
