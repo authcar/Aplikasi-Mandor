@@ -7,7 +7,7 @@ import UnggahBoq from "../../UnggahBoq";
 import TabBar from "../../../TabBar";
 import {
   FASE, JENIS, JENIS_LABEL, tahapItem, persenItem, persenProyek, pakaiHarga, semuaBerharga, beriBerat,
-  tahapTerakhir, tahapBerikut,
+  tahapTerakhir, tahapBerikut, tahapBar,
 } from "@/lib/portal/progresBoq";
 import {
   hariIni, tgl, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar,
@@ -144,7 +144,7 @@ function TabProgres({ items, aksi }) {
                   </button>
                   {/* Tiap bagian bar = satu tahap; boleh dicentang tidak berurutan. */}
                   <div className="track tap">
-                    {tahapItem(it).map((s) => (
+                    {tahapBar(it).map((s) => (
                       <button key={s.k} type="button" className={it.progres[s.k] ? "on" : ""} disabled={kunci}
                         style={{ flex: s.w, "--c": WARNA[s.fase], ...(busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null) }}
                         title={it.progres[s.k] ? `${s.label} ✓ ${tgl(it.progres[s.k])}` : s.label}
@@ -700,10 +700,10 @@ function TabKlien({ proyek, klien, aksi }) {
       <p className="small" style={{ margin: 0 }}>
         Klien membuka proyek lewat link rahasia, tanpa login. Satu proyek satu link, dan semua perubahan progres,
         item, dan termin langsung tampil di link yang sama. Siapa pun yang memegang link bisa melihat proyek ini,
-        jadi kirim hanya ke klien. Cabut link kalau bocor atau tidak dipakai lagi.
+        jadi kirim hanya ke klien. Hapus link kalau bocor atau tidak dipakai lagi.
       </p>
       {klien.length > 1 && (
-        <p className="note b-warn">Proyek ini punya {klien.length} link. Cukup satu, cabut yang tidak dipakai.</p>
+        <p className="note b-warn">Proyek ini punya {klien.length} link. Cukup satu, hapus yang tidak dipakai.</p>
       )}
       {klien.map((k) => (
         <div key={k.id} className="item">
@@ -715,8 +715,8 @@ function TabKlien({ proyek, klien, aksi }) {
             <button type="button" className="act" onClick={() => salin(k)}>{disalin === k.id ? "Tersalin ✓" : "Salin link"}</button>
             <a className="act" href={`https://wa.me/?text=${encodeURIComponent(pesan(k))}`} target="_blank" rel="noreferrer">Kirim WA</a>
             <button type="button" className="act bahaya" disabled={aksi.sibuk}
-              onClick={() => confirm(`Cabut link ${k.nama || ""}? Link lama tidak bisa dibuka lagi.`) && aksi.jalankan(() => A.cabutLink(k.id), "Link dicabut.")}>
-              Cabut
+              onClick={() => confirm(`Hapus link ${k.nama || ""}? Link ini tidak bisa dibuka lagi.`) && aksi.jalankan(() => A.cabutLink(k.id), "Link dihapus.")}>
+              Hapus
             </button>
           </div>
         </div>

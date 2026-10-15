@@ -204,12 +204,12 @@ export async function resetBobotTahap(jenis) {
 
 /* ---------- Link klien ---------- */
 // Satu proyek satu link. Link selalu menampilkan data terbaru, jadi tidak perlu
-// dibuat ulang; link baru hanya bisa dibuat setelah link lama dicabut.
+// dibuat ulang; link baru hanya bisa dibuat setelah link lama dihapus.
 export async function buatLink(proyekId, nama) {
   return jalan(async () => {
     if (!(await ambilProyek(proyekId))) throw new Error("Proyek tidak ditemukan.");
     const ada = await hasil(db().from("portal_link").select("token").eq("proyek_id", proyekId).limit(1));
-    if (ada.length) throw new Error("proyek ini sudah punya link klien. Cabut link lama dulu kalau mau membuat yang baru.");
+    if (ada.length) throw new Error("proyek ini sudah punya link klien. Hapus link lama dulu kalau mau membuat yang baru.");
     const token = randomBytes(32).toString("base64url");
     await hasil(db().from("portal_link").insert({ token, proyek_id: proyekId, nama: nama?.trim() || null }));
     return { token };
