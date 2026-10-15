@@ -70,6 +70,7 @@ h3{font-size:1rem;font-weight:700}
 .item.mini .track{height:4px}
 .kunci{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:14px}
 .geser{display:grid;grid-template-columns:minmax(72px,104px) minmax(0,1fr) 44px;align-items:center;gap:10px;font-size:.86rem}.geser input{width:100%;min-height:var(--tap);margin:0}.geser .num{text-align:right}
+.tahap-sel{display:flex;flex-direction:column;gap:2px;min-width:0}.geser.mini{grid-template-columns:minmax(0,1fr) 36px;gap:6px;font-size:.78rem}.geser.mini input{min-height:28px}
 .track.tap{height:24px;gap:3px}.track.tap button{min-width:0;padding:0;border:0;border-radius:3px;background:var(--sunk);cursor:pointer}.track.tap button.on{background:var(--c)}.track.tap button:disabled{cursor:default}
 .tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .tl li{display:grid;grid-template-columns:14px 1fr auto;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}

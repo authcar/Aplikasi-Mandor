@@ -182,28 +182,7 @@ function TabProgres({ proyek, items, aksi, admin }) {
                     ))}
                   </div>
                   {open ? (
-                    <div className="acc-b">
-                      {FASE.map((f) => {
-                        const st = tahapItem(it).filter((s) => s.fase === f.k);
-                        if (!st.length) return null;
-                        return (
-                          <div key={f.k}>
-                            <div className="fl">{f.label}</div>
-                            <div className="pills">
-                              {st.map((s) => (
-                                <button key={s.k} type="button" className="pill" aria-pressed={!!it.progres[s.k]}
-                                  disabled={kunci} style={busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null}
-                                  onClick={() => toggle(it, s)}>
-                                  <span>{it.progres[s.k] ? "✓ " : ""}{s.label}</span>
-                                  <span className="w">{it.progres[s.k] ? tgl(it.progres[s.k]) : `${s.w}%`}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {admin && <BobotItem it={it} aksi={aksi} />}
-                    </div>
+                    <TahapItem it={it} aksi={aksi} admin={admin} kunci={kunci} busy={busy} toggle={toggle} />
                   ) : (
                     <div className="acc-q">
                       <span className="small">
@@ -224,9 +203,9 @@ function TabProgres({ proyek, items, aksi, admin }) {
   );
 }
 
-// Bobot tiap tahap khusus satu item, diatur dengan slider. Total harus 100%.
-// Item lain (termasuk yang sejenis) tidak ikut berubah.
-function BobotItem({ it, aksi }) {
+// Semua tahap satu item per fase: tombol centang, dan (master) slider bobot
+// langsung di bawah tiap tahap. Bobot khusus item ini saja; total harus 100%.
+function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
   const tahap = tahapItem(it);
   const awal = Object.fromEntries(tahap.map((s) => [s.k, s.w]));
   const kunciAwal = JSON.stringify(awal);
@@ -234,44 +213,68 @@ function BobotItem({ it, aksi }) {
   useEffect(() => setB(JSON.parse(kunciAwal)), [kunciAwal]);
   const total = Math.round(tahap.reduce((a, s) => a + b[s.k], 0) * 100) / 100;
   const berubah = tahap.some((s) => b[s.k] !== s.w);
+  const selisih = (n) => (Math.round(n * 100) / 100).toLocaleString("id-ID");
 
   return (
-    <details className="lipat">
-      <summary><span className="small"><b>Atur bobot tahap item ini</b>{it.bobot_khusus ? " · khusus" : ""}</span></summary>
-      <div className="lipat-b" style={{ gap: 10 }}>
-        {tahap.map((s) => (
-          <label key={s.k} className="geser">
-            <span>{s.label}</span>
-            <input type="range" min="0" max="100" step="1" value={b[s.k]} style={{ accentColor: WARNA[s.fase] }}
-              onChange={(e) => setB({ ...b, [s.k]: Number(e.target.value) })} />
-            <b className="num">{b[s.k]}%</b>
-          </label>
-        ))}
-        <div className="row small">
-          <span>Total</span>
-          <b className="num" style={{ color: total === 100 ? "var(--ok)" : "var(--bad)" }}>{total.toLocaleString("id-ID")}%</b>
-        </div>
-        {total !== 100 && (
-          <p className="note b-warn">
-            Total harus 100%, sekarang {total < 100 ? `kurang ${(Math.round((100 - total) * 100) / 100).toLocaleString("id-ID")}%` : `lebih ${(Math.round((total - 100) * 100) / 100).toLocaleString("id-ID")}%`}.
-          </p>
-        )}
-        <div className="acts">
-          <button type="button" className="act" disabled={aksi.sibuk || !berubah || total !== 100}
-            onClick={() => aksi.jalankan(() => A.simpanBobotItem(it.id, b), `Bobot tahap ${it.nama} disimpan.`)}>
-            Simpan bobot
-          </button>
-          {berubah && <button type="button" className="act" onClick={() => setB(awal)}>Batal</button>}
-          {it.bobot_khusus && !berubah && (
-            <button type="button" className="act" disabled={aksi.sibuk}
-              onClick={() => confirm(`Kembalikan bobot ${it.nama} ke bobot bawaan jenisnya?`) &&
-                aksi.jalankan(() => A.simpanBobotItem(it.id, null), `Bobot ${it.nama} kembali ke bawaan.`)}>
-              Kembali ke bawaan
-            </button>
+    <div className="acc-b">
+      {FASE.map((f) => {
+        const st = tahap.filter((s) => s.fase === f.k);
+        if (!st.length) return null;
+        return (
+          <div key={f.k}>
+            <div className="fl">{f.label}</div>
+            <div className="pills">
+              {st.map((s) => (
+                <div key={s.k} className="tahap-sel">
+                  <button type="button" className="pill" aria-pressed={!!it.progres[s.k]}
+                    disabled={kunci} style={busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null}
+                    onClick={() => toggle(it, s)}>
+                    <span>{it.progres[s.k] ? "✓ " : ""}{s.label}</span>
+                    <span className="w">{it.progres[s.k] ? tgl(it.progres[s.k]) : `${b[s.k]}%`}</span>
+                  </button>
+                  {admin && (
+                    <label className="geser mini">
+                      <input type="range" min="0" max="100" step="1" value={b[s.k]} aria-label={`Bobot ${s.label}`}
+                        style={{ accentColor: WARNA[s.fase] }} onChange={(e) => setB({ ...b, [s.k]: Number(e.target.value) })} />
+                      <b className="num">{b[s.k]}%</b>
+                    </label>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {admin && (berubah || it.bobot_khusus) && (
+        <div className="stack" style={{ gap: 8 }}>
+          <div className="row small">
+            <span>Total bobot{it.bobot_khusus && !berubah ? " (khusus item ini)" : ""}</span>
+            <b className="num" style={{ color: total === 100 ? "var(--ok)" : "var(--bad)" }}>{total.toLocaleString("id-ID")}%</b>
+          </div>
+          {total !== 100 && (
+            <p className="note b-warn">Total harus 100%, sekarang {total < 100 ? `kurang ${selisih(100 - total)}%` : `lebih ${selisih(total - 100)}%`}.</p>
           )}
+          <div className="acts">
+            {berubah && (
+              <>
+                <button type="button" className="act" disabled={aksi.sibuk || total !== 100}
+                  onClick={() => aksi.jalankan(() => A.simpanBobotItem(it.id, b), `Bobot tahap ${it.nama} disimpan.`)}>
+                  Simpan bobot
+                </button>
+                <button type="button" className="act" onClick={() => setB(awal)}>Batal</button>
+              </>
+            )}
+            {it.bobot_khusus && !berubah && (
+              <button type="button" className="act" disabled={aksi.sibuk}
+                onClick={() => confirm(`Kembalikan bobot ${it.nama} ke bobot bawaan jenisnya?`) &&
+                  aksi.jalankan(() => A.simpanBobotItem(it.id, null), `Bobot ${it.nama} kembali ke bawaan.`)}>
+                Kembali ke bawaan
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-    </details>
+      )}
+    </div>
   );
 }
 
