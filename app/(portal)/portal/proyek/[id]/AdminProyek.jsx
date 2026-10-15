@@ -13,7 +13,7 @@ import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin,
 } from "@/lib/portal/format";
-import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
+import { bacaBoq, bacaBaris, formatLama, bacaJasa, infoSheet } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
@@ -305,10 +305,13 @@ function TabItem({ proyek, items, aksi }) {
   const ubah = (id, patch, ok) => aksi.jalankan(() => A.ubahItem(id, patch), ok);
   const areas = [...new Set(items.map((i) => i.area))];
   const urutan = items.reduce((m, i) => Math.max(m, i.urutan), -1) + 1; // untuk item baru
+  const tims = [...new Set(items.map((i) => i.tim).filter(Boolean))];
 
   return (
     <>
       <datalist id="daftar-area">{areas.map((a) => <option key={a} value={a} />)}</datalist>
+      <datalist id="daftar-tim">{tims.map((t) => <option key={t} value={t} />)}</datalist>
+      <RingkasJasa items={items} />
 
       {areas.map((a) => (
         <div key={a} className="stack" style={{ gap: 8 }}>
@@ -321,7 +324,7 @@ function TabItem({ proyek, items, aksi }) {
                   <span className="t">
                     <span className="nm">{it.nama}</span>
                     <span className="small">
-                      {[it.kode, teksQty(it), it.dimensi].filter(Boolean).join(" · ")}
+                      {[it.kode, teksQty(it), it.dimensi, it.harga_satuan && `@ ${rp(it.harga_satuan)}`, it.tim].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                   <span className="num small">{it.harga ? rp(it.harga) : "—"}</span>
@@ -345,10 +348,18 @@ function TabItem({ proyek, items, aksi }) {
                       <Isian label="Dimensi" nilai={it.dimensi}
                         onSimpan={(v) => ubah(it.id, { dimensi: v || null }, `Dimensi ${it.nama} disimpan.`)} />
                     </div>
-                    <label className="lbl">Nilai jasa tukang
-                      <InputRupiah nilai={it.harga}
-                        onSimpan={(v) => ubah(it.id, { harga: v }, v ? `Nilai jasa tukang ${it.nama} disimpan: ${rp(v)}` : `Nilai jasa tukang ${it.nama} dikosongkan.`)} />
-                    </label>
+                    <div className="g2">
+                      <label className="lbl">Harga satuan
+                        <InputRupiah nilai={it.harga_satuan}
+                          onSimpan={(v) => ubah(it.id, { harga_satuan: v }, v ? `Harga satuan ${it.nama} disimpan: ${rp(v)}` : `Harga satuan ${it.nama} dikosongkan.`)} />
+                      </label>
+                      <label className="lbl">Total
+                        <InputRupiah nilai={it.harga}
+                          onSimpan={(v) => ubah(it.id, { harga: v }, v ? `Total jasa ${it.nama} disimpan: ${rp(v)}` : `Total jasa ${it.nama} dikosongkan.`)} />
+                      </label>
+                    </div>
+                    <Isian label="Tim tukang" nilai={it.tim} list="daftar-tim" placeholder="mis. Mas Alan"
+                      onSimpan={(v) => ubah(it.id, { tim: v || null }, v ? `${it.nama} dikerjakan tim ${v}.` : `Tim ${it.nama} dikosongkan.`)} />
                     <button type="button" className="act bahaya" disabled={aksi.sibuk}
                       onClick={() => confirm(`Hapus "${it.nama}" beserta progresnya?`) && aksi.jalankan(() => A.hapusItem(it.id), `${it.nama} dihapus.`)}>
                       Hapus item
@@ -361,14 +372,106 @@ function TabItem({ proyek, items, aksi }) {
         </div>
       ))}
 
+      <ImporJasa proyek={proyek} items={items} aksi={aksi} />
       <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />
       <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
     </>
   );
 }
 
+// Total jasa tukang semua item, dipecah per tim.
+function RingkasJasa({ items }) {
+  const total = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
+  const perTim = {};
+  for (const i of items) if (Number(i.harga) > 0) perTim[i.tim || "Belum ada tim"] = (perTim[i.tim || "Belum ada tim"] || 0) + Number(i.harga);
+  return (
+    <div className="card stack" style={{ gap: 8 }}>
+      <div className="row" style={{ alignItems: "center" }}>
+        <h3>Total jasa tukang</h3>
+        <b className="num">{total ? rp(total) : "—"}</b>
+      </div>
+      {Object.entries(perTim).map(([t, n]) => (
+        <div key={t} className="row small"><span>{t}</span><span className="num">{rp(n)}</span></div>
+      ))}
+    </div>
+  );
+}
+
+// Impor Excel "Hitungan Jasa Pekerjaan" (satu sheet per tim): harga satuan dan
+// total masuk ke item proyek yang nama + kodenya sama. Baris tambahan (ambalan,
+// LED, stopkontak) dilewati; item yang tidak ada di proyek ditampilkan saja.
+const kunciNama = (i) => (i.nama || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+function cocokkanJasa(rows, items) {
+  const dipakai = new Set();
+  return rows.map((r) => {
+    const sama = (i) => !dipakai.has(i.id) && kunciNama(i) === kunciNama(r);
+    const it = items.find((i) => sama(i) && (i.kode || "") === (r.kode || "")) || items.find(sama);
+    if (it) dipakai.add(it.id);
+    return { ...r, item: it || null };
+  });
+}
+
+function ImporJasa({ proyek, items, aksi }) {
+  const [file, setFile] = useState(null); // { sheet, rows } dari UnggahBoq
+  const [unggahKe, setUnggahKe] = useState(0);
+  const [tim, setTim] = useState("");
+  const hasil = useMemo(() => (file ? cocokkanJasa(bacaJasa(file.rows), items) : []), [file, items]);
+  const cocok = hasil.filter((r) => r.item);
+
+  async function simpan() {
+    const ok = await aksi.jalankan(
+      () => A.simpanJasaTukang(proyek.id, cocok.map((r) => ({ id: r.item.id, harga_satuan: r.harga_satuan, harga: r.harga, tim: tim.trim() || null }))),
+      `Jasa tukang ${cocok.length} item disimpan${tim.trim() ? ` (tim ${tim.trim()})` : ""}.`
+    );
+    if (!ok) return;
+    setFile(null);
+    setTim("");
+    setUnggahKe((n) => n + 1);
+  }
+
+  return (
+    <details className="lipat">
+      <summary><b>Impor dari Excel Hitungan Jasa Pekerjaan</b></summary>
+      <div className="lipat-b" style={{ gap: 12 }}>
+        <p className="small" style={{ margin: 0 }}>
+          Pilih file, lalu sheet timnya (mis. Mas Alan). Harga satuan dan total tiap item bernomor masuk ke item proyek
+          yang namanya sama. Baris tambahan seperti ambalan, LED strip, dan stopkontak dilewati.
+        </p>
+        <UnggahBoq key={unggahKe} label="File hitungan jasa (.xlsx)"
+          onPilih={(f) => { setFile(f); setTim(f ? infoSheet(f.rows).tim || "" : ""); aksi.setMsg(""); }} />
+        {file && !hasil.length && <p className="note b-warn">Tidak ada item jasa yang terbaca di sheet “{file.sheet}”.</p>}
+        {hasil.length > 0 && (
+          <>
+            <label className="lbl">Tim tukang<input className="inp" list="daftar-tim" value={tim} onChange={(e) => setTim(e.target.value)} placeholder="mis. Mas Alan" /></label>
+            <div>
+              {hasil.map((r, n) => (
+                <div key={n} className={`pv${r.item ? "" : " off"}`} style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}>
+                  <span className="t">
+                    <span className="nm">{r.nama}{r.kode ? ` (${r.kode})` : ""}</span>
+                    <span className="small">
+                      {[`${Number(r.qty).toLocaleString("id-ID")} × ${r.harga_satuan ? rp(r.harga_satuan) : "—"}`, r.item ? `ke ${r.item.area}` : "tidak ada di proyek ini, dilewati"].join(" · ")}
+                    </span>
+                  </span>
+                  <b className="num small">{r.harga != null ? rp(r.harga) : "—"}</b>
+                </div>
+              ))}
+            </div>
+            <div className="row small">
+              <span>Total {cocok.length} item</span>
+              <b className="num">{rp(cocok.reduce((a, r) => a + (Number(r.harga) || 0), 0))}</b>
+            </div>
+            <button type="button" className="btn" disabled={aksi.sibuk || !cocok.length} onClick={simpan}>
+              Simpan jasa {cocok.length} item
+            </button>
+          </>
+        )}
+      </div>
+    </details>
+  );
+}
+
 function TambahItem({ proyek, areas, urutan, aksi }) {
-  const kosong = { area: areas[areas.length - 1] || "", nama: "", kode: "", jenis: "HPL", qty: "1", satuan: "unit", dimensi: "", harga: null };
+  const kosong = { area: areas[areas.length - 1] || "", nama: "", kode: "", jenis: "HPL", qty: "1", satuan: "unit", dimensi: "", harga_satuan: null, harga: null, tim: "" };
   const [f, setF] = useState(kosong);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -380,10 +483,11 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
         const nama = f.nama.trim();
         const ok = await aksi.jalankan(() => A.tambahItem(proyek.id, [{
           area: f.area.trim(), nama, kode: f.kode.trim() || null, jenis: f.jenis, qty: angka(f.qty) || 1,
-          satuan: f.satuan.trim() || null, dimensi: f.dimensi.trim() || null, harga: f.harga, bobot: 1, urutan,
+          satuan: f.satuan.trim() || null, dimensi: f.dimensi.trim() || null, harga_satuan: f.harga_satuan, harga: f.harga,
+          tim: f.tim.trim() || null, bobot: 1, urutan,
         }]), `${nama} ditambahkan.`);
-        // Area dipertahankan untuk item berikutnya.
-        if (ok) setF({ ...kosong, area: f.area });
+        // Area dan tim dipertahankan untuk item berikutnya.
+        if (ok) setF({ ...kosong, area: f.area, tim: f.tim });
       }}>
         <label className="lbl">Nama item<input className="inp" required value={f.nama} onChange={set("nama")} placeholder="Lemari pakaian 2 pintu" /></label>
         <div className="g2">
@@ -395,9 +499,15 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
           <label className="lbl">Satuan<input className="inp" value={f.satuan} onChange={set("satuan")} /></label>
           <label className="lbl">Dimensi<input className="inp" value={f.dimensi} onChange={set("dimensi")} placeholder="1,8 × 0,6 × 2,4 m" /></label>
         </div>
-        <label className="lbl">Nilai jasa tukang (boleh kosong)
-          <InputRupiah nilai={f.harga} onSimpan={(v) => setF((x) => ({ ...x, harga: v }))} />
-        </label>
+        <div className="g2">
+          <label className="lbl">Harga satuan
+            <InputRupiah nilai={f.harga_satuan} onSimpan={(v) => setF((x) => ({ ...x, harga_satuan: v }))} />
+          </label>
+          <label className="lbl">Total
+            <InputRupiah nilai={f.harga} onSimpan={(v) => setF((x) => ({ ...x, harga: v }))} />
+          </label>
+        </div>
+        <label className="lbl">Tim tukang<input className="inp" list="daftar-tim" value={f.tim} onChange={set("tim")} placeholder="mis. Mas Alan" /></label>
         <button className="btn" disabled={aksi.sibuk || !f.nama.trim() || !f.area.trim()}>Tambah item</button>
       </form>
     </details>

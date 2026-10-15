@@ -21,7 +21,7 @@ export default async function PortalProyekPage({ params }) {
   // termin tidak ikut dikirim ke browser sama sekali (bukan sekadar disembunyikan).
   if (!admin) {
     const { nilai_proyek, nilai_perancangan, ...p2 } = proyek;
-    const items2 = items.map(({ harga, ...i }) => i);
+    const items2 = items.map(({ harga, harga_satuan, ...i }) => i);
     return <AdminProyek proyek={p2} items={items2} termin={[]} klien={[]} supervisors={[]} staf={staf} />;
   }
   return <AdminProyek proyek={proyek} items={items} termin={termin} klien={klien} supervisors={supervisors} staf={staf} />;

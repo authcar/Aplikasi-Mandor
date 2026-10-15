@@ -7,7 +7,7 @@ const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 // Pilih file BoQ (.xlsx), lalu sheet proyeknya. File dibaca di browser dan
 // tidak dikirim ke server. `petunjuk` = nama/kode proyek untuk menebak sheet.
 // onPilih({ sheet, rows }) tiap sheet dipilih; onPilih(null) kalau batal.
-export default function UnggahBoq({ petunjuk = [], onPilih }) {
+export default function UnggahBoq({ petunjuk = [], onPilih, label = "File BoQ (.xlsx)" }) {
   const [buku, setBuku] = useState(null);
   const [sheet, setSheet] = useState("");
   const [galat, setGalat] = useState("");
@@ -42,7 +42,7 @@ export default function UnggahBoq({ petunjuk = [], onPilih }) {
   return (
     <>
       <label className="lbl">
-        File BoQ (.xlsx)
+        {label}
         <input className="inp" type="file" style={{ padding: "9px 12px" }} onChange={pilihFile}
           accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
       </label>

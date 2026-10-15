@@ -12,7 +12,7 @@ import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/li
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
 
 const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "supervisor_id", "aktif", "timbang_harga", "nilai_proyek"];
-const F_ITEM = ["area", "kode", "nama", "jenis", "qty", "satuan", "dimensi", "harga", "bobot", "urutan"];
+const F_ITEM = ["area", "kode", "nama", "jenis", "qty", "satuan", "dimensi", "harga", "harga_satuan", "tim", "bobot", "urutan"];
 const F_TERMIN = ["urutan", "jenis", "label", "persen", "jatuh_tempo", "lunas_tgl", "dibayar"];
 
 async function jalan(fn, { admin = true } = {}) {
@@ -25,7 +25,7 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, dan add_portal_nilai_proyek.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, dan add_portal_jasa_tukang.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
 }
@@ -36,7 +36,9 @@ function cekItem(r) {
   if ("nama" in r && !String(r.nama || "").trim()) throw new Error("Nama item wajib.");
   if ("area" in r && !String(r.area || "").trim()) throw new Error("Area wajib.");
   if ("qty" in r && !(Number(r.qty) > 0)) throw new Error("Qty harus > 0.");
-  if (r.harga != null && !(Number(r.harga) >= 0)) throw new Error("Harga tidak valid.");
+  if (r.harga != null && !(Number(r.harga) >= 0)) throw new Error("Total jasa tukang tidak valid.");
+  if (r.harga_satuan != null && !(Number(r.harga_satuan) >= 0)) throw new Error("Harga satuan tidak valid.");
+  if ("tim" in r) r.tim = String(r.tim || "").trim() || null;
   return r;
 }
 
@@ -144,6 +146,17 @@ export async function gantiItem(proyekId, rows) {
     await hasil(db().from("portal_item").insert(baru));
     for (let n = 0; n < lama.length; n += 100)
       await hasil(db().from("portal_item").delete().in("id", lama.slice(n, n + 100).map((i) => i.id)));
+  });
+}
+
+// Isi jasa tukang beberapa item sekaligus (hasil impor Excel Hitungan Jasa
+// Pekerjaan). rows = [{ id, harga_satuan, harga, tim }]; hanya item proyek ini.
+export async function simpanJasaTukang(proyekId, rows) {
+  return jalan(async () => {
+    await cekTerbuka(proyekId);
+    const milik = new Set((await hasil(db().from("portal_item").select("id").eq("proyek_id", proyekId))).map((i) => i.id));
+    if (rows.some((r) => !milik.has(r.id))) throw new Error("ada item yang bukan milik proyek ini.");
+    for (const r of rows) await ubah("portal_item", r.id, cekItem(pilih(r, ["harga_satuan", "harga", "tim"])));
   });
 }
 
