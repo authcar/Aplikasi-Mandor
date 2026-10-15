@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapTerakhir, tahapBerikut } from "@/lib/portal/progresBoq";
 import {
   hariIni, tambahHari, selisihHari, tgl, tglTh, rp, pct, nilaiKontrak, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
@@ -23,7 +24,28 @@ function Ring({ p }) {
   );
 }
 
+// Ambil ulang data dari server tanpa reload (tab yang sedang dibuka tetap):
+// saat halaman kembali dilihat (pindah tab/aplikasi, tab dipulihkan browser HP)
+// dan tiap menit selama terbuka. Tanpa ini klien melihat data saat link dibuka.
+const SEGARKAN_MS = 60_000;
+function useSegarkan() {
+  const router = useRouter();
+  useEffect(() => {
+    const segarkan = () => document.visibilityState === "visible" && router.refresh();
+    const pulih = (e) => e.persisted && router.refresh();
+    const id = setInterval(segarkan, SEGARKAN_MS);
+    document.addEventListener("visibilitychange", segarkan);
+    window.addEventListener("pageshow", pulih);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", segarkan);
+      window.removeEventListener("pageshow", pulih);
+    };
+  }, [router]);
+}
+
 export default function Detail({ P }) {
+  useSegarkan();
   const [tab, setTab] = useState("progres");
   const now = hariIni();
   const lalu = tambahHari(now, -7);
