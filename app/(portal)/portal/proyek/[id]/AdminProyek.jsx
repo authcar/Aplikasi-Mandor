@@ -129,6 +129,46 @@ function TabProgres({ proyek, items, aksi, admin }) {
     setBusy(null);
   }
 
+  // Satu kartu item: nama, bar fase berjalan, dan (dibuka) semua tahap.
+  const kartu = (it) => {
+    const akhir = tahapTerakhir(it), next = tahapBerikut(it), open = buka === it.id;
+    const fase = faseKini(it);
+    // Fase berjalan saja; kalau semua selesai, tampilkan semua tahap (penuh).
+    const bar = fase ? tahapBar(it).filter((s) => s.fase === fase.k && s.w > 0) : tahapBar(it);
+    return (
+      <div key={it.id} className={`item acc${open ? " open" : ""}`}>
+        <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
+          <span className="t">
+            <span className="nm">{it.nama}</span>
+            <span className="small">{[it.kode, JENIS_LABEL[it.jenis], !perTim && it.tim].filter(Boolean).join(" · ")}</span>
+          </span>
+          <b className="num">{persenItem(it)}%</b>
+          <i className="chev" aria-hidden="true" />
+        </button>
+        {/* Tiap bagian bar = satu tahap di fase berjalan; boleh dicentang tidak berurutan. */}
+        <div className="track tap">
+          {bar.map((s) => (
+            <button key={s.k} type="button" className={it.progres[s.k] ? "on" : ""} disabled={kunci}
+              style={{ flex: s.w, "--c": WARNA[s.fase], ...(busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null) }}
+              title={it.progres[s.k] ? `${s.label} ✓ ${tgl(it.progres[s.k])}` : s.label}
+              aria-label={it.progres[s.k] ? `Batalkan ${s.label}` : `Catat ${s.label}`} aria-pressed={!!it.progres[s.k]}
+              onClick={() => toggle(it, s)} />
+          ))}
+        </div>
+        {open ? (
+          <TahapItem it={it} aksi={aksi} admin={admin} kunci={kunci} busy={busy} toggle={toggle} />
+        ) : (
+          <div className="acc-q">
+            <span className="small">
+              {fase && <b style={{ fontWeight: 600 }}>{fase.label} {pct(fase.persen)} · </b>}
+              {akhir ? `${akhir.label} ✓ ${tgl(akhir.tgl)}` : "Belum mulai"}
+            </span>
+            {!next && <span className="badge b-ok">Selesai 100%</span>}
+          </div>
+        )}
+      </div>
+    );
+  };
   return (
     <>
       {/* Pengingat deadline (hanya label, tidak bisa diubah). */}
@@ -169,45 +209,27 @@ function TabProgres({ proyek, items, aksi, admin }) {
               </span>
             </summary>
             <div className="lipat-b">
-            {its.map((it) => {
-              const akhir = tahapTerakhir(it), next = tahapBerikut(it), open = buka === it.id;
-              const fase = faseKini(it);
-              // Fase berjalan saja; kalau semua selesai, tampilkan semua tahap (penuh).
-              const bar = fase ? tahapBar(it).filter((s) => s.fase === fase.k && s.w > 0) : tahapBar(it);
-              return (
-                <div key={it.id} className={`item acc${open ? " open" : ""}`}>
-                  <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
-                    <span className="t">
-                      <span className="nm">{it.nama}</span>
-                      <span className="small">{[it.kode, JENIS_LABEL[it.jenis], perTim ? it.area : it.tim].filter(Boolean).join(" · ")}</span>
-                    </span>
-                    <b className="num">{persenItem(it)}%</b>
-                    <i className="chev" aria-hidden="true" />
-                  </button>
-                  {/* Tiap bagian bar = satu tahap di fase berjalan; boleh dicentang tidak berurutan. */}
-                  <div className="track tap">
-                    {bar.map((s) => (
-                      <button key={s.k} type="button" className={it.progres[s.k] ? "on" : ""} disabled={kunci}
-                        style={{ flex: s.w, "--c": WARNA[s.fase], ...(busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null) }}
-                        title={it.progres[s.k] ? `${s.label} ✓ ${tgl(it.progres[s.k])}` : s.label}
-                        aria-label={it.progres[s.k] ? `Batalkan ${s.label}` : `Catat ${s.label}`} aria-pressed={!!it.progres[s.k]}
-                        onClick={() => toggle(it, s)} />
-                    ))}
-                  </div>
-                  {open ? (
-                    <TahapItem it={it} aksi={aksi} admin={admin} kunci={kunci} busy={busy} toggle={toggle} />
-                  ) : (
-                    <div className="acc-q">
-                      <span className="small">
-                        {fase && <b style={{ fontWeight: 600 }}>{fase.label} {pct(fase.persen)} · </b>}
-                        {akhir ? `${akhir.label} ✓ ${tgl(akhir.tgl)}` : "Belum mulai"}
-                      </span>
-                      {!next && <span className="badge b-ok">Selesai 100%</span>}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {perTim
+              ? [...new Set(its.map((i) => i.area))].map((ar) => {
+                  // Per tim: area di dalam tim juga bisa dibuka-tutup.
+                  const isi = its.filter((i) => i.area === ar);
+                  const pa = persenProyek(isi);
+                  return (
+                    <details key={ar} className="lipat">
+                      <summary>
+                        <span style={{ minWidth: 0, flex: 1 }}>
+                          <span className="row">
+                            <b>{ar}</b>
+                            <span className="num small" style={{ whiteSpace: "nowrap" }}>{pct(pa)} · {isi.length} item</span>
+                          </span>
+                          <span className="bar" style={{ display: "block", marginTop: 6 }}><i style={{ width: `${pa}%` }} /></span>
+                        </span>
+                      </summary>
+                      <div className="lipat-b">{isi.map(kartu)}</div>
+                    </details>
+                  );
+                })
+              : its.map(kartu)}
             </div>
           </details>
         );
