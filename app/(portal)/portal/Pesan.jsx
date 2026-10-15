@@ -1,13 +1,22 @@
 "use client";
 
-// Pesan hasil aksi, melayang di atas navigasi bawah supaya tetap terlihat
-// walau sedang menggulir jauh. Ketuk untuk menutup.
+// Pop up loading selama aksi berjalan dan data baru dimuat, lalu pesan hasil
+// aksi yang melayang di atas navigasi bawah supaya tetap terlihat walau sedang
+// menggulir jauh. Ketuk pesan untuk menutup.
 export default function Pesan({ aksi }) {
-  if (!aksi.msg) return null;
   const gagal = aksi.msg.startsWith("Gagal");
   return (
-    <button type="button" className={`toast ${gagal ? "b-bad" : "b-ok"}`} role="status" onClick={() => aksi.setMsg("")}>
-      {aksi.msg}
-    </button>
+    <>
+      {aksi.sibuk && (
+        <div className="memuat" role="status" aria-live="polite">
+          <div className="memuat-k"><span className="putar" aria-hidden="true" />Menyimpan…</div>
+        </div>
+      )}
+      {aksi.msg && (
+        <button type="button" className={`toast ${gagal ? "b-bad" : "b-ok"}`} role="status" onClick={() => aksi.setMsg("")}>
+          {aksi.msg}
+        </button>
+      )}
+    </>
   );
 }

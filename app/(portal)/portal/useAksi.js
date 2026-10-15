@@ -1,11 +1,13 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 // Jalankan satu server action (lihat aksi.js), tampilkan pesan, lalu muat ulang data server.
+// `sibuk` = aksi berjalan ATAU data baru masih dimuat (dipakai pop up loading di Pesan.jsx).
 export function useAksi() {
   const router = useRouter();
   const [sibuk, setSibuk] = useState(false);
+  const [memuat, mulai] = useTransition();
   const [msg, setMsg] = useState("");
   const timer = useRef();
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -31,9 +33,9 @@ export function useAksi() {
       // Pesan berhasil hilang sendiri; pesan gagal tetap sampai diketuk.
       timer.current = setTimeout(() => setMsg(""), 3500);
     }
-    router.refresh();
+    mulai(() => router.refresh());
     return true;
   };
 
-  return { jalankan, sibuk, msg, setMsg };
+  return { jalankan, sibuk: sibuk || memuat, msg, setMsg };
 }
