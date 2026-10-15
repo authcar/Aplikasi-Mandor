@@ -11,7 +11,7 @@ import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/li
 
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
 
-const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "supervisor_id", "aktif", "timbang_harga"];
+const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "supervisor_id", "aktif", "timbang_harga", "nilai_proyek"];
 const F_ITEM = ["area", "kode", "nama", "jenis", "qty", "satuan", "dimensi", "harga", "bobot", "urutan"];
 const F_TERMIN = ["urutan", "jenis", "label", "persen", "jatuh_tempo", "lunas_tgl", "dibayar"];
 
@@ -25,7 +25,7 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, dan add_portal_bobot_item.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, dan add_portal_nilai_proyek.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
 }
@@ -90,6 +90,7 @@ export async function ubahProyek(id, patch) {
   return jalan(async () => {
     const lama = await cekTerbuka(id);
     const p = pilih(patch, F_PROYEK);
+    if (p.nilai_proyek != null && !(Number(p.nilai_proyek) >= 0)) throw new Error("nilai proyek tidak valid.");
     if ("deadline" in p && lama.deadline && p.deadline !== lama.deadline)
       throw new Error("deadline sudah ditetapkan dan tidak bisa diubah.");
     await ubah("portal_proyek", id, p);

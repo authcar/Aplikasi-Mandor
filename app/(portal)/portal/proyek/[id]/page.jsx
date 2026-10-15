@@ -17,11 +17,12 @@ export default async function PortalProyekPage({ params }) {
     admin ? ambilSupervisor() : [],
   ]);
 
-  // Supervisor hanya mencatat progres: nilai jasa tukang dan termin tidak ikut
-  // dikirim ke browser sama sekali (bukan sekadar disembunyikan).
+  // Supervisor hanya mencatat progres: nilai jasa tukang, nilai proyek, dan
+  // termin tidak ikut dikirim ke browser sama sekali (bukan sekadar disembunyikan).
   if (!admin) {
+    const { nilai_proyek, nilai_perancangan, ...p2 } = proyek;
     const items2 = items.map(({ harga, ...i }) => i);
-    return <AdminProyek proyek={proyek} items={items2} termin={[]} klien={[]} supervisors={[]} staf={staf} />;
+    return <AdminProyek proyek={p2} items={items2} termin={[]} klien={[]} supervisors={[]} staf={staf} />;
   }
   return <AdminProyek proyek={proyek} items={items} termin={termin} klien={klien} supervisors={supervisors} staf={staf} />;
 }

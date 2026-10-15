@@ -55,10 +55,10 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
           <div className="s">{items.length} item</div>
         </div>
         {admin && <div className="stat">
-          <div className="eb">Nilai kontrak</div>
+          <div className="eb">Nilai proyek</div>
           <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{totalNilai(nilaiT) ? rp(totalNilai(nilaiT)) : "—"}</div>
           <div className="s">
-            {nilai ? "jumlah nilai jasa tukang" : "nilai jasa tukang belum diisi"}
+            {totalNilai(nilaiT) ? (nilai ? `jasa tukang ${rp(nilai)}` : "diisi di tab Termin") : "isi di tab Termin"}
           </div>
         </div>}
       </div>
@@ -524,7 +524,7 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
 }
 
 /* ---------- Termin ---------- */
-// Termin jasa produksi, dari jumlah nilai jasa tukang item BOQ. Persennya berjumlah 100%.
+// Termin jasa produksi, dari nilai proyek (terpisah dari nilai jasa tukang). Persennya berjumlah 100%.
 function TabTermin({ proyek, items, termin, nilai, aksi }) {
   const masuk = totalDibayar(termin, nilai);
   const total = totalNilai(nilai);
@@ -566,10 +566,12 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
         <h2>{judul}</h2>
         <span className="small num">progres {pct(progres)}</span>
       </div>
-      <div className="row small">
-        <span>Nilai = jumlah nilai jasa tukang</span>
-        <span className="num">{n ? rp(n) : "belum diisi"}</span>
-      </div>
+      {/* Nilai proyek ke klien: dasar tagihan tiap termin, terpisah dari nilai jasa tukang. */}
+      <label className="lbl">Nilai proyek
+        <InputRupiah nilai={proyek.nilai_proyek}
+          onSimpan={(v) => aksi.jalankan(() => A.ubahProyek(proyek.id, { nilai_proyek: v }),
+            v ? `Nilai proyek disimpan: ${rp(v)}.` : "Nilai proyek dikosongkan.")} />
+      </label>
       <p className="small" style={{ margin: 0 }}>Aturan: {aturan}</p>
 
       {!termin.length ? (
@@ -611,12 +613,12 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                     onSimpan={(v) => angka(v) > 0 && angka(v) <= 100 && ubah(t.id, { persen: angka(v) })} />
                 </div>
                 <div className="row" style={{ alignItems: "center" }}>
-                  <span className={n ? "num" : "small"}>{n ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : "Tagihan muncul setelah nilai jasa tukang diisi"}</span>
+                  <span className={n ? "num" : "small"}>{n ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : "Tagihan muncul setelah nilai proyek diisi"}</span>
                   {t.lunas_tgl ? <span className="badge b-ok">Lunas {tgl(t.lunas_tgl)}</span> : diterima > 0 ? <span className="badge b-warn">Sebagian</span> : null}
                 </div>
                 {t.lunas_tgl && t.dibayar == null && (
                   <p className="small" style={{ margin: 0 }}>
-                    Nominal lunas belum dikunci, jadi masih mengikuti nilai jasa tukang.{n ? " Ketuk “Kunci nominal” untuk menguncinya." : ""}
+                    Nominal lunas belum dikunci, jadi masih mengikuti nilai proyek.{n ? " Ketuk “Kunci nominal” untuk menguncinya." : ""}
                   </p>
                 )}
                 <div className="acts">

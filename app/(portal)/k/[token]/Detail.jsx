@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapTerakhir, faseKini, areaProgres } from "@/lib/portal/progresBoq";
 import {
-  hariIni, tambahHari, tgl, tglTh, rp, pct, nilaiKontrak, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
+  hariIni, tambahHari, tgl, tglTh, rp, pct, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, labelDeadline, judulTermin, keteranganTermin,
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
@@ -55,7 +55,6 @@ export default function Detail({ P }) {
   const [st, cls] = statusProyek(P);
   const [sisa, kelasSisa] = P.deadline ? labelDeadline(P.deadline) : [];
   const areas = [...new Set(items.map((i) => i.area))];
-  const nilai = nilaiKontrak(P);
   const nilaiT = nilaiTermin(P);
   const total = totalNilai(nilaiT);
   const dibayar = totalDibayar(P.termin, nilaiT);
@@ -216,7 +215,7 @@ export default function Detail({ P }) {
             <dt>Deadline</dt><dd>{P.deadline ? tglTh(P.deadline) : "—"}</dd>
             <dt>Supervisor</dt><dd>{P.supervisor || "—"}</dd>
             <dt>Rincian</dt><dd>{items.length} item · {areas.length} area</dd>
-            {nilai > 0 && (<><dt>Nilai kontrak</dt><dd className="num">{rp(nilai)}</dd></>)}
+            {total > 0 && (<><dt>Nilai proyek</dt><dd className="num">{rp(total)}</dd></>)}
             <dt>Update terakhir</dt>
             <dd>
               {P.update_terakhir
