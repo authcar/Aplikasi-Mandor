@@ -182,7 +182,7 @@ export default async function DashboardMaster() {
         </Link>
         <Link href="/portal" className="col-span-2 card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-amber-100 text-amber-700 !w-8 !h-8"><Icon name="share" /></span>
-          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Portal Klien (Progres BOQ)</p>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Project Tracker (Progres BOQ)</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
       </div>

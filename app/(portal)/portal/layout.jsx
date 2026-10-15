@@ -11,7 +11,7 @@ export default async function StafLayout({ children }) {
   if (!staf) redirect("/");
   return (
     <>
-      <Header kembali label={`Portal Klien · ${staf.nama}`} />
+      <Header kembali label={`Project Tracker · ${staf.nama}`} />
       {children}
     </>
   );

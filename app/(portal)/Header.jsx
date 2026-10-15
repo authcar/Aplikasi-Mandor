@@ -1,5 +1,5 @@
 // `kembali` = tautan ke aplikasi lapangan (hanya untuk staf; klien tidak punya akun).
-export default function Header({ kembali = false, label = "Portal Klien" }) {
+export default function Header({ kembali = false, label = "Project Tracker" }) {
   return (
     <header className="top">
       <div className="brand">

@@ -12,7 +12,7 @@ const body = Manrope({ subsets: ["latin"], weight: ["400", "500", "600", "700"],
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500"], variable: "--font-mono" });
 
 export const metadata = {
-  title: "Taraco · Portal Klien",
+  title: "Taraco · Project Tracker",
   description: "Pantau progres proyek interior Anda",
   icons: { icon: "/favicon.png", apple: "/apple-touch-icon.png" },
 };
