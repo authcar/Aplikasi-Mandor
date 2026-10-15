@@ -654,7 +654,6 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                     onSimpan={(v) => angka(v) > 0 && angka(v) <= 100 && ubah(t.id, { persen: angka(v) })} />
                 </div>
                 <div className="g2">
-                  <label className="lbl">Jatuh tempo<input key={t.jatuh_tempo || ""} className="inp" type="date" defaultValue={t.jatuh_tempo || ""} onChange={(e) => ubah(t.id, { jatuh_tempo: e.target.value || null })} /></label>
                   <label className="lbl">Lunas tanggal
                     <input key={t.lunas_tgl || ""} className="inp" type="date" defaultValue={t.lunas_tgl || ""} max={hariIni()}
                       onChange={(e) => {
@@ -664,16 +663,16 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                         else lunas(t, nama, v);
                       }} />
                   </label>
+                  <label className="lbl">Sudah diterima
+                    <InputRupiah nilai={t.dibayar}
+                      onSimpan={(v) => ubah(
+                        t.id,
+                        // Pembayaran yang menutup tagihan sekaligus menandai termin lunas.
+                        { dibayar: v, ...(v && n && !t.lunas_tgl && v >= tagihanTermin(t, nilai) ? { lunas_tgl: hariIni() } : {}) },
+                        v ? `Pembayaran ${nama} dicatat: ${rp(v)}` : `Pembayaran ${nama} dikosongkan.`
+                      )} />
+                  </label>
                 </div>
-                <label className="lbl">Sudah diterima (boleh sebagian)
-                  <InputRupiah nilai={t.dibayar}
-                    onSimpan={(v) => ubah(
-                      t.id,
-                      // Pembayaran yang menutup tagihan sekaligus menandai termin lunas.
-                      { dibayar: v, ...(v && n && !t.lunas_tgl && v >= tagihanTermin(t, nilai) ? { lunas_tgl: hariIni() } : {}) },
-                      v ? `Pembayaran ${nama} dicatat: ${rp(v)}` : `Pembayaran ${nama} dikosongkan.`
-                    )} />
-                </label>
                 <div className="row" style={{ alignItems: "center" }}>
                   <span className={n ? "num" : "small"}>{n ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : `Tagihan muncul setelah ${jenis === "produksi" ? "harga item" : "nilai perancangan"} diisi`}</span>
                   {t.lunas_tgl ? <span className="badge b-ok">Lunas {tgl(t.lunas_tgl)}</span> : diterima > 0 ? <span className="badge b-warn">Sebagian</span> : null}

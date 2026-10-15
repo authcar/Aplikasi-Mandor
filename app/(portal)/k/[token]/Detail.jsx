@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapTerakhir, faseKini, areaProgres } from "@/lib/portal/progresBoq";
 import {
-  hariIni, tambahHari, selisihHari, tgl, tglTh, rp, pct, nilaiKontrak, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
+  hariIni, tambahHari, tgl, tglTh, rp, pct, nilaiKontrak, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, labelDeadline, judulTermin, keteranganTermin,
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
@@ -84,7 +84,7 @@ export default function Detail({ P }) {
       </section>
 
       <TabBar
-        tabs={[["progres", "Progres"], nilai > 0 && ["rincian", "Rincian"], ["bayar", "Pembayaran"], ["info", "Info"]].filter(Boolean)}
+        tabs={[["progres", "Progres"], ["bayar", "Pembayaran"], ["info", "Info"]]}
         value={tab}
         onChange={setTab}
       />
@@ -184,18 +184,15 @@ export default function Detail({ P }) {
                   </div>
                   <ul className="tl">
                     {daftar.map((t, n) => {
-                      const telat = !t.lunas_tgl && t.jatuh_tempo && t.jatuh_tempo < now;
-                      const segera = !t.lunas_tgl && !telat && t.jatuh_tempo && selisihHari(now, t.jatuh_tempo) <= 7;
                       const masuk = dibayarTermin(t, nilaiT);
                       const sebagian = !t.lunas_tgl && masuk > 0;
-                      const [lab, c] = t.lunas_tgl ? [`Lunas ${tgl(t.lunas_tgl)}`, "b-ok"] : telat ? ["Jatuh tempo", "b-bad"] : segera ? ["Segera", "b-warn"] : sebagian ? ["Sebagian", "b-warn"] : ["Belum", "b-n"];
+                      const [lab, c] = t.lunas_tgl ? [`Lunas ${tgl(t.lunas_tgl)}`, "b-ok"] : sebagian ? ["Sebagian", "b-warn"] : ["Belum", "b-n"];
                       return (
                         <li key={n}>
-                          <span className={`dot ${t.lunas_tgl ? "ok" : telat || segera ? "warn" : ""}`} />
+                          <span className={`dot ${t.lunas_tgl ? "ok" : sebagian ? "warn" : ""}`} />
                           <div>
                             <b style={{ fontWeight: 500 }}>{judulTermin(n)}</b> <span className="small">({Number(t.persen)}%)</span>
                         {keteranganTermin(t) && <div className="small">{keteranganTermin(t)}</div>}
-                            {t.jatuh_tempo && <div className="small">Jatuh tempo {tglTh(t.jatuh_tempo)}</div>}
                             {nilaiT[jenis] > 0 && <div className="num">{rp(tagihanTermin(t, nilaiT))}</div>}
                             {sebagian && <div className="small">Sudah diterima {rp(masuk)}</div>}
                           </div>
@@ -209,39 +206,6 @@ export default function Detail({ P }) {
             })}
           </>
         )
-      )}
-
-      {tab === "rincian" && (
-        <>
-          {areas.map((a) => {
-            const its = items.filter((i) => i.area === a);
-            return (
-              <details key={a} className="lipat">
-                <summary>
-                  <span style={{ minWidth: 0, flex: 1 }}><h2>{a}</h2><span className="small">{its.length} item</span></span>
-                  <b className="num">{rp(nilaiKontrak({ items: its }))}</b>
-                </summary>
-                <div className="lipat-b garis">
-                {its.map((it) => (
-                  <div key={it.id} className="baris">
-                    <div style={{ minWidth: 0 }}>
-                      <div className="nm">{it.nama}</div>
-                      <div className="small">
-                        {[`${Number(it.qty).toLocaleString("id-ID")} ${it.satuan || ""}`.trim(), it.dimensi].filter(Boolean).join(" · ")}
-                      </div>
-                    </div>
-                    <span className="num">{Number(it.harga) > 0 ? rp(it.harga) : "—"}</span>
-                  </div>
-                ))}
-                </div>
-              </details>
-            );
-          })}
-          <div className="stat lead row" style={{ alignItems: "center" }}>
-            <div className="eb">Total nilai kontrak</div>
-            <div className="v num" style={{ fontSize: "1.15rem", marginTop: 0 }}>{rp(nilai)}</div>
-          </div>
-        </>
       )}
 
       {tab === "info" && (
