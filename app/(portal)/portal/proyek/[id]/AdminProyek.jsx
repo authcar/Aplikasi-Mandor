@@ -610,38 +610,23 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                   <Isian label="Persen" inputMode="decimal" style={{ textAlign: "right" }} nilai={Number(t.persen).toLocaleString("id-ID")}
                     onSimpan={(v) => angka(v) > 0 && angka(v) <= 100 && ubah(t.id, { persen: angka(v) })} />
                 </div>
-                <div className="g2">
-                  <label className="lbl">Lunas tanggal
-                    <input key={t.lunas_tgl || ""} className="inp" type="date" defaultValue={t.lunas_tgl || ""} max={hariIni()}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (!v) ubah(t.id, { lunas_tgl: null, dibayar: null }, `Status lunas ${nama} dibatalkan.`);
-                        else if (t.lunas_tgl) ubah(t.id, { lunas_tgl: v });
-                        else lunas(t, nama, v);
-                      }} />
-                  </label>
-                  <label className="lbl">Sudah diterima
-                    <InputRupiah nilai={t.dibayar}
-                      onSimpan={(v) => ubah(
-                        t.id,
-                        // Pembayaran yang menutup tagihan sekaligus menandai termin lunas.
-                        { dibayar: v, ...(v && n && !t.lunas_tgl && v >= tagihanTermin(t, nilai) ? { lunas_tgl: hariIni() } : {}) },
-                        v ? `Pembayaran ${nama} dicatat: ${rp(v)}` : `Pembayaran ${nama} dikosongkan.`
-                      )} />
-                  </label>
-                </div>
                 <div className="row" style={{ alignItems: "center" }}>
                   <span className={n ? "num" : "small"}>{n ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : "Tagihan muncul setelah nilai jasa tukang diisi"}</span>
                   {t.lunas_tgl ? <span className="badge b-ok">Lunas {tgl(t.lunas_tgl)}</span> : diterima > 0 ? <span className="badge b-warn">Sebagian</span> : null}
                 </div>
                 {t.lunas_tgl && t.dibayar == null && (
                   <p className="small" style={{ margin: 0 }}>
-                    Nominal lunas belum dikunci, jadi masih mengikuti harga. {n ? "Ketuk “Kunci nominal” atau isi" : "Isi"} kolom “Sudah diterima” untuk menguncinya.
+                    Nominal lunas belum dikunci, jadi masih mengikuti nilai jasa tukang.{n ? " Ketuk “Kunci nominal” untuk menguncinya." : ""}
                   </p>
                 )}
                 <div className="acts">
-                  {!t.lunas_tgl && (
+                  {!t.lunas_tgl ? (
                     <button type="button" className="act" disabled={aksi.sibuk} onClick={() => lunas(t, nama, hariIni())}>Lunas hari ini</button>
+                  ) : (
+                    <button type="button" className="act" disabled={aksi.sibuk}
+                      onClick={() => confirm(`Batalkan status lunas ${nama}?`) && ubah(t.id, { lunas_tgl: null, dibayar: null }, `Status lunas ${nama} dibatalkan.`)}>
+                      Batalkan lunas
+                    </button>
                   )}
                   {t.lunas_tgl && t.dibayar == null && n > 0 && (
                     <button type="button" className="act" disabled={aksi.sibuk}
