@@ -12,10 +12,17 @@ export default async function PortalProyekPage({ params }) {
   const admin = staf.role === "ADMIN";
   const [items, termin, klien, supervisors] = await Promise.all([
     ambilItem([proyek]),
-    ambilTermin(proyek.id),
+    admin ? ambilTermin(proyek.id) : [],
     admin ? ambilKlien(proyek.id) : [],
     admin ? ambilSupervisor() : [],
   ]);
 
+  // Supervisor hanya mencatat progres: nilai jasa tukang, nilai perancangan, dan
+  // termin tidak ikut dikirim ke browser sama sekali (bukan sekadar disembunyikan).
+  if (!admin) {
+    const { nilai_perancangan, ...p2 } = proyek;
+    const items2 = items.map(({ harga, ...i }) => i);
+    return <AdminProyek proyek={p2} items={items2} termin={[]} klien={[]} supervisors={[]} staf={staf} />;
+  }
   return <AdminProyek proyek={proyek} items={items} termin={termin} klien={klien} supervisors={supervisors} staf={staf} />;
 }

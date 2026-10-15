@@ -25,7 +25,7 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql dan add_portal_termin_jenis.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, dan add_portal_bobot_item.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
 }
@@ -210,6 +210,25 @@ export async function hapusTermin(id) {
   return jalan(async () => {
     await cekTerbuka(await proyekDari("portal_termin", "id", id));
     await hapus("portal_termin", id);
+  });
+}
+
+/* ---------- Bobot tahap khusus satu item ---------- */
+// bobot = { [tahap]: persen } lengkap untuk jenis item itu, berjumlah 100.
+// null = kembali memakai bobot jenisnya (halaman Bobot tahap / bawaan).
+export async function simpanBobotItem(itemId, bobot) {
+  return jalan(async () => {
+    const item = await hasil(db().from("portal_item").select("proyek_id, jenis").eq("id", itemId).maybeSingle());
+    if (!item) throw new Error("Item tidak ditemukan.");
+    await cekTerbuka(item.proyek_id);
+    let isi = null;
+    if (bobot) {
+      isi = Object.fromEntries((TAHAP[item.jenis] || TAHAP.HPL).map((s) => [s.k, Number(bobot[s.k])]));
+      if (Object.values(isi).some((v) => !(v >= 0 && v <= 100))) throw new Error("tiap tahap harus 0–100%.");
+      const total = Object.values(isi).reduce((a, v) => a + v, 0);
+      if (Math.abs(total - 100) > 0.001) throw new Error(`total bobot harus 100%, sekarang ${Math.round(total * 100) / 100}%.`);
+    }
+    await ubah("portal_item", itemId, { bobot_tahap: isi });
   });
 }
 

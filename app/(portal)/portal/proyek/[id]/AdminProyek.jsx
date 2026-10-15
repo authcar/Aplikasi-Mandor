@@ -47,19 +47,20 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
           Proyek sudah lewat deadline, jadi terkunci. Progres, item, termin, link klien, dan info proyek tidak bisa diubah lagi.
         </p>
       )}
-      <div className="grid2" style={{ gridTemplateColumns: "minmax(0,5fr) minmax(0,7fr)" }}>
+      {/* Nilai kontrak hanya untuk master; supervisor cukup melihat progres. */}
+      <div className="grid2" style={{ gridTemplateColumns: admin ? "minmax(0,5fr) minmax(0,7fr)" : "1fr" }}>
         <div className="stat lead">
           <div className="eb">Progres</div>
           <div className="v num">{pct(persenProyek(items))}</div>
           <div className="s">{items.length} item</div>
         </div>
-        <div className="stat">
+        {admin && <div className="stat">
           <div className="eb">Nilai kontrak</div>
           <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{totalNilai(nilaiT) ? rp(totalNilai(nilaiT)) : "—"}</div>
           <div className="s">
             {nilaiT.perancangan ? (nilai ? "BOQ + jasa perancangan" : "jasa perancangan · nilai jasa tukang belum diisi") : nilai ? "jumlah nilai jasa tukang" : "nilai jasa tukang belum diisi"}
           </div>
-        </div>
+        </div>}
       </div>
       {/* Supervisor hanya punya tab Progres, jadi tidak perlu navigasi. */}
       {admin && <TabBar tabs={TABS} value={tab} onChange={(k) => { setTab(k); aksi.setMsg(""); }} />}
@@ -71,7 +72,7 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
         <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
       ) : (
         <fieldset className="kunci" disabled={kunci}>
-          {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} />}
+          {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} />}
           {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
           {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} nilai={nilaiT} aksi={aksi} />}
           {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
@@ -100,7 +101,7 @@ function InputRupiah({ nilai, onSimpan }) {
 
 /* ---------- Progres: satu ketukan untuk tahap berikutnya, buka item untuk semua tahap ---------- */
 // Tahap selalu dicatat selesai hari ini (tanggalnya tidak bisa dipilih).
-function TabProgres({ proyek, items, aksi }) {
+function TabProgres({ proyek, items, aksi, admin }) {
   const tanggal = hariIni();
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [buka, setBuka] = useState(null);
@@ -201,6 +202,7 @@ function TabProgres({ proyek, items, aksi }) {
                           </div>
                         );
                       })}
+                      {admin && <BobotItem it={it} aksi={aksi} />}
                     </div>
                   ) : (
                     <div className="acc-q">
@@ -219,6 +221,57 @@ function TabProgres({ proyek, items, aksi }) {
         );
       })}
     </>
+  );
+}
+
+// Bobot tiap tahap khusus satu item, diatur dengan slider. Total harus 100%.
+// Item lain (termasuk yang sejenis) tidak ikut berubah.
+function BobotItem({ it, aksi }) {
+  const tahap = tahapItem(it);
+  const awal = Object.fromEntries(tahap.map((s) => [s.k, s.w]));
+  const kunciAwal = JSON.stringify(awal);
+  const [b, setB] = useState(awal);
+  useEffect(() => setB(JSON.parse(kunciAwal)), [kunciAwal]);
+  const total = Math.round(tahap.reduce((a, s) => a + b[s.k], 0) * 100) / 100;
+  const berubah = tahap.some((s) => b[s.k] !== s.w);
+
+  return (
+    <details className="lipat">
+      <summary><span className="small"><b>Atur bobot tahap item ini</b>{it.bobot_khusus ? " · khusus" : ""}</span></summary>
+      <div className="lipat-b" style={{ gap: 10 }}>
+        {tahap.map((s) => (
+          <label key={s.k} className="geser">
+            <span>{s.label}</span>
+            <input type="range" min="0" max="100" step="1" value={b[s.k]} style={{ accentColor: WARNA[s.fase] }}
+              onChange={(e) => setB({ ...b, [s.k]: Number(e.target.value) })} />
+            <b className="num">{b[s.k]}%</b>
+          </label>
+        ))}
+        <div className="row small">
+          <span>Total</span>
+          <b className="num" style={{ color: total === 100 ? "var(--ok)" : "var(--bad)" }}>{total.toLocaleString("id-ID")}%</b>
+        </div>
+        {total !== 100 && (
+          <p className="note b-warn">
+            Total harus 100%, sekarang {total < 100 ? `kurang ${(Math.round((100 - total) * 100) / 100).toLocaleString("id-ID")}%` : `lebih ${(Math.round((total - 100) * 100) / 100).toLocaleString("id-ID")}%`}.
+          </p>
+        )}
+        <div className="acts">
+          <button type="button" className="act" disabled={aksi.sibuk || !berubah || total !== 100}
+            onClick={() => aksi.jalankan(() => A.simpanBobotItem(it.id, b), `Bobot tahap ${it.nama} disimpan.`)}>
+            Simpan bobot
+          </button>
+          {berubah && <button type="button" className="act" onClick={() => setB(awal)}>Batal</button>}
+          {it.bobot_khusus && !berubah && (
+            <button type="button" className="act" disabled={aksi.sibuk}
+              onClick={() => confirm(`Kembalikan bobot ${it.nama} ke bobot bawaan jenisnya?`) &&
+                aksi.jalankan(() => A.simpanBobotItem(it.id, null), `Bobot ${it.nama} kembali ke bawaan.`)}>
+              Kembali ke bawaan
+            </button>
+          )}
+        </div>
+      </div>
+    </details>
   );
 }
 
