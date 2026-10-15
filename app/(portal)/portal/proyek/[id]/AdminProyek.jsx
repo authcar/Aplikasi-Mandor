@@ -692,9 +692,13 @@ function TabKlien({ proyek, klien, aksi }) {
   return (
     <>
       <p className="small" style={{ margin: 0 }}>
-        Klien membuka proyek lewat link rahasia, tanpa login. Siapa pun yang memegang link bisa melihat progres,
-        deadline, dan termin proyek ini, jadi kirim hanya ke klien. Cabut link kalau tidak dipakai lagi.
+        Klien membuka proyek lewat link rahasia, tanpa login. Satu proyek satu link, dan semua perubahan progres,
+        item, dan termin langsung tampil di link yang sama. Siapa pun yang memegang link bisa melihat proyek ini,
+        jadi kirim hanya ke klien. Cabut link kalau bocor atau tidak dipakai lagi.
       </p>
+      {klien.length > 1 && (
+        <p className="note b-warn">Proyek ini punya {klien.length} link. Cukup satu, cabut yang tidak dipakai.</p>
+      )}
       {klien.map((k) => (
         <div key={k.id} className="item">
           <div style={{ minWidth: 0 }}>
@@ -711,13 +715,15 @@ function TabKlien({ proyek, klien, aksi }) {
           </div>
         </div>
       ))}
-      <div className="card stack">
-        <label className="lbl">Nama klien<input className="inp" value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Bpk. Alfeus" /></label>
-        <button type="button" className="btn" disabled={aksi.sibuk}
-          onClick={() => aksi.jalankan(() => A.buatLink(proyek.id, nama), "Link dibuat. Salin atau kirim lewat WA.")}>
-          Buat link klien
-        </button>
-      </div>
+      {!klien.length && (
+        <div className="card stack">
+          <label className="lbl">Nama klien<input className="inp" value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Bpk. Alfeus" /></label>
+          <button type="button" className="btn" disabled={aksi.sibuk}
+            onClick={() => aksi.jalankan(() => A.buatLink(proyek.id, nama), "Link dibuat. Salin atau kirim lewat WA.")}>
+            Buat link klien
+          </button>
+        </div>
+      )}
     </>
   );
 }
