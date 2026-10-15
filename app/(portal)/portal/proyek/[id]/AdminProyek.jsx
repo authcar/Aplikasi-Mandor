@@ -475,11 +475,11 @@ function ImporJasa({ proyek, items, aksi }) {
   }
 
   return (
-    <details className="lipat">
-      <summary><b>Impor dari Excel Hitungan Jasa Pekerjaan</b></summary>
-      <div className="lipat-b" style={{ gap: 12 }}>
+    <div className="card stack">
+      <h3>Impor jasa tukang dari Excel</h3>
+      <div className="stack">
         <p className="small" style={{ margin: 0 }}>
-          Pilih file, lalu centang sheet tim yang mau dimasukkan (boleh lebih dari satu, digabung jadi satu impor).
+          Untuk file <b>Hitungan Jasa Pekerjaan</b>. Pilih file, lalu centang sheet tim yang mau dimasukkan (boleh lebih dari satu, digabung jadi satu impor).
           Harga satuan dan total tiap item bernomor masuk ke item proyek yang namanya sama. Baris tambahan seperti
           ambalan, LED strip, dan stopkontak dilewati.
         </p>
@@ -531,7 +531,7 @@ function ImporJasa({ proyek, items, aksi }) {
           </button>
         )}
       </div>
-    </details>
+    </div>
   );
 }
 
@@ -612,10 +612,11 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
   }
 
   return (
-    <div className="card stack">
-      <h3>Impor dari Excel</h3>
+    <details className="lipat">
+      <summary><b>Impor item BOQ dari Excel</b></summary>
+      <div className="lipat-b" style={{ gap: 12 }}>
       <p className="small" style={{ margin: 0 }}>
-        Pilih file <b>BoQ</b>, lalu sheet proyeknya. Yang diambil hanya item bernomor (kabinet, wardrobe, dll.)
+        Untuk menambah atau mengganti <b>daftar item</b> dari file <b>BoQ</b> (bukan file jasa tukang). Pilih file, lalu sheet proyeknya. Yang diambil hanya item bernomor (kabinet, wardrobe, dll.)
         beserta area, kode, dimensi, dan qty-nya; aksesoris tanpa nomor seperti LED, handle, dan stopkontak dilewati.
         Nilai jasa tukang diisi setelah impor.
       </p>
@@ -694,7 +695,8 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
       <button type="button" className="btn" disabled={aksi.sibuk || !terpilih.length} onClick={simpan}>
         {ganti ? `Ganti dengan ${terpilih.length} item` : `Tambahkan ${terpilih.length || ""} item`}
       </button>
-    </div>
+      </div>
+    </details>
   );
 }
 
