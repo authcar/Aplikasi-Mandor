@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapTerakhir, faseKini, areaProgres } from "@/lib/portal/progresBoq";
 import {
   hariIni, tambahHari, selisihHari, tgl, tglTh, rp, pct, nilaiKontrak, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
-  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, labelDeadline,
+  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, labelDeadline, judulTermin, keteranganTermin,
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
 
@@ -167,7 +167,8 @@ export default function Detail({ P }) {
         ) : (
           <>
             {(total > 0 || dibayar > 0) && (
-              <div className="grid2">
+              <div className="grid3">
+                <div className="stat"><div className="eb">Total nilai proyek</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)" }}>{total > 0 ? rp(total) : "—"}</div></div>
                 <div className="stat"><div className="eb">Sudah dibayar</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--ok)" }}>{rp(dibayar)}</div></div>
                 <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{total > 0 ? rp(Math.max(0, total - dibayar)) : "—"}</div></div>
               </div>
@@ -192,7 +193,8 @@ export default function Detail({ P }) {
                         <li key={n}>
                           <span className={`dot ${t.lunas_tgl ? "ok" : telat || segera ? "warn" : ""}`} />
                           <div>
-                            <b style={{ fontWeight: 500 }}>{t.label}</b> <span className="small">({Number(t.persen)}%)</span>
+                            <b style={{ fontWeight: 500 }}>{judulTermin(n)}</b> <span className="small">({Number(t.persen)}%)</span>
+                        {keteranganTermin(t) && <div className="small">{keteranganTermin(t)}</div>}
                             {t.jatuh_tempo && <div className="small">Jatuh tempo {tglTh(t.jatuh_tempo)}</div>}
                             {nilaiT[jenis] > 0 && <div className="num">{rp(tagihanTermin(t, nilaiT))}</div>}
                             {sebagian && <div className="small">Sudah diterima {rp(masuk)}</div>}

@@ -11,7 +11,7 @@ import {
 } from "@/lib/portal/progresBoq";
 import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
-  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, BATAS_PERANCANGAN,
+  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, BATAS_PERANCANGAN, judulTermin, keteranganTermin,
 } from "@/lib/portal/format";
 import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
@@ -72,7 +72,7 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
         <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
       ) : (
         <fieldset className="kunci" disabled={kunci}>
-          {tab === "progres" && <TabProgres items={items} aksi={aksi} />}
+          {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} />}
           {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
           {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} nilai={nilaiT} aksi={aksi} />}
           {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
@@ -99,23 +99,11 @@ function InputRupiah({ nilai, onSimpan }) {
   );
 }
 
-// Saring area lewat dropdown ("Semua area" atau satu area).
-function PilihArea({ areas, value, onChange }) {
-  if (areas.length < 2) return null;
-  return (
-    <label className="lbl">Area
-      <select className="inp" value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="all">Semua area</option>
-        {areas.map((a) => <option key={a} value={a}>{a}</option>)}
-      </select>
-    </label>
-  );
-}
-
 /* ---------- Progres: satu ketukan untuk tahap berikutnya, buka item untuk semua tahap ---------- */
-function TabProgres({ items, aksi }) {
-  const [tanggal, setTanggal] = useState(hariIni());
-  const [area, setArea] = useState("all");
+// Tahap selalu dicatat selesai hari ini (tanggalnya tidak bisa dipilih).
+function TabProgres({ proyek, items, aksi }) {
+  const tanggal = hariIni();
+  const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [buka, setBuka] = useState(null);
   const [busy, setBusy] = useState(null);
   items = items.filter((i) => areaProgres(i.area));
@@ -136,22 +124,38 @@ function TabProgres({ items, aksi }) {
 
   return (
     <>
-      <div className="card" style={{ padding: "8px 14px" }}>
-        <label className="tglrow">
-          <span>Tanggal selesai</span>
-          <input className="inp" type="date" value={tanggal} max={hariIni()} onChange={(e) => setTanggal(e.target.value || hariIni())} />
-        </label>
+      {/* Pengingat deadline (hanya label, tidak bisa diubah). */}
+      <div className="card tglrow" style={{ padding: "12px 14px" }}>
+        <span>Deadline</span>
+        {proyek.deadline ? (
+          <span className="row" style={{ alignItems: "center", textTransform: "none", letterSpacing: 0 }}>
+            <b className="num" style={{ fontSize: ".9rem", color: "var(--fg)" }}>{tglTh(proyek.deadline)}</b>
+            <span className={`badge ${kelasSisa}`}>{sisa}</span>
+          </span>
+        ) : (
+          <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>Belum ditetapkan</span>
+        )}
       </div>
       <p className="small" style={{ margin: 0 }}>
         Bar hanya menampilkan tahap di fase yang sedang berjalan (Produksi, lalu Pengiriman, dst.). Ketuk bagian
         bar untuk mencatat tahap, ketuk lagi untuk membatalkan. Ketuk nama item untuk semua tahap di semua fase.
       </p>
-      <PilihArea areas={areas} value={area} onChange={setArea} />
-      {areas.filter((a) => area === "all" || a === area).map((a) => {
+      {/* Tiap area bisa dibuka-tutup, sama seperti di halaman klien. */}
+      {areas.map((a) => {
         const its = items.filter((i) => i.area === a);
+        const p = persenProyek(its);
         return (
-          <div key={a} className="stack" style={{ gap: 8 }}>
-            <div className="area"><h2>{a}</h2><span className="num small">{pct(persenProyek(its))}</span></div>
+          <details key={a} className="lipat">
+            <summary>
+              <span style={{ minWidth: 0, flex: 1 }}>
+                <span className="row">
+                  <h2>{a}</h2>
+                  <span className="num small" style={{ whiteSpace: "nowrap" }}>{pct(p)} · {its.length} item</span>
+                </span>
+                <span className="bar" style={{ display: "block", marginTop: 8 }}><i style={{ width: `${p}%` }} /></span>
+              </span>
+            </summary>
+            <div className="lipat-b">
             {its.map((it) => {
               const akhir = tahapTerakhir(it), next = tahapBerikut(it), open = buka === it.id;
               const fase = faseKini(it);
@@ -162,7 +166,7 @@ function TabProgres({ items, aksi }) {
                   <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
                     <span className="t">
                       <span className="nm">{it.nama}</span>
-                      <span className="small">{[it.kode, JENIS_LABEL[it.jenis], it.dimensi].filter(Boolean).join(" · ")}</span>
+                      <span className="small">{[it.kode, JENIS_LABEL[it.jenis]].filter(Boolean).join(" · ")}</span>
                     </span>
                     <b className="num">{persenItem(it)}%</b>
                     <i className="chev" aria-hidden="true" />
@@ -211,7 +215,8 @@ function TabProgres({ items, aksi }) {
                 </div>
               );
             })}
-          </div>
+            </div>
+          </details>
         );
       })}
     </>
@@ -574,7 +579,7 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
   const ubah = (id, patch, ok) => aksi.jalankan(() => A.ubahTermin(id, patch), ok);
   // Menandai lunas mengunci nominalnya, supaya tidak ikut berubah kalau harga diubah belakangan.
   const kunci = (t) => (n ? { dibayar: tagihanTermin(t, nilai) } : {});
-  const lunas = (t, tanggal) => ubah(t.id, { lunas_tgl: tanggal, ...kunci(t) }, `${t.label} lunas ${tgl(tanggal)}.`);
+  const lunas = (t, nama, tanggal) => ubah(t.id, { lunas_tgl: tanggal, ...kunci(t) }, `${nama} lunas ${tgl(tanggal)}.`);
   const standar = polaPersen(terminStandar(jenis, n).map(([, p]) => p));
   const sesuai = polaPersen(termin.map((t) => t.persen)) === standar;
   const adaBayar = termin.some((t) => t.lunas_tgl || Number(t.dibayar) > 0);
@@ -635,13 +640,16 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
               )}
             </div>
           )}
-          {termin.map((t) => {
+          {/* Tiap termin satu kartu; judulnya otomatis Termin 1, 2, 3, ... sesuai urutan. */}
+          {termin.map((t, i) => {
             const diterima = dibayarTermin(t, nilai);
+            const nama = judulTermin(i);
             return (
               <div key={t.id} className="item">
+                <h3>{nama}</h3>
                 <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) 84px" }}>
-                  <Isian label="Nama termin" style={{ fontWeight: 600 }} nilai={t.label}
-                    onSimpan={(v) => !!v && ubah(t.id, { label: v })} />
+                  <Isian label="Keterangan" placeholder="mis. DP, saat progres 50%" nilai={keteranganTermin(t)}
+                    onSimpan={(v) => ubah(t.id, { label: v })} />
                   <Isian label="Persen" inputMode="decimal" style={{ textAlign: "right" }} nilai={Number(t.persen).toLocaleString("id-ID")}
                     onSimpan={(v) => angka(v) > 0 && angka(v) <= 100 && ubah(t.id, { persen: angka(v) })} />
                 </div>
@@ -651,9 +659,9 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                     <input key={t.lunas_tgl || ""} className="inp" type="date" defaultValue={t.lunas_tgl || ""} max={hariIni()}
                       onChange={(e) => {
                         const v = e.target.value;
-                        if (!v) ubah(t.id, { lunas_tgl: null, dibayar: null }, `Status lunas ${t.label} dibatalkan.`);
+                        if (!v) ubah(t.id, { lunas_tgl: null, dibayar: null }, `Status lunas ${nama} dibatalkan.`);
                         else if (t.lunas_tgl) ubah(t.id, { lunas_tgl: v });
-                        else lunas(t, v);
+                        else lunas(t, nama, v);
                       }} />
                   </label>
                 </div>
@@ -663,7 +671,7 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                       t.id,
                       // Pembayaran yang menutup tagihan sekaligus menandai termin lunas.
                       { dibayar: v, ...(v && n && !t.lunas_tgl && v >= tagihanTermin(t, nilai) ? { lunas_tgl: hariIni() } : {}) },
-                      v ? `Pembayaran ${t.label} dicatat: ${rp(v)}` : `Pembayaran ${t.label} dikosongkan.`
+                      v ? `Pembayaran ${nama} dicatat: ${rp(v)}` : `Pembayaran ${nama} dikosongkan.`
                     )} />
                 </label>
                 <div className="row" style={{ alignItems: "center" }}>
@@ -677,31 +685,34 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                 )}
                 <div className="acts">
                   {!t.lunas_tgl && (
-                    <button type="button" className="act" disabled={aksi.sibuk} onClick={() => lunas(t, hariIni())}>Lunas hari ini</button>
+                    <button type="button" className="act" disabled={aksi.sibuk} onClick={() => lunas(t, nama, hariIni())}>Lunas hari ini</button>
                   )}
                   {t.lunas_tgl && t.dibayar == null && n > 0 && (
                     <button type="button" className="act" disabled={aksi.sibuk}
-                      onClick={() => ubah(t.id, kunci(t), `Nominal ${t.label} dikunci: ${rp(tagihanTermin(t, nilai))}`)}>
+                      onClick={() => ubah(t.id, kunci(t), `Nominal ${nama} dikunci: ${rp(tagihanTermin(t, nilai))}`)}>
                       Kunci nominal
                     </button>
                   )}
                   <button type="button" className="act bahaya" disabled={aksi.sibuk}
-                    onClick={() => confirm(`Hapus termin "${t.label}"?`) && aksi.jalankan(() => A.hapusTermin(t.id), "Termin dihapus.")}>
+                    onClick={() => confirm(`Hapus ${nama}? Termin sesudahnya ikut bergeser nomornya.`) && aksi.jalankan(() => A.hapusTermin(t.id), "Termin dihapus.")}>
                     Hapus
                   </button>
                 </div>
               </div>
             );
           })}
-          {/* Termin baru hanya bisa ditambah selama total persennya belum 100%. */}
-          {total < 100 && (
-            <button type="button" className="btn2" disabled={aksi.sibuk}
-              onClick={() => aksi.jalankan(() => A.tambahTermin(proyek.id, [{
-                jenis, urutan: termin.reduce((m, t) => Math.max(m, t.urutan), -1) + 1,
-                label: `Termin ${termin.length + 1}`, persen: Math.round((100 - total) * 100) / 100,
-              }]))}>
-              + Tambah termin
-            </button>
+          {/* Termin baru otomatis bernomor berikutnya dan mendapat sisa persen sampai 100%. */}
+          <button type="button" className="btn2" disabled={aksi.sibuk || total >= 100}
+            onClick={() => aksi.jalankan(() => A.tambahTermin(proyek.id, [{
+              jenis, urutan: termin.reduce((m, t) => Math.max(m, t.urutan), -1) + 1,
+              label: "", persen: Math.round((100 - total) * 100) / 100,
+            }]), `${judulTermin(termin.length)} ditambahkan.`)}>
+            + Tambah {judulTermin(termin.length)}
+          </button>
+          {total >= 100 && (
+            <p className="small" style={{ margin: 0 }}>
+              Total persen sudah 100%. Kurangi persen termin lain dulu untuk menambah {judulTermin(termin.length)}.
+            </p>
           )}
         </>
       )}

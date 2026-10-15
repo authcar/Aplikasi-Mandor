@@ -7,7 +7,7 @@ import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek } from "@/lib/portal/data";
 import { JENIS, TAHAP } from "@/lib/portal/progresBoq";
-import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh } from "@/lib/portal/format";
+import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
 
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
 
@@ -113,7 +113,8 @@ export async function setProgres(itemId, tahap, tanggal) {
     if (!tanggal) return void (await hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap)));
     await hasil(
       db().from("portal_progres").upsert({
-        item_id: itemId, tahap, selesai_tgl: tanggal, dicatat_oleh: staf.id, dicatat_at: new Date().toISOString(),
+        // Tanggal selesai selalu hari ini; tanggal dari browser hanya penanda "catat".
+        item_id: itemId, tahap, selesai_tgl: hariIni(), dicatat_oleh: staf.id, dicatat_at: new Date().toISOString(),
       })
     );
   }, { admin: false });
