@@ -659,13 +659,16 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
               </div>
             );
           })}
-          <button type="button" className="btn2" disabled={aksi.sibuk || total >= 100}
-            onClick={() => aksi.jalankan(() => A.tambahTermin(proyek.id, [{
-              jenis, urutan: termin.reduce((m, t) => Math.max(m, t.urutan), -1) + 1,
-              label: `Termin ${termin.length + 1}`, persen: Math.round((100 - total) * 100) / 100,
-            }]))}>
-            {total >= 100 ? "Total termin sudah 100%" : "+ Tambah termin"}
-          </button>
+          {/* Termin baru hanya bisa ditambah selama total persennya belum 100%. */}
+          {total < 100 && (
+            <button type="button" className="btn2" disabled={aksi.sibuk}
+              onClick={() => aksi.jalankan(() => A.tambahTermin(proyek.id, [{
+                jenis, urutan: termin.reduce((m, t) => Math.max(m, t.urutan), -1) + 1,
+                label: `Termin ${termin.length + 1}`, persen: Math.round((100 - total) * 100) / 100,
+              }]))}>
+              + Tambah termin
+            </button>
+          )}
         </>
       )}
     </section>
