@@ -106,9 +106,15 @@ function TabProgres({ proyek, items, aksi, admin }) {
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [buka, setBuka] = useState(null);
   const [busy, setBusy] = useState(null);
+  const [kelompok, setKelompok] = useState("area"); // "area" | "tim"
   items = items.filter((i) => areaProgres(i.area));
-  const areas = [...new Set(items.map((i) => i.area))];
   const kunci = !!busy || aksi.sibuk;
+  // Pengelompokan item: per area (bawaan) atau per tim tukang. Item tanpa tim di akhir.
+  const adaTim = items.some((i) => i.tim);
+  const perTim = adaTim && kelompok === "tim";
+  const TANPA_TIM = "Belum ada tim";
+  const grupOf = (i) => (perTim ? i.tim || TANPA_TIM : i.area);
+  const grup = [...new Set(items.map(grupOf))].sort((a, b) => perTim ? (a === TANPA_TIM) - (b === TANPA_TIM) : 0);
 
   if (!items.length) return <div className="card small">Belum ada item BOQ. Admin perlu mengimpor item di tab Item BOQ.</div>;
 
@@ -140,9 +146,15 @@ function TabProgres({ proyek, items, aksi, admin }) {
         Bar hanya menampilkan tahap di fase yang sedang berjalan (Produksi, lalu Pengiriman, dst.). Ketuk bagian
         bar untuk mencatat tahap, ketuk lagi untuk membatalkan. Ketuk nama item untuk semua tahap di semua fase.
       </p>
-      {/* Tiap area bisa dibuka-tutup, sama seperti di halaman klien. */}
-      {areas.map((a) => {
-        const its = items.filter((i) => i.area === a);
+      {adaTim && (
+        <div className="seg" role="group" aria-label="Kelompokkan progres">
+          <button type="button" aria-pressed={!perTim} onClick={() => setKelompok("area")}>Per area</button>
+          <button type="button" aria-pressed={perTim} onClick={() => setKelompok("tim")}>Per tim</button>
+        </div>
+      )}
+      {/* Tiap kelompok (area / tim) bisa dibuka-tutup, sama seperti di halaman klien. */}
+      {grup.map((a) => {
+        const its = items.filter((i) => grupOf(i) === a);
         const p = persenProyek(its);
         return (
           <details key={a} className="lipat">
@@ -166,7 +178,7 @@ function TabProgres({ proyek, items, aksi, admin }) {
                   <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
                     <span className="t">
                       <span className="nm">{it.nama}</span>
-                      <span className="small">{[it.kode, JENIS_LABEL[it.jenis]].filter(Boolean).join(" · ")}</span>
+                      <span className="small">{[it.kode, JENIS_LABEL[it.jenis], perTim ? it.area : it.tim].filter(Boolean).join(" · ")}</span>
                     </span>
                     <b className="num">{persenItem(it)}%</b>
                     <i className="chev" aria-hidden="true" />
