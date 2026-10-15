@@ -11,7 +11,7 @@ import {
 } from "@/lib/portal/progresBoq";
 import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
-  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, BATAS_PERANCANGAN, judulTermin, keteranganTermin,
+  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin,
 } from "@/lib/portal/format";
 import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
@@ -58,7 +58,7 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
           <div className="eb">Nilai kontrak</div>
           <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{totalNilai(nilaiT) ? rp(totalNilai(nilaiT)) : "—"}</div>
           <div className="s">
-            {nilaiT.perancangan ? (nilai ? "BOQ + jasa perancangan" : "jasa perancangan · nilai jasa tukang belum diisi") : nilai ? "jumlah nilai jasa tukang" : "nilai jasa tukang belum diisi"}
+            {nilai ? "jumlah nilai jasa tukang" : "nilai jasa tukang belum diisi"}
           </div>
         </div>}
       </div>
@@ -524,8 +524,7 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
 }
 
 /* ---------- Termin ---------- */
-// Termin dibagi dua: jasa perancangan (dari nilai perancangan) dan jasa produksi
-// (dari jumlah nilai jasa tukang item BOQ). Persen tiap jenis berjumlah 100%.
+// Termin jasa produksi, dari jumlah nilai jasa tukang item BOQ. Persennya berjumlah 100%.
 function TabTermin({ proyek, items, termin, nilai, aksi }) {
   const masuk = totalDibayar(termin, nilai);
   const total = totalNilai(nilai);
@@ -554,47 +553,31 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
   // Menandai lunas mengunci nominalnya, supaya tidak ikut berubah kalau harga diubah belakangan.
   const kunci = (t) => (n ? { dibayar: tagihanTermin(t, nilai) } : {});
   const lunas = (t, nama, tanggal) => ubah(t.id, { lunas_tgl: tanggal, ...kunci(t) }, `${nama} lunas ${tgl(tanggal)}.`);
-  const standar = polaPersen(terminStandar(jenis, n).map(([, p]) => p));
+  const standar = polaPersen(terminStandar().map(([, p]) => p));
   const sesuai = polaPersen(termin.map((t) => t.persen)) === standar;
   const adaBayar = termin.some((t) => t.lunas_tgl || Number(t.dibayar) > 0);
-  // Perancangan dibagi 3 atau 4 tergantung nilainya, jadi nilainya harus ada dulu.
-  const bisaStandar = jenis === "produksi" || n > 0;
   const buatStandar = () =>
     aksi.jalankan(() => A.buatTerminStandar(proyek.id, jenis), `Termin ${judul.toLowerCase()} dibuat (${standar}).`);
-  const aturan = jenis === "produksi"
-    ? "DP 50%, 40% saat progres 50%, pelunasan 10%."
-    : `di bawah ${rp(BATAS_PERANCANGAN)} dibagi 3 (50 / 40 / 10), ${rp(BATAS_PERANCANGAN)} ke atas dibagi 4 (40 / 30 / 20 / 10).`;
+  const aturan = "DP 50%, 40% saat progres 50%, pelunasan 10%.";
 
   return (
     <section className="stack">
       <div className="row" style={{ marginTop: 6 }}>
         <h2>{judul}</h2>
-        {jenis === "produksi" && <span className="small num">progres {pct(progres)}</span>}
+        <span className="small num">progres {pct(progres)}</span>
       </div>
-      {jenis === "perancangan" ? (
-        <label className="lbl">Nilai jasa perancangan
-          <InputRupiah nilai={proyek.nilai_perancangan}
-            onSimpan={(v) => aksi.jalankan(() => A.ubahProyek(proyek.id, { nilai_perancangan: v }),
-              v ? `Nilai jasa perancangan ${rp(v)}.` : "Nilai jasa perancangan dikosongkan.")} />
-        </label>
-      ) : (
-        <div className="row small">
-          <span>Nilai = jumlah nilai jasa tukang</span>
-          <span className="num">{n ? rp(n) : "belum diisi"}</span>
-        </div>
-      )}
+      <div className="row small">
+        <span>Nilai = jumlah nilai jasa tukang</span>
+        <span className="num">{n ? rp(n) : "belum diisi"}</span>
+      </div>
       <p className="small" style={{ margin: 0 }}>Aturan: {aturan}</p>
 
       {!termin.length ? (
         <div className="card stack" style={{ textAlign: "center" }}>
-          <p className="small" style={{ margin: 0 }}>
-            {bisaStandar ? "Belum ada jadwal termin." : "Isi nilai jasa perancangan dulu. Kosongkan kalau proyek ini tanpa jasa perancangan."}
-          </p>
-          {bisaStandar && (
-            <button type="button" className="btn" disabled={aksi.sibuk} onClick={buatStandar}>
-              Buat termin standar ({standar})
-            </button>
-          )}
+          <p className="small" style={{ margin: 0 }}>Belum ada jadwal termin.</p>
+          <button type="button" className="btn" disabled={aksi.sibuk} onClick={buatStandar}>
+            Buat termin standar ({standar})
+          </button>
         </div>
       ) : (
         <>
@@ -603,7 +586,7 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
               Total persen termin {total.toLocaleString("id-ID")}%, {total < 100 ? `kurang ${(100 - total).toLocaleString("id-ID")}%` : `lebih ${(total - 100).toLocaleString("id-ID")}%`} dari 100%.
             </p>
           )}
-          {!sesuai && bisaStandar && (
+          {!sesuai && (
             <div className="note b-warn stack" style={{ gap: 8 }}>
               <span>Pola termin belum sesuai aturan, seharusnya {standar}.</span>
               {!adaBayar && (
@@ -648,7 +631,7 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                   </label>
                 </div>
                 <div className="row" style={{ alignItems: "center" }}>
-                  <span className={n ? "num" : "small"}>{n ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : `Tagihan muncul setelah ${jenis === "produksi" ? "nilai jasa tukang" : "nilai perancangan"} diisi`}</span>
+                  <span className={n ? "num" : "small"}>{n ? `Tagihan ${rp(tagihanTermin(t, nilai))}` : "Tagihan muncul setelah nilai jasa tukang diisi"}</span>
                   {t.lunas_tgl ? <span className="badge b-ok">Lunas {tgl(t.lunas_tgl)}</span> : diterima > 0 ? <span className="badge b-warn">Sebagian</span> : null}
                 </div>
                 {t.lunas_tgl && t.dibayar == null && (
