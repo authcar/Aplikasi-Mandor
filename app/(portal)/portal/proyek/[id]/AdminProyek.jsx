@@ -14,6 +14,7 @@ import {
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin,
 } from "@/lib/portal/format";
 import { bacaBoq, bacaBaris, formatLama, bacaJasa, infoSheet } from "@/lib/portal/imporBoq";
+import { bukaXlsx } from "@/lib/portal/bacaXlsx";
 import * as A from "../../aksi";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
@@ -423,21 +424,53 @@ function cocokkanJasa(rows, items) {
   });
 }
 
+// Satu file bisa berisi beberapa sheet (satu per tim, mis. Mas Alan & Pak
+// Ndan): semua sheet yang berisi item jasa bisa dicentang sekaligus dan
+// digabung jadi satu impor; tim tiap baris diambil dari sheet asalnya.
 function ImporJasa({ proyek, items, aksi }) {
-  const [file, setFile] = useState(null); // { sheet, rows } dari UnggahBoq
-  const [unggahKe, setUnggahKe] = useState(0);
-  const [tim, setTim] = useState("");
-  const hasil = useMemo(() => (file ? cocokkanJasa(bacaJasa(file.rows), items) : []), [file, items]);
+  const [buku, setBuku] = useState(null); // { sheets: [{ nama, rows, tim }] }
+  const [pilih, setPilih] = useState({}); // { [sheet]: true/false }
+  const [tim, setTim] = useState({}); // { [sheet]: nama tim }
+  const [galat, setGalat] = useState("");
+  const [unggahKe, setUnggahKe] = useState(0); // ganti key = kosongkan pilihan file
+  const hasil = useMemo(() => {
+    if (!buku) return [];
+    const baris = buku.sheets.filter((x) => pilih[x.nama]).flatMap((x) => x.rows.map((r) => ({ ...r, sheet: x.nama })));
+    return cocokkanJasa(baris, items);
+  }, [buku, pilih, items]);
   const cocok = hasil.filter((r) => r.item);
+  const timBaris = (r) => (tim[r.sheet] || "").trim() || null;
+
+  async function pilihFile(e) {
+    const file = e.target.files?.[0];
+    setGalat("");
+    setBuku(null);
+    aksi.setMsg("");
+    if (!file) return;
+    try {
+      const b = bukaXlsx(await file.arrayBuffer());
+      const sheets = b.sheets
+        .map((nama) => { const rows = b.baca(nama); return { nama, rows: bacaJasa(rows), tim: infoSheet(rows).tim || "" }; })
+        .filter((x) => x.rows.length);
+      if (!sheets.length) throw new Error("kosong");
+      setBuku({ sheets });
+      setPilih(Object.fromEntries(sheets.map((x) => [x.nama, true])));
+      setTim(Object.fromEntries(sheets.map((x) => [x.nama, x.tim])));
+    } catch (err) {
+      setGalat(err.message === "kosong"
+        ? "Tidak ada item jasa yang terbaca. Pastikan ini file Hitungan Jasa Pekerjaan."
+        : "File tidak bisa dibaca. Pastikan formatnya Excel .xlsx (bukan .xls atau PDF).");
+    }
+  }
 
   async function simpan() {
+    const tims = [...new Set(cocok.map(timBaris).filter(Boolean))];
     const ok = await aksi.jalankan(
-      () => A.simpanJasaTukang(proyek.id, cocok.map((r) => ({ id: r.item.id, harga_satuan: r.harga_satuan, harga: r.harga, tim: tim.trim() || null }))),
-      `Jasa tukang ${cocok.length} item disimpan${tim.trim() ? ` (tim ${tim.trim()})` : ""}.`
+      () => A.simpanJasaTukang(proyek.id, cocok.map((r) => ({ id: r.item.id, harga_satuan: r.harga_satuan, harga: r.harga, tim: timBaris(r) }))),
+      `Jasa tukang ${cocok.length} item disimpan${tims.length ? ` (tim ${tims.join(", ")})` : ""}.`
     );
     if (!ok) return;
-    setFile(null);
-    setTim("");
+    setBuku(null);
     setUnggahKe((n) => n + 1);
   }
 
@@ -446,22 +479,40 @@ function ImporJasa({ proyek, items, aksi }) {
       <summary><b>Impor dari Excel Hitungan Jasa Pekerjaan</b></summary>
       <div className="lipat-b" style={{ gap: 12 }}>
         <p className="small" style={{ margin: 0 }}>
-          Pilih file, lalu sheet timnya (mis. Mas Alan). Harga satuan dan total tiap item bernomor masuk ke item proyek
-          yang namanya sama. Baris tambahan seperti ambalan, LED strip, dan stopkontak dilewati.
+          Pilih file, lalu centang sheet tim yang mau dimasukkan (boleh lebih dari satu, digabung jadi satu impor).
+          Harga satuan dan total tiap item bernomor masuk ke item proyek yang namanya sama. Baris tambahan seperti
+          ambalan, LED strip, dan stopkontak dilewati.
         </p>
-        <UnggahBoq key={unggahKe} label="File hitungan jasa (.xlsx)"
-          onPilih={(f) => { setFile(f); setTim(f ? infoSheet(f.rows).tim || "" : ""); aksi.setMsg(""); }} />
-        {file && !hasil.length && <p className="note b-warn">Tidak ada item jasa yang terbaca di sheet “{file.sheet}”.</p>}
+        <label className="lbl">File hitungan jasa (.xlsx)
+          <input key={unggahKe} className="inp" type="file" style={{ padding: "9px 12px" }} onChange={pilihFile}
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+        </label>
+        {galat && <p className="note b-bad">{galat}</p>}
+        {buku && (
+          <div className="stack" style={{ gap: 8 }}>
+            <div className="fl" style={{ margin: 0 }}>Sheet ({buku.sheets.length})</div>
+            {buku.sheets.map((x) => (
+              <div key={x.nama} className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", alignItems: "end" }}>
+                <label className="cek" style={{ minWidth: 0 }}>
+                  <input type="checkbox" checked={!!pilih[x.nama]} onChange={(e) => setPilih({ ...pilih, [x.nama]: e.target.checked })} />
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{x.nama} · {x.rows.length} item</span>
+                </label>
+                <input className="inp" list="daftar-tim" aria-label={`Tim untuk ${x.nama}`} placeholder="Tim tukang"
+                  value={tim[x.nama] || ""} onChange={(e) => setTim({ ...tim, [x.nama]: e.target.value })} />
+              </div>
+            ))}
+          </div>
+        )}
         {hasil.length > 0 && (
           <>
-            <label className="lbl">Tim tukang<input className="inp" list="daftar-tim" value={tim} onChange={(e) => setTim(e.target.value)} placeholder="mis. Mas Alan" /></label>
             <div>
               {hasil.map((r, n) => (
                 <div key={n} className={`pv${r.item ? "" : " off"}`} style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}>
                   <span className="t">
                     <span className="nm">{r.nama}{r.kode ? ` (${r.kode})` : ""}</span>
                     <span className="small">
-                      {[`${Number(r.qty).toLocaleString("id-ID")} × ${r.harga_satuan ? rp(r.harga_satuan) : "—"}`, r.item ? `ke ${r.item.area}` : "tidak ada di proyek ini, dilewati"].join(" · ")}
+                      {[`${Number(r.qty).toLocaleString("id-ID")} × ${r.harga_satuan ? rp(r.harga_satuan) : "—"}`, timBaris(r),
+                        r.item ? `ke ${r.item.area}` : "tidak ada di proyek ini, dilewati"].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                   <b className="num small">{r.harga != null ? rp(r.harga) : "—"}</b>
@@ -472,10 +523,12 @@ function ImporJasa({ proyek, items, aksi }) {
               <span>Total {cocok.length} item</span>
               <b className="num">{rp(cocok.reduce((a, r) => a + (Number(r.harga) || 0), 0))}</b>
             </div>
-            <button type="button" className="btn" disabled={aksi.sibuk || !cocok.length} onClick={simpan}>
-              Simpan jasa {cocok.length} item
-            </button>
           </>
+        )}
+        {buku && (
+          <button type="button" className="btn" disabled={aksi.sibuk || !cocok.length} onClick={simpan}>
+            Simpan jasa {cocok.length} item
+          </button>
         )}
       </div>
     </details>
