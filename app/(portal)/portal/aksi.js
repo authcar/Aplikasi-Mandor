@@ -5,7 +5,7 @@
 import { randomBytes } from "crypto";
 import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
-import { ambilProyek, ambilBobotTahap } from "@/lib/portal/data";
+import { ambilProyek, ambilBobotTahap, bacaProgres } from "@/lib/portal/data";
 import { FASE, JENIS, TAHAP, tahapItem, faseMenghalangi } from "@/lib/portal/progresBoq";
 import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
 
@@ -26,7 +26,7 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, dan add_portal_jasa_tukang.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, dan add_portal_progres_persen.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
 }
@@ -113,36 +113,40 @@ export async function hapusProyek(id, namaKetik) {
 }
 
 /* ---------- Progres (admin & supervisor proyek) ---------- */
-export async function setProgres(itemId, tahap, tanggal) {
+// persen = seberapa jauh tahap dikerjakan: 1–100 dicatat (tanggal = hari ini),
+// 0 = batal (baris dihapus).
+export async function setProgres(itemId, tahap, persen) {
   return jalan(async (staf) => {
-    const row = await hasil(db().from("portal_item").select("*, portal_progres(tahap, selesai_tgl)").eq("id", itemId).maybeSingle());
+    persen = Math.round(Number(persen) * 100) / 100;
+    if (!(persen >= 0 && persen <= 100)) throw new Error("persen tahap harus 0–100.");
+    const row = await hasil(db().from("portal_item").select("*, portal_progres(*)").eq("id", itemId).maybeSingle());
     if (!row) throw new Error("Item tidak ditemukan.");
     const p = await ambilProyek(row.proyek_id);
     if (!bolehProyek(staf, p)) throw new Error("Tidak punya akses ke proyek ini.");
     if (lewatDeadline(p)) throw new Error(`proyek sudah lewat deadline ${tglTh(p.deadline)}, jadi terkunci.`);
     const { portal_progres, ...i } = row;
-    const item = {
-      ...i,
-      bobot_tahap: i.bobot_tahap || (await ambilBobotTahap())[i.jenis] || null,
-      progres: Object.fromEntries(portal_progres.map((g) => [g.tahap, g.selesai_tgl])),
-    };
+    const item = { ...i, bobot_tahap: i.bobot_tahap || (await ambilBobotTahap())[i.jenis] || null, ...bacaProgres(portal_progres) };
     const s = tahapItem(item).find((x) => x.k === tahap);
     if (!s) throw new Error("Tahap tidak valid.");
     // Fase berurutan: tahap baru boleh dicatat setelah fase-fase sebelumnya
-    // selesai, dan tahap tidak bisa dibatalkan selama fase sesudahnya masih
-    // punya tahap tercatat (supaya urutan tidak bolong).
+    // selesai 100%, dan tahap tidak bisa dibatalkan atau diturunkan di bawah
+    // 100% selama fase sesudahnya masih punya tahap tercatat (supaya urutan tidak bolong).
     const penghalang = faseMenghalangi(item, s.fase);
-    if (tanggal && penghalang) throw new Error(`selesaikan semua tahap ${penghalang.label.toLowerCase()} dulu.`);
+    if (persen > 0 && penghalang) throw new Error(`selesaikan semua tahap ${penghalang.label.toLowerCase()} dulu.`);
     const sesudah = tahapItem(item).filter((x) => FASE.findIndex((f) => f.k === x.fase) > FASE.findIndex((f) => f.k === s.fase) && item.progres[x.k]);
-    if (!tanggal && s.w > 0 && sesudah.length)
+    if (persen < 100 && s.w > 0 && sesudah.length)
       throw new Error(`batalkan dulu tahap ${sesudah.map((x) => x.label).join(", ")} item ini.`);
-    if (!tanggal) return void (await hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap)));
-    await hasil(
-      db().from("portal_progres").upsert({
-        // Tanggal selesai selalu hari ini; tanggal dari browser hanya penanda "catat".
-        item_id: itemId, tahap, selesai_tgl: hariIni(), dicatat_oleh: staf.id, dicatat_at: new Date().toISOString(),
-      })
-    );
+    if (!persen) return void (await hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap)));
+    // Tanggal selalu hari ini (tanggal terakhir progres tahap ini diubah).
+    const baris = { item_id: itemId, tahap, selesai_tgl: hariIni(), dicatat_oleh: staf.id, dicatat_at: new Date().toISOString() };
+    try {
+      await hasil(db().from("portal_progres").upsert({ ...baris, persen }));
+    } catch (e) {
+      // Kolom persen belum ada (supabase/add_portal_progres_persen.sql): 100% tetap
+      // bisa dicatat seperti dulu; progres sebagian butuh kolomnya.
+      if (persen < 100 || !/could not find the 'persen' column|column .*persen.* does not exist/i.test(e.message || "")) throw e;
+      await hasil(db().from("portal_progres").upsert(baris));
+    }
   }, { admin: false });
 }
 

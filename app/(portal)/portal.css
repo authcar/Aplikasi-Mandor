@@ -138,6 +138,11 @@ h3{font-size:1rem;font-weight:700}
 .kotak{flex:none;position:relative;width:20px;height:20px;border:2px solid var(--wood);border-radius:3px;background:var(--surface)}
 .pill[aria-pressed="true"] .kotak{border-color:var(--on-accent);background:var(--on-accent)}
 .pill[aria-pressed="true"] .kotak::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid var(--accent);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+/* Tahap baru sebagian: tercentang, tapi tombolnya terang (penuh gelap saat 100%) */
+.pill.sebagian[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 22%,var(--surface));border-color:var(--c);color:var(--fg)}
+.pill.sebagian[aria-pressed="true"] .w{color:var(--muted);opacity:1}
+.pill.sebagian[aria-pressed="true"] .kotak{border-color:var(--c);background:var(--c)}
+.pill.sebagian[aria-pressed="true"] .kotak::after{border-color:var(--on-accent)}
 .kotak.gembok{border-color:var(--muted);border-style:dashed;background:none}
 .kotak.gembok::after{content:"";position:absolute;inset:3px;background:var(--muted);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E") center/contain no-repeat}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 calc(-1*var(--gut));padding:2px var(--gut)}
