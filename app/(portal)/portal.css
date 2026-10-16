@@ -122,12 +122,19 @@ h3{font-size:1rem;font-weight:700}
 .acts>.act{flex:1;min-width:0;padding:0 8px}
 .acts>.act.bahaya{flex:none;padding:0 14px}
 .pills{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.pill{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;min-height:var(--tap);padding:0 12px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);font-size:.88rem;font-weight:500;text-align:left}
-.pill>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{display:flex;align-items:center;gap:10px;min-width:0;min-height:var(--tap);padding:0 12px 0 10px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);font-size:.88rem;font-weight:500;text-align:left}
+.pill .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pill .w{flex:none;font-size:.74rem;font-variant-numeric:tabular-nums;color:var(--muted)}
 .pill[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 .pill[aria-pressed="true"] .w{color:inherit;opacity:.75}
 .pill:disabled{opacity:.5}
+@media (hover:hover){.pill:hover:not(:disabled):not([aria-pressed="true"]){border-color:var(--wood);background:var(--accent-soft)}}
+/* Kotak centang di tombol tahap */
+.kotak{flex:none;position:relative;width:20px;height:20px;border:2px solid var(--wood);border-radius:3px;background:var(--surface)}
+.pill[aria-pressed="true"] .kotak{border-color:var(--on-accent);background:var(--on-accent)}
+.pill[aria-pressed="true"] .kotak::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid var(--accent);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.kotak.gembok{border-color:var(--muted);border-style:dashed;background:none}
+.kotak.gembok::after{content:"";position:absolute;inset:3px;background:var(--muted);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E") center/contain no-repeat}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 calc(-1*var(--gut));padding:2px var(--gut)}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;min-height:40px;padding:0 14px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);font-size:.82rem;font-weight:600;color:var(--muted);white-space:nowrap}

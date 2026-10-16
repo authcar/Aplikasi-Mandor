@@ -200,7 +200,7 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
       <p className="small" style={{ margin: 0 }}>
         {lihat
           ? "Progres dicatat oleh supervisor. Ketuk nama item untuk melihat semua tahap."
-          : "Ketuk bagian bar untuk mencatat tahap fase berjalan, ketuk lagi untuk membatalkan. Ketuk nama item untuk semua tahap."}
+          : "Ketuk bagian bar untuk mencatat tahap fase berjalan, ketuk lagi untuk membatalkan. Ketuk nama item untuk mencentang tahap satu per satu."}
       </p>
       <div className="card" style={{ padding: "10px 14px" }}>
         <div className="g2" style={adaTim ? null : { gridTemplateColumns: "1fr" }}>
@@ -273,7 +273,9 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
                   <button type="button" className="pill" aria-pressed={!!it.progres[s.k]}
                     disabled={kunci || (tutup && !it.progres[s.k])} style={busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null}
                     onClick={() => toggle(it, s)}>
-                    <span>{it.progres[s.k] ? "✓ " : ""}{s.label}</span>
+                    {/* Kotak centang: kosong = ketuk untuk mencatat, terisi = selesai, gembok = fase terkunci. */}
+                    <i className={`kotak${tutup && !it.progres[s.k] ? " gembok" : ""}`} aria-hidden="true" />
+                    <span className="nm">{s.label}</span>
                     <span className="w">{it.progres[s.k] ? tgl(it.progres[s.k]) : `${b[s.k]}%`}</span>
                   </button>
                   {admin && (
