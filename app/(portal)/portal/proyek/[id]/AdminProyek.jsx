@@ -8,7 +8,7 @@ import UnggahBoq from "../../UnggahBoq";
 import TabBar from "../../../TabBar";
 import {
   FASE, JENIS_LABEL, tahapItem, persenItem, persenProyek,
-  tahapTerakhir, tahapBerikut, tahapBar, areaProgres, faseKini,
+  tahapTerakhir, tahapBerikut, tahapBar, areaProgres, faseKini, produksiSelesai, tahapTerkunci,
 } from "@/lib/portal/progresBoq";
 import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
@@ -140,7 +140,9 @@ function TabProgres({ proyek, items, aksi, admin }) {
     const akhir = tahapTerakhir(it), next = tahapBerikut(it), open = buka === it.id;
     const fase = faseKini(it);
     // Fase berjalan saja; kalau semua selesai, tampilkan semua tahap (penuh).
-    const bar = fase ? tahapBar(it).filter((s) => s.fase === fase.k && s.w > 0) : tahapBar(it);
+    // Selama produksi belum selesai, tahap fase sesudahnya tidak tampil/tidak bisa dicatat.
+    const bar = (fase ? tahapBar(it).filter((s) => s.fase === fase.k && s.w > 0) : tahapBar(it))
+      .filter((s) => !tahapTerkunci(it, s));
     return (
       <div key={it.id} className={`item acc${open ? " open" : ""}`}>
         <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
@@ -246,15 +248,19 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
     <div className="acc-b">
       {FASE.map((f) => {
         const st = tahap.filter((s) => s.fase === f.k);
-        if (!st.length) return null;
+        // Fase sesudah produksi: supervisor tidak melihatnya sama sekali; master
+        // tetap melihat (untuk mengatur bobot) tapi tombol catatnya terkunci.
+        const tutup = terkunci && f.k !== "produksi";
+        if (!st.length || (tutup && !admin)) return null;
         return (
           <div key={f.k}>
-            <div className="fl">{f.label}</div>
+  const terkunci = !produksiSelesai(it);
+            <div className="fl">{f.label}{tutup && " · terkunci"}</div>
             <div className="pills">
               {st.map((s) => (
                 <div key={s.k} className="tahap-sel">
                   <button type="button" className="pill" aria-pressed={!!it.progres[s.k]}
-                    disabled={kunci} style={busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null}
+                    disabled={kunci || tutup} style={busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null}
                     onClick={() => toggle(it, s)}>
                     <span>{it.progres[s.k] ? "✓ " : ""}{s.label}</span>
                     <span className="w">{it.progres[s.k] ? tgl(it.progres[s.k]) : `${b[s.k]}%`}</span>
@@ -280,6 +286,9 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
             {!berubah && " Item ini memakai bobot khusus (bukan bobot bawaan jenisnya)."}
           </p>
           <div className="acts">
+      {terkunci && tahap.some((s) => s.fase !== "produksi") && (
+        <p className="small" style={{ margin: 0 }}>Pengiriman dan instalasi terbuka setelah semua tahap produksi selesai.</p>
+      )}
             {berubah && (
               <>
                 <button type="button" className="act" disabled={aksi.sibuk || total <= 0}

@@ -5,8 +5,8 @@
 import { randomBytes } from "crypto";
 import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
-import { ambilProyek } from "@/lib/portal/data";
-import { JENIS, TAHAP } from "@/lib/portal/progresBoq";
+import { ambilProyek, ambilBobotTahap } from "@/lib/portal/data";
+import { JENIS, TAHAP, tahapItem, tahapTerkunci } from "@/lib/portal/progresBoq";
 import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
 
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
@@ -114,12 +114,24 @@ export async function hapusProyek(id, namaKetik) {
 
 export async function setProgres(itemId, tahap, tanggal) {
   return jalan(async (staf) => {
-    const item = await hasil(db().from("portal_item").select("proyek_id, jenis").eq("id", itemId).maybeSingle());
-    if (!item) throw new Error("Item tidak ditemukan.");
-    const p = await ambilProyek(item.proyek_id);
+    const row = await hasil(db().from("portal_item").select("*, portal_progres(tahap, selesai_tgl)").eq("id", itemId).maybeSingle());
+    if (!row) throw new Error("Item tidak ditemukan.");
+    const p = await ambilProyek(row.proyek_id);
     if (!bolehProyek(staf, p)) throw new Error("Tidak punya akses ke proyek ini.");
     if (lewatDeadline(p)) throw new Error(`proyek sudah lewat deadline ${tglTh(p.deadline)}, jadi terkunci.`);
-    if (!TAHAP[item.jenis]?.some((s) => s.k === tahap)) throw new Error("Tahap tidak valid.");
+    const { portal_progres, ...i } = row;
+    const item = {
+      ...i,
+      bobot_tahap: i.bobot_tahap || (await ambilBobotTahap())[i.jenis] || null,
+      progres: Object.fromEntries(portal_progres.map((g) => [g.tahap, g.selesai_tgl])),
+    };
+    const s = tahapItem(item).find((x) => x.k === tahap);
+    if (!s) throw new Error("Tahap tidak valid.");
+    // Pengiriman/instalasi/retensi baru boleh setelah produksi selesai, dan
+    // produksi tidak bisa dibatalkan selama tahap sesudahnya masih tercatat.
+    if (tanggal && tahapTerkunci(item, s)) throw new Error("selesaikan semua tahap produksi dulu.");
+    if (!tanggal && s.fase === "produksi" && s.w > 0 && tahapItem(item).some((x) => x.fase !== "produksi" && item.progres[x.k]))
+      throw new Error("batalkan dulu tahap pengiriman/instalasi item ini.");
     if (!tanggal) return void (await hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap)));
     await hasil(
       db().from("portal_progres").upsert({
