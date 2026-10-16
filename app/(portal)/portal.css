@@ -2,6 +2,7 @@
    Mobile-first: aturan dasar ditulis untuk HP; penyesuaian layar lebar ada di @media paling bawah. */
 :root{--bg:#EEE6D8;--surface:#F8F3EA;--sunk:#E4D9C6;--line:#D6C8B2;--fg:#2B211A;--muted:#6B5D4D;
 --accent:#3E2C20;--accent-soft:#E6D8C2;--on-accent:#F5EEE3;--wood:#8B5E3C;--oak:#C29B6C;--ph1:#8B5E3C;--ph2:#C29B6C;--ph3:#3E2C20;--ph4:#A99B88;
+--p1:#F08A4B;--p2:#F2BE3A;--p3:#A3CB5B;--p4:#3F8F3C;
 --ok:#4F6B3A;--warn:#9A5B12;--bad:#A3402F;--ok-soft:#E0E6D2;--warn-soft:#F1E1C6;--bad-soft:#F1D9D0;--r:4px;
 --tap:44px;--nav-h:62px;--gut:16px;
 --fd:var(--font-display),system-ui,sans-serif;--fb:var(--font-body),system-ui,sans-serif;--fm:var(--font-mono),ui-monospace,monospace;color-scheme:light}
@@ -138,9 +139,10 @@ h3{font-size:1rem;font-weight:700}
 .kotak{flex:none;position:relative;width:20px;height:20px;border:2px solid var(--wood);border-radius:3px;background:var(--surface)}
 .pill[aria-pressed="true"] .kotak{border-color:var(--on-accent);background:var(--on-accent)}
 .pill[aria-pressed="true"] .kotak::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid var(--accent);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
-/* Tahap baru sebagian: tercentang, tapi tombolnya terang (penuh gelap saat 100%) */
-.pill.sebagian[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 22%,var(--surface));border-color:var(--c);color:var(--fg)}
-.pill.sebagian[aria-pressed="true"] .w{color:var(--muted);opacity:1}
+/* Tahap baru sebagian: tercentang, tombol terisi sebanyak persennya (isiTombol di
+   AdminProyek.jsx), teks gelap; 100% = tombol penuh hijau. */
+.pill.sebagian[aria-pressed="true"]{border-color:var(--c);color:var(--fg)}
+.pill.sebagian[aria-pressed="true"] .w{color:var(--fg);font-size:.8rem;font-weight:700;opacity:1}
 .pill.sebagian[aria-pressed="true"] .kotak{border-color:var(--c);background:var(--c)}
 .pill.sebagian[aria-pressed="true"] .kotak::after{border-color:var(--on-accent)}
 .kotak.gembok{border-color:var(--muted);border-style:dashed;background:none}

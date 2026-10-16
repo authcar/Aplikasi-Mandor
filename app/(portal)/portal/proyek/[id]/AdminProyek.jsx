@@ -247,13 +247,19 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
   );
 }
 
-// Isi potongan bar satu tahap: terisi selebar persennya, dan warnanya makin
-// pekat seiring persennya (10% pucat, 100% warna penuh fasenya).
-const warnaPersen = (p) => `color-mix(in srgb, var(--c) ${Math.round(35 + 0.65 * p)}%, var(--sunk))`;
+// Warna progres tahap per tingkat, sengaja beda jelas supaya mudah dibaca
+// sekilas: oranye 1–30%, kuning 31–60%, hijau muda 61–99%, hijau 100%
+// (variabel --p1..--p4 di portal.css). Dipakai bar dan tombol tahap.
+const warnaPersen = (p) => (p >= 100 ? "var(--p4)" : p > 60 ? "var(--p3)" : p > 30 ? "var(--p2)" : "var(--p1)");
+// Potongan bar satu tahap: terisi selebar persennya.
 const isiBar = (p) =>
-  p > 0 && p < 100
-    ? { background: `linear-gradient(to right, ${warnaPersen(p)} ${p}%, var(--sunk) ${p}%)` }
-    : null;
+  p > 0 ? { background: p < 100 ? `linear-gradient(to right, ${warnaPersen(p)} ${p}%, var(--sunk) ${p}%)` : warnaPersen(p) } : null;
+// Tombol tahap ikut terisi sebanyak persennya (warna dimudakan supaya teks
+// tetap terbaca); 100% = tombol penuh hijau.
+const isiTombol = (p) =>
+  !p ? null
+    : p >= 100 ? { "--c": warnaPersen(p), background: warnaPersen(p), borderColor: warnaPersen(p) }
+    : { "--c": warnaPersen(p), background: `linear-gradient(to right, color-mix(in srgb, ${warnaPersen(p)} 60%, var(--surface)) ${p}%, var(--surface) ${p}%)` };
 
 // Semua tahap satu item per fase. Tiap tahap: tombol centang (ketuk = selesai
 // 100% / batal) dan slider + kotak ketik untuk persen pengerjaannya (mis. Potong
@@ -304,16 +310,16 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat }) {
                 return (
                   <div key={s.k} className="tahap-sel">
                     <button type="button" className={`pill${p && p < 100 ? " sebagian" : ""}`} aria-pressed={!!p}
-                      disabled={mati} style={{ "--c": WARNA[s.fase], ...(busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null) }}
+                      disabled={mati} style={{ ...isiTombol(p), ...(busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null) }}
                       onClick={() => toggle(it, s)}>
                       {/* Kotak centang: kosong = ketuk untuk selesai, terisi = sudah dikerjakan, gembok = fase terkunci. */}
                       <i className={`kotak${tutup && !p ? " gembok" : ""}`} aria-hidden="true" />
                       <span className="nm">{s.label}</span>
-                      {p > 0 && <span className="w">{tgl(it.progres[s.k])}</span>}
+                      {p > 0 && <span className="w">{p < 100 ? pct(p) : tgl(it.progres[s.k])}</span>}
                     </button>
                     <div className="geser mini">
                       <input type="range" min="0" max="100" step="1" value={v[s.k]} disabled={mati}
-                        aria-label={`Progres ${s.label}`} style={{ accentColor: WARNA[s.fase] }}
+                        aria-label={`Progres ${s.label}`} style={{ accentColor: v[s.k] ? warnaPersen(v[s.k]) : WARNA[s.fase] }}
                         onChange={(e) => geser(s.k, Number(e.target.value))} onKeyDown={panah(s.k)}
                         onPointerUp={() => kirim(s)} onKeyUp={() => kirim(s)} onBlur={() => kirim(s)} />
                       <label className="ketik num">
