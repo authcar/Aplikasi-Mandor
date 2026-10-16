@@ -57,9 +57,10 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL(home, request.url));
     if (path.startsWith("/tukang-harian") && role !== "TUKANG_HARIAN")
       return NextResponse.redirect(new URL(home, request.url));
-    // Portal Klien (area staf): MASTER = admin, SUPERVISOR = centang progres.
-    // Halaman klien /k/[token] sengaja TIDAK masuk matcher (tanpa login).
-    if (path.startsWith("/portal") && role !== "MASTER" && role !== "SUPERVISOR")
+    // Portal Klien (area staf): MASTER & FINANCE = admin, SUPERVISOR = centang
+    // progres, MANDOR = tukang (hanya melihat item timnya). Peran lengkapnya di
+    // lib/portal/server.js. Halaman klien /k/[token] sengaja TIDAK masuk matcher (tanpa login).
+    if (path.startsWith("/portal") && !["MASTER", "FINANCE", "SUPERVISOR", "MANDOR"].includes(role))
       return NextResponse.redirect(new URL(home, request.url));
   }
 

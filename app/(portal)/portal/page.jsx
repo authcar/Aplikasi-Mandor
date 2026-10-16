@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ambilStaf } from "@/lib/portal/server";
-import { ambilItem, ambilProyekStaf, ambilSupervisor } from "@/lib/portal/data";
+import { ambilItem, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
 import { persenProyek } from "@/lib/portal/progresBoq";
 import { tglTh, pct, statusProyek, labelDeadline, lewatDeadline } from "@/lib/portal/format";
 import ProyekBaru from "./ProyekBaru";
@@ -8,14 +8,16 @@ import ProyekBaru from "./ProyekBaru";
 export default async function PortalBeranda() {
   const { staf } = await ambilStaf();
   const admin = staf.role === "ADMIN";
+  const tukang = staf.role === "TUKANG";
   const [proyek, supervisors] = await Promise.all([ambilProyekStaf(staf), admin ? ambilSupervisor() : []]);
-  const items = await ambilItem(proyek);
+  // Tukang: jumlah item dan progres dihitung dari item timnya saja.
+  const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));
 
   return (
     <main className="wrap">
       <div className="row" style={{ alignItems: "center" }}>
         <div>
-          <div className="eb">{admin ? "Admin" : "Supervisor"}</div>
+          <div className="eb">{admin ? "Admin" : tukang ? "Tukang" : "Supervisor"}</div>
           <h1>Proyek</h1>
         </div>
         {admin && <Link href="/portal/bobot" className="act">Bobot tahap</Link>}
@@ -25,7 +27,7 @@ export default async function PortalBeranda() {
 
       {!proyek.length && (
         <div className="card small">
-          {admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : "Belum ada proyek yang ditugaskan ke Anda."}
+          {admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim tukang “${staf.nama}”.` : "Belum ada proyek yang ditugaskan ke Anda."}
         </div>
       )}
 

@@ -4,7 +4,7 @@ import Header from "../Header";
 
 export const dynamic = "force-dynamic";
 
-// Area staf portal (MASTER = admin, SUPERVISOR). Role lain dikembalikan ke
+// Area staf portal (MASTER/FINANCE = admin, SUPERVISOR, MANDOR = tukang). Role lain dikembalikan ke
 // berandanya sendiri (middleware.js sudah menyaring; ini lapis kedua).
 export default async function StafLayout({ children }) {
   const { staf } = await ambilStaf();

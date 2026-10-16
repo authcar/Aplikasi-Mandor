@@ -20,9 +20,12 @@ import * as A from "../../aksi";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const TABS = [["progres", "Progres"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]];
+const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
 
 export default function AdminProyek({ proyek, items, termin, klien, supervisors, staf }) {
   const admin = staf.role === "ADMIN";
+  // Tukang (akun MANDOR): hanya melihat item timnya, tanpa bisa mengubah apa pun.
+  const tukang = staf.role === "TUKANG";
   const [tab, setTab] = useState("progres");
   const aksi = useAksi();
   const nilai = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
@@ -44,7 +47,7 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
           </div>
         )}
       </div>
-      {kunci && (
+      {kunci && !tukang && (
         <p className="note b-bad">
           Proyek sudah lewat deadline, jadi terkunci. Progres, item, termin, link klien, dan info proyek tidak bisa diubah lagi.
         </p>
@@ -65,12 +68,14 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
         </div>}
       </div>
       {/* Supervisor hanya punya tab Progres, jadi tidak perlu navigasi. */}
-      {admin && <TabBar tabs={TABS} value={tab} onChange={(k) => { setTab(k); aksi.setMsg(""); }} />}
+      {(admin || tukang) && <TabBar tabs={tukang ? TABS_TUKANG : TABS} value={tab} onChange={(k) => { setTab(k); aksi.setMsg(""); }} />}
       <Pesan aksi={aksi} />
 
       {/* Lewat deadline: semua isian & tombol dimatikan sekaligus lewat fieldset. Tab Klien
           di luar fieldset supaya link masih bisa disalin / dikirim; tombolnya diatur sendiri. */}
-      {tab === "klien" ? (
+      {tukang ? (
+        tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} admin={false} lihat /> : <JasaTukangLihat items={items} />
+      ) : tab === "klien" ? (
         <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
       ) : (
         <fieldset className="kunci" disabled={kunci}>
@@ -80,13 +85,13 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
           {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
         </fieldset>
       )}
+      {/* Di luar fieldset: proyek yang terkunci tetap bisa dihapus. */}
+      {admin && tab === "info" && <HapusProyek proyek={proyek} items={items} termin={termin} klien={klien} aksi={aksi} />}
     </main>
   );
 }
 
 // Kolom harga: angka langsung tampil sebagai rupiah saat diketik ("Rp 4.500.000")
-      {/* Di luar fieldset: proyek yang terkunci tetap bisa dihapus. */}
-      {admin && tab === "info" && <HapusProyek proyek={proyek} items={items} termin={termin} klien={klien} aksi={aksi} />}
 // dan disimpan saat pindah dari kolom. Kosong = harga belum diisi.
 const rupiah = (n) => (n ? `Rp ${Number(n).toLocaleString("id-ID")}` : "");
 
@@ -105,7 +110,8 @@ function InputRupiah({ nilai, onSimpan }) {
 
 /* ---------- Progres: satu ketukan untuk tahap berikutnya, buka item untuk semua tahap ---------- */
 // Tahap selalu dicatat selesai hari ini (tanggalnya tidak bisa dipilih).
-function TabProgres({ proyek, items, aksi, admin }) {
+// `lihat` = hanya melihat (tukang): bar dan tombol tahap tidak bisa diketuk.
+function TabProgres({ proyek, items, aksi, admin, lihat }) {
   const tanggal = hariIni();
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [buka, setBuka] = useState(null);
@@ -113,12 +119,12 @@ function TabProgres({ proyek, items, aksi, admin }) {
   const [tim, setTim] = useState(""); // "" = semua tim
   const [area, setArea] = useState(""); // "" = semua area
   items = items.filter((i) => areaProgres(i.area));
-  const kunci = !!busy || aksi.sibuk;
+  const kunci = !!busy || aksi.sibuk || !!lihat;
   // Saring lewat dua dropdown (Tim, Area) supaya daftar item langsung terlihat
   // tanpa buka-tutup bertingkat. Item dikelompokkan per area dengan judul biasa.
   const TANPA_TIM = "Belum ada tim";
   const tims = [...new Set(items.map((i) => i.tim || TANPA_TIM))].sort((a, b) => (a === TANPA_TIM) - (b === TANPA_TIM));
-  const adaTim = items.some((i) => i.tim);
+  const adaTim = !lihat && items.some((i) => i.tim); // tukang hanya punya satu tim
   const diTim = items.filter((i) => !tim || (i.tim || TANPA_TIM) === tim);
   const areas = [...new Set(diTim.map((i) => i.area))];
   const tampil = diTim.filter((i) => !area || i.area === area);
@@ -192,7 +198,9 @@ function TabProgres({ proyek, items, aksi, admin }) {
         )}
       </div>
       <p className="small" style={{ margin: 0 }}>
-        Ketuk bagian bar untuk mencatat tahap fase berjalan, ketuk lagi untuk membatalkan. Ketuk nama item untuk semua tahap.
+        {lihat
+          ? "Progres dicatat oleh supervisor. Ketuk nama item untuk melihat semua tahap."
+          : "Ketuk bagian bar untuk mencatat tahap fase berjalan, ketuk lagi untuk membatalkan. Ketuk nama item untuk semua tahap."}
       </p>
       <div className="card" style={{ padding: "10px 14px" }}>
         <div className="g2" style={adaTim ? null : { gridTemplateColumns: "1fr" }}>
@@ -243,6 +251,7 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
   const berubah = tahap.some((s) => b[s.k] !== s.w);
   const total = tahap.reduce((a, s) => a + b[s.k], 0);
   const geser = (k, v) => setB({ ...b, [k]: v });
+  const terkunci = !produksiSelesai(it);
 
   return (
     <div className="acc-b">
@@ -254,7 +263,6 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
         if (!st.length || (tutup && !admin)) return null;
         return (
           <div key={f.k}>
-  const terkunci = !produksiSelesai(it);
             <div className="fl">{f.label}{tutup && " · terkunci"}</div>
             <div className="pills">
               {st.map((s) => (
@@ -278,6 +286,9 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
           </div>
         );
       })}
+      {terkunci && tahap.some((s) => s.fase !== "produksi") && (
+        <p className="small" style={{ margin: 0 }}>Pengiriman dan instalasi terbuka setelah semua tahap produksi selesai.</p>
+      )}
       {admin && (berubah || it.bobot_khusus) && (
         <div className="stack" style={{ gap: 8 }}>
           <p className="small" style={{ margin: 0 }}>
@@ -286,9 +297,6 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
             {!berubah && " Item ini memakai bobot khusus (bukan bobot bawaan jenisnya)."}
           </p>
           <div className="acts">
-      {terkunci && tahap.some((s) => s.fase !== "produksi") && (
-        <p className="small" style={{ margin: 0 }}>Pengiriman dan instalasi terbuka setelah semua tahap produksi selesai.</p>
-      )}
             {berubah && (
               <>
                 <button type="button" className="act" disabled={aksi.sibuk || total <= 0}
@@ -428,6 +436,33 @@ function RingkasJasa({ items }) {
         <div key={t} className="row small"><span>{t}</span><span className="num">{rp(n)}</span></div>
       ))}
     </div>
+  );
+}
+
+// Jasa tukang untuk tukang: hanya total per item (harga satuan tidak dikirim
+// dari server), tanpa isian apa pun.
+function JasaTukangLihat({ items }) {
+  const areas = [...new Set(items.map((i) => i.area))];
+  return (
+    <>
+      <RingkasJasa items={items} />
+      {areas.map((a) => (
+        <div key={a} className="stack" style={{ gap: 8 }}>
+          <div className="area"><h2>{a}</h2></div>
+          {items.filter((i) => i.area === a).map((it) => (
+            <div key={it.id} className="item acc">
+              <div className="acc-h">
+                <span className="t">
+                  <span className="nm">{it.nama}</span>
+                  <span className="small">{[it.kode, teksQty(it), it.dimensi].filter(Boolean).join(" · ")}</span>
+                </span>
+                <span className="num small">{it.harga ? rp(it.harga) : "—"}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </>
   );
 }
 

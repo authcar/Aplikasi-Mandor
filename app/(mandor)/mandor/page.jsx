@@ -90,6 +90,8 @@ export default async function DashboardMandor({ searchParams }) {
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru },
     { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
+    // Project Tracker: hanya melihat item & jasa tukang timnya (lihat lib/portal/server.js).
+    { href: "/portal", label: "Progres BOQ", icon: "share", tile: "bg-amber-100 text-amber-700" },
   ];
 
   return (
@@ -112,7 +114,8 @@ export default async function DashboardMandor({ searchParams }) {
         <div className="card flex items-start gap-3 border-amber-200 bg-amber-50 p-4 text-amber-800">
           <Icon name="alert-triangle" className="mt-0.5 h-5 w-5 shrink-0" />
           <p className="text-sm font-medium">
-            Belum ada proyek aktif. Hubungi Supervisor Anda.
+            Belum ada proyek aktif. Hubungi Supervisor Anda.{" "}
+            <Link href="/portal" className="underline">Buka Progres BOQ</Link>
           </p>
         </div>
       ) : (

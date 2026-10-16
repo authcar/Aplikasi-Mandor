@@ -19,6 +19,7 @@ async function jalan(fn, { admin = true } = {}) {
   try {
     const { staf } = await ambilStaf();
     if (!staf) throw new Error("Bukan staf.");
+    if (staf.role === "TUKANG") throw new Error("akun tukang hanya bisa melihat.");
     if (admin && staf.role !== "ADMIN") throw new Error("Hanya admin.");
     return (await fn(staf)) || {};
   } catch (e) {
@@ -99,7 +100,6 @@ export async function ubahProyek(id, patch) {
   });
 }
 
-/* ---------- Progres (admin & supervisor proyek) ---------- */
 // Hapus permanen, hanya master. Item, progres, termin, dan link klien ikut
 // terhapus (on delete cascade). Nama yang diketik dicek lagi di sini supaya
 // tidak salah proyek. Proyek yang sudah terkunci (lewat deadline) tetap bisa dihapus.
@@ -112,6 +112,7 @@ export async function hapusProyek(id, namaKetik) {
   });
 }
 
+/* ---------- Progres (admin & supervisor proyek) ---------- */
 export async function setProgres(itemId, tahap, tanggal) {
   return jalan(async (staf) => {
     const row = await hasil(db().from("portal_item").select("*, portal_progres(tahap, selesai_tgl)").eq("id", itemId).maybeSingle());
