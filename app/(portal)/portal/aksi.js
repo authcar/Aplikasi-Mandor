@@ -252,11 +252,12 @@ export async function hapusTermin(id) {
 // bobot = { [tahap]: persen } lengkap untuk jenis item itu. Tidak harus
 // berjumlah 100: progres item dihitung dari perbandingannya (lihat persenItem).
 // null = kembali memakai bobot jenisnya (halaman Bobot tahap / bawaan).
+// Admin dan supervisor boleh; bobot per jenis (simpanBobotTahap) tetap admin saja.
 export async function simpanBobotItem(itemId, bobot) {
-  return jalan(async () => {
+  return jalan(async (staf) => {
     const item = await hasil(db().from("portal_item").select("proyek_id, jenis").eq("id", itemId).maybeSingle());
     if (!item) throw new Error("Item tidak ditemukan.");
-    await cekTerbuka(item.proyek_id);
+    if (!bolehProyek(staf, await cekTerbuka(item.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
     let isi = null;
     if (bobot) {
       isi = Object.fromEntries((TAHAP[item.jenis] || TAHAP.HPL).map((s) => [s.k, Number(bobot[s.k])]));

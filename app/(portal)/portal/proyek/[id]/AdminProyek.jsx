@@ -74,12 +74,12 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
       {/* Lewat deadline: semua isian & tombol dimatikan sekaligus lewat fieldset. Tab Klien
           di luar fieldset supaya link masih bisa disalin / dikirim; tombolnya diatur sendiri. */}
       {tukang ? (
-        tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} admin={false} lihat /> : <JasaTukangLihat items={items} />
+        tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} atur={false} lihat /> : <JasaTukangLihat items={items} />
       ) : tab === "klien" ? (
         <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
       ) : (
         <fieldset className="kunci" disabled={kunci}>
-          {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} />}
+          {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} atur />}
           {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
           {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} nilai={nilaiT} aksi={aksi} />}
           {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
@@ -111,7 +111,7 @@ function InputRupiah({ nilai, onSimpan }) {
 /* ---------- Progres: satu ketukan untuk tahap berikutnya, buka item untuk semua tahap ---------- */
 // Tahap selalu dicatat selesai hari ini (tanggalnya tidak bisa dipilih).
 // `lihat` = hanya melihat (tukang): bar dan tombol tahap tidak bisa diketuk.
-function TabProgres({ proyek, items, aksi, admin, lihat }) {
+function TabProgres({ proyek, items, aksi, atur, lihat }) {
   const tanggal = hariIni();
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [buka, setBuka] = useState(null);
@@ -170,7 +170,7 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
           ))}
         </div>
         {open ? (
-          <TahapItem it={it} aksi={aksi} admin={admin} kunci={kunci} busy={busy} toggle={toggle} />
+          <TahapItem it={it} aksi={aksi} atur={atur} kunci={kunci} busy={busy} toggle={toggle} />
         ) : (
           <div className="acc-q">
             <span className="small">
@@ -238,11 +238,12 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
   );
 }
 
-// Semua tahap satu item per fase: tombol centang, dan (master) slider bobot
+// Semua tahap satu item per fase: tombol centang, dan (`atur`: admin &
+// supervisor, bukan tukang) slider bobot
 // langsung di bawah tiap tahap. Bobot khusus item ini saja. Tiap slider berdiri
 // sendiri (tahap lain tidak ikut berubah); total tidak harus 100 karena progres
 // item dihitung dari perbandingan bobotnya.
-function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
+function TahapItem({ it, aksi, atur, kunci, busy, toggle }) {
   const tahap = tahapItem(it);
   const awal = Object.fromEntries(tahap.map((s) => [s.k, s.w]));
   const kunciAwal = JSON.stringify(awal);
@@ -250,7 +251,22 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
   useEffect(() => setB(JSON.parse(kunciAwal)), [kunciAwal]);
   const berubah = tahap.some((s) => b[s.k] !== s.w);
   const total = tahap.reduce((a, s) => a + b[s.k], 0);
-  const geser = (k, v) => setB({ ...b, [k]: v });
+  // Slider meloncat per 10% (dibulatkan ke kelipatan 10 terdekat). Bukan
+  // step="10" supaya nilai lama yang bukan kelipatan 10 (bobot bawaan 5%)
+  // tetap tampil di posisi yang benar sampai digeser. Panah keyboard ±10.
+  const geser = (k, v) => setB({ ...b, [k]: Math.min(100, Math.max(0, Math.round(v / 10) * 10)) });
+  const panah = (k) => (e) => {
+    const arah = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+    if (!arah) return;
+    e.preventDefault();
+    geser(k, b[k] + arah * 10);
+  };
+  // Kotak ketik di samping slider: angka bebas 0–100 (boleh pecahan), tidak
+  // dibulatkan ke 10. Kosong dianggap 0; di luar 0–100 diabaikan.
+  const ketik = (k, s) => {
+    const v = s === "" ? 0 : Number(s);
+    if (v >= 0 && v <= 100) setB({ ...b, [k]: v });
+  };
   // Fase terkunci pertama yang dimiliki item ini, untuk catatan di bawah.
   const faseTutup = FASE.find((f) => faseTerkunci(it, f.k) && tahap.some((s) => s.fase === f.k));
   const penghalang = faseTutup && faseMenghalangi(it, faseTutup.k);
@@ -259,11 +275,11 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
     <div className="acc-b">
       {FASE.map((f) => {
         const st = tahap.filter((s) => s.fase === f.k);
-        // Fase yang fase sebelumnya belum selesai: supervisor tidak melihatnya
-        // (kecuali sudah ada tahap tercatat, supaya masih bisa dibatalkan); master
-        // tetap melihat (untuk mengatur bobot) tapi tombol catatnya terkunci.
+        // Fase yang fase sebelumnya belum selesai tetap tampil untuk yang bisa
+        // mengatur bobot, tapi tombol catatnya terkunci. Tanpa `atur` fase itu
+        // disembunyikan (kecuali sudah ada tahap tercatat, supaya bisa dibatalkan).
         const tutup = faseTerkunci(it, f.k);
-        if (!st.length || (tutup && !admin && !st.some((s) => it.progres[s.k]))) return null;
+        if (!st.length || (tutup && !atur && !st.some((s) => it.progres[s.k]))) return null;
         return (
           <div key={f.k}>
             <div className="fl">{f.label}{tutup && " · terkunci"}</div>
@@ -278,12 +294,16 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
                     <span className="nm">{s.label}</span>
                     <span className="w">{it.progres[s.k] ? tgl(it.progres[s.k]) : `${b[s.k]}%`}</span>
                   </button>
-                  {admin && (
-                    <label className="geser mini">
+                  {atur && (
+                    <div className="geser mini">
                       <input type="range" min="0" max="100" step="1" value={b[s.k]} aria-label={`Bobot ${s.label}`}
-                        style={{ accentColor: WARNA[s.fase] }} onChange={(e) => geser(s.k, Number(e.target.value))} />
-                      <b className="num">{b[s.k]}%</b>
-                    </label>
+                        style={{ accentColor: WARNA[s.fase] }} onChange={(e) => geser(s.k, Number(e.target.value))} onKeyDown={panah(s.k)} />
+                      <label className="ketik num">
+                        <input type="number" inputMode="decimal" min="0" max="100" step="any" value={b[s.k]}
+                          aria-label={`Bobot ${s.label} (ketik)`} onFocus={(e) => e.target.select()}
+                          onChange={(e) => ketik(s.k, e.target.value)} />%
+                      </label>
+                    </div>
                   )}
                 </div>
               ))}
@@ -296,7 +316,7 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
           {faseTutup.label} terbuka setelah semua tahap {penghalang.label.toLowerCase()} selesai.
         </p>
       )}
-      {admin && (berubah || it.bobot_khusus) && (
+      {atur && (berubah || it.bobot_khusus) && (
         <div className="stack" style={{ gap: 8 }}>
           <p className="small" style={{ margin: 0 }}>
             Total bobot <b className="num">{total.toLocaleString("id-ID")}</b>

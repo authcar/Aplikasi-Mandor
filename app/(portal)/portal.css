@@ -70,7 +70,12 @@ h3{font-size:1rem;font-weight:700}
 .item.mini .track{height:4px}
 .kunci{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:14px}
 .geser{display:grid;grid-template-columns:minmax(72px,104px) minmax(0,1fr) 44px;align-items:center;gap:10px;font-size:.86rem}.geser input{width:100%;min-height:var(--tap);margin:0}.geser .num{text-align:right}
-.tahap-sel{display:flex;flex-direction:column;gap:2px;min-width:0}.geser.mini{grid-template-columns:minmax(0,1fr) 36px;gap:6px;font-size:.78rem}.geser.mini input{min-height:28px}
+.tahap-sel{display:flex;flex-direction:column;gap:2px;min-width:0}.geser.mini{grid-template-columns:minmax(0,1fr) 60px;gap:6px;font-size:.78rem}.geser.mini input{min-height:28px}
+/* Kotak ketik bobot di samping slider */
+.ketik{display:flex;align-items:center;gap:2px;font-weight:600}
+.geser .ketik input{min-width:0;min-height:30px;padding:0 4px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);text-align:right;font-weight:600;-moz-appearance:textfield;appearance:textfield}
+.ketik input::-webkit-inner-spin-button,.ketik input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.ketik input:focus{border-color:var(--wood);outline:none;box-shadow:0 0 0 2px var(--accent-soft)}
 .track.tap{height:24px;gap:3px}.track.tap button{min-width:0;padding:0;border:0;border-radius:3px;background:var(--sunk);cursor:pointer}.track.tap button.on{background:var(--c)}.track.tap button:disabled{cursor:default}
 .tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .tl li{display:grid;grid-template-columns:14px 1fr auto;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}
