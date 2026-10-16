@@ -5,6 +5,9 @@ import { useAksi } from "../useAksi";
 import Pesan from "../Pesan";
 import { FASE, JENIS, JENIS_LABEL, TAHAP } from "@/lib/portal/progresBoq";
 import { angka } from "@/lib/portal/format";
+
+// Warna tiap fase, sama dengan bar progres di halaman proyek.
+const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 import { simpanBobotTahap, resetBobotTahap } from "../aksi";
 
 // tersimpan = { [jenis]: { [tahap]: persen } } (hanya jenis yang pernah diubah).
@@ -58,8 +61,8 @@ function KartuJenis({ jenis, tersimpan, aksi }) {
         if (!st.length) return null;
         const subtotal = Math.round(st.reduce((a, s) => a + (nilai(s.k) || 0), 0) * 100) / 100;
         return (
-          <div key={f.k}>
-            <div className="fl row">
+          <div key={f.k} className="fase-grup" style={{ "--c": WARNA[f.k] }}>
+            <div className="fase-h">
               <span>{f.label}</span>
               <span className="num">{subtotal.toLocaleString("id-ID")}%</span>
             </div>

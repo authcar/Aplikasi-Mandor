@@ -186,3 +186,9 @@ body:has(.tabbar) .toast{bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-b
   textarea.inp{font-size:.8rem}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* Bobot tahap: satu kotak per fase, ditandai warna fasenya (--c). */
+.fase-grup{border:1px solid var(--line);border-left:5px solid var(--c);border-radius:10px;padding:12px 14px;background:color-mix(in srgb,var(--c) 7%,var(--surface))}
+.fase-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line);font-size:.8rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--fg)}
+.fase-h::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.fase-h>span:first-child{flex:1}
+.fase-h .num{padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--c) 25%,var(--surface));color:var(--fg);letter-spacing:0;font-size:.75rem}
