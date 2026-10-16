@@ -56,16 +56,23 @@ function KartuJenis({ jenis, tersimpan, aksi }) {
       {FASE.map((f) => {
         const st = TAHAP[jenis].filter((s) => s.fase === f.k);
         if (!st.length) return null;
+        const subtotal = Math.round(st.reduce((a, s) => a + (nilai(s.k) || 0), 0) * 100) / 100;
         return (
           <div key={f.k}>
-            <div className="fl">{f.label}</div>
+            <div className="fl row">
+              <span>{f.label}</span>
+              <span className="num">{subtotal.toLocaleString("id-ID")}%</span>
+            </div>
             <div className="stack" style={{ gap: 8 }}>
               {st.map((s) => (
                 <label key={s.k} className="tglrow">
                   <span>{s.label}{tersimpan && berlaku(s) !== s.w ? ` (bawaan ${s.w}%)` : ""}</span>
-                  <input className="inp num" inputMode="decimal" aria-label={`${s.label} (%)`}
-                    style={{ flex: "0 0 96px", textAlign: "right" }}
-                    value={isi[s.k]} onChange={(e) => setIsi({ ...isi, [s.k]: e.target.value })} />
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <input className="inp num" inputMode="decimal" aria-label={`${s.label} (%)`}
+                      style={{ flex: "0 0 96px", width: 96, textAlign: "right" }}
+                      value={isi[s.k]} onChange={(e) => setIsi({ ...isi, [s.k]: e.target.value })} />
+                    <span aria-hidden="true">%</span>
+                  </span>
                 </label>
               ))}
             </div>
