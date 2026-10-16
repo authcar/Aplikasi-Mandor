@@ -275,11 +275,11 @@ function TahapItem({ it, aksi, atur, kunci, busy, toggle }) {
     <div className="acc-b">
       {FASE.map((f) => {
         const st = tahap.filter((s) => s.fase === f.k);
-        // Fase yang fase sebelumnya belum selesai tetap tampil untuk yang bisa
-        // mengatur bobot, tapi tombol catatnya terkunci. Tanpa `atur` fase itu
-        // disembunyikan (kecuali sudah ada tahap tercatat, supaya bisa dibatalkan).
+        // Fase yang fase sebelumnya belum selesai disembunyikan untuk semua akun
+        // (bobotnya baru bisa diatur setelah fase itu terbuka), kecuali sudah ada
+        // tahap tercatat (data lama), supaya masih bisa dibatalkan.
         const tutup = faseTerkunci(it, f.k);
-        if (!st.length || (tutup && !atur && !st.some((s) => it.progres[s.k]))) return null;
+        if (!st.length || (tutup && !st.some((s) => it.progres[s.k]))) return null;
         return (
           <div key={f.k}>
             <div className="fl">{f.label}{tutup && " · terkunci"}</div>
