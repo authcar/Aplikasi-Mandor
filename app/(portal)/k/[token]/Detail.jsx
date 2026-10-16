@@ -1,14 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FASE, tahapItem, persenItem, persenProyek, persenFase, bobotFase, tahapTerakhir, faseKini, areaProgres } from "@/lib/portal/progresBoq";
+import { persenItem, persenProyek, areaProgres } from "@/lib/portal/progresBoq";
 import {
   hariIni, tambahHari, tgl, tglTh, rp, pct, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, labelDeadline, judulTermin, keteranganTermin,
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
-
-const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 
 function Ring({ p }) {
   const r = 34, c = 2 * Math.PI * r;
@@ -93,27 +91,7 @@ export default function Detail({ P }) {
           <div className="card small">Rincian pekerjaan sedang disiapkan tim kami.</div>
         ) : (
           <>
-            <section className="card">
-              <div className="phasebar">
-                {FASE.map((f) => {
-                  const max = bobotFase(items, f.k);
-                  if (!max) return null;
-                  return (
-                    <div key={f.k} style={{ flex: max }}>
-                      <i style={{ width: `${(persenFase(items, f.k) / max) * 100}%`, background: WARNA[f.k] }} />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="legend">
-                {FASE.filter((f) => bobotFase(items, f.k)).map((f) => (
-                  <div key={f.k} style={{ "--c": WARNA[f.k] }}>
-                    <b>{f.label}</b>
-                    <span className="num small">{pct(persenFase(items, f.k))} / {pct(bobotFase(items, f.k))}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
+            {/* Klien hanya melihat persentase per area dan per item; rincian fase/tahap cukup untuk staf. */}
             {areas.filter(areaProgres).map((a) => {
               const its = items.filter((i) => i.area === a);
               return (
@@ -130,7 +108,6 @@ export default function Detail({ P }) {
                   <div className="lipat-b">
                   {its.map((it) => {
                     const v = persenItem(it);
-                    const kini = tahapTerakhir(it), fase = faseKini(it);
                     return (
                       <div key={it.id} className="item mini">
                         <div className="row">
@@ -140,15 +117,9 @@ export default function Detail({ P }) {
                           </div>
                           <b className="num">{v}%</b>
                         </div>
-                        {/* Klien cukup melihat satu bar polos untuk fase yang sedang berjalan
-                            (Produksi -> Pengiriman -> ...), tanpa rincian tiap tahap. */}
                         <span className="bar" style={{ display: "block" }}>
-                          <i style={{ width: `${fase ? fase.persen : 100}%`, background: fase ? WARNA[fase.k] : "var(--ok)" }} />
+                          <i style={{ width: `${v}%`, background: v >= 100 ? "var(--ok)" : undefined }} />
                         </span>
-                        {/* Stage saat ini = tahap yang terakhir dicatat (tanggal paling baru). */}
-                        <div className="small">
-                          {!fase ? "Selesai" : <>{fase.label} {pct(fase.persen)} · {kini ? `Stage saat ini: ${kini.label}` : "Belum dimulai"}</>}
-                        </div>
                       </div>
                     );
                   })}
