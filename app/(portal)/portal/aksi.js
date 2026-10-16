@@ -6,7 +6,7 @@ import { randomBytes } from "crypto";
 import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek, ambilBobotTahap } from "@/lib/portal/data";
-import { JENIS, TAHAP, tahapItem, tahapTerkunci } from "@/lib/portal/progresBoq";
+import { FASE, JENIS, TAHAP, tahapItem, faseMenghalangi } from "@/lib/portal/progresBoq";
 import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
 
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
@@ -128,11 +128,14 @@ export async function setProgres(itemId, tahap, tanggal) {
     };
     const s = tahapItem(item).find((x) => x.k === tahap);
     if (!s) throw new Error("Tahap tidak valid.");
-    // Pengiriman/instalasi/retensi baru boleh setelah produksi selesai, dan
-    // produksi tidak bisa dibatalkan selama tahap sesudahnya masih tercatat.
-    if (tanggal && tahapTerkunci(item, s)) throw new Error("selesaikan semua tahap produksi dulu.");
-    if (!tanggal && s.fase === "produksi" && s.w > 0 && tahapItem(item).some((x) => x.fase !== "produksi" && item.progres[x.k]))
-      throw new Error("batalkan dulu tahap pengiriman/instalasi item ini.");
+    // Fase berurutan: tahap baru boleh dicatat setelah fase-fase sebelumnya
+    // selesai, dan tahap tidak bisa dibatalkan selama fase sesudahnya masih
+    // punya tahap tercatat (supaya urutan tidak bolong).
+    const penghalang = faseMenghalangi(item, s.fase);
+    if (tanggal && penghalang) throw new Error(`selesaikan semua tahap ${penghalang.label.toLowerCase()} dulu.`);
+    const sesudah = tahapItem(item).filter((x) => FASE.findIndex((f) => f.k === x.fase) > FASE.findIndex((f) => f.k === s.fase) && item.progres[x.k]);
+    if (!tanggal && s.w > 0 && sesudah.length)
+      throw new Error(`batalkan dulu tahap ${sesudah.map((x) => x.label).join(", ")} item ini.`);
     if (!tanggal) return void (await hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap)));
     await hasil(
       db().from("portal_progres").upsert({

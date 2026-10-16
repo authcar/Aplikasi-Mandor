@@ -8,7 +8,7 @@ import UnggahBoq from "../../UnggahBoq";
 import TabBar from "../../../TabBar";
 import {
   FASE, JENIS_LABEL, tahapItem, persenItem, persenProyek,
-  tahapTerakhir, tahapBerikut, tahapBar, areaProgres, faseKini, produksiSelesai, tahapTerkunci,
+  tahapTerakhir, tahapBerikut, tahapBar, areaProgres, faseKini, faseTerkunci, faseMenghalangi, tahapTerkunci,
 } from "@/lib/portal/progresBoq";
 import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
@@ -251,16 +251,19 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
   const berubah = tahap.some((s) => b[s.k] !== s.w);
   const total = tahap.reduce((a, s) => a + b[s.k], 0);
   const geser = (k, v) => setB({ ...b, [k]: v });
-  const terkunci = !produksiSelesai(it);
+  // Fase terkunci pertama yang dimiliki item ini, untuk catatan di bawah.
+  const faseTutup = FASE.find((f) => faseTerkunci(it, f.k) && tahap.some((s) => s.fase === f.k));
+  const penghalang = faseTutup && faseMenghalangi(it, faseTutup.k);
 
   return (
     <div className="acc-b">
       {FASE.map((f) => {
         const st = tahap.filter((s) => s.fase === f.k);
-        // Fase sesudah produksi: supervisor tidak melihatnya sama sekali; master
+        // Fase yang fase sebelumnya belum selesai: supervisor tidak melihatnya
+        // (kecuali sudah ada tahap tercatat, supaya masih bisa dibatalkan); master
         // tetap melihat (untuk mengatur bobot) tapi tombol catatnya terkunci.
-        const tutup = terkunci && f.k !== "produksi";
-        if (!st.length || (tutup && !admin)) return null;
+        const tutup = faseTerkunci(it, f.k);
+        if (!st.length || (tutup && !admin && !st.some((s) => it.progres[s.k]))) return null;
         return (
           <div key={f.k}>
             <div className="fl">{f.label}{tutup && " · terkunci"}</div>
@@ -268,7 +271,7 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
               {st.map((s) => (
                 <div key={s.k} className="tahap-sel">
                   <button type="button" className="pill" aria-pressed={!!it.progres[s.k]}
-                    disabled={kunci || tutup} style={busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null}
+                    disabled={kunci || (tutup && !it.progres[s.k])} style={busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null}
                     onClick={() => toggle(it, s)}>
                     <span>{it.progres[s.k] ? "✓ " : ""}{s.label}</span>
                     <span className="w">{it.progres[s.k] ? tgl(it.progres[s.k]) : `${b[s.k]}%`}</span>
@@ -286,8 +289,10 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle }) {
           </div>
         );
       })}
-      {terkunci && tahap.some((s) => s.fase !== "produksi") && (
-        <p className="small" style={{ margin: 0 }}>Pengiriman dan instalasi terbuka setelah semua tahap produksi selesai.</p>
+      {faseTutup && (
+        <p className="small" style={{ margin: 0 }}>
+          {faseTutup.label} terbuka setelah semua tahap {penghalang.label.toLowerCase()} selesai.
+        </p>
       )}
       {admin && (berubah || it.bobot_khusus) && (
         <div className="stack" style={{ gap: 8 }}>
