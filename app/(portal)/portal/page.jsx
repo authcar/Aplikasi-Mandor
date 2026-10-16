@@ -27,7 +27,7 @@ export default async function PortalBeranda() {
 
       {!proyek.length && (
         <div className="card small">
-          {admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim tukang “${staf.nama}”.` : "Belum ada proyek yang ditugaskan ke Anda."}
+          {admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim tukang “${staf.nama}”.` : "Belum ada proyek."}
         </div>
       )}
 
