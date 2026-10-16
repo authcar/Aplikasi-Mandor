@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
@@ -84,6 +85,8 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
 }
 
 // Kolom harga: angka langsung tampil sebagai rupiah saat diketik ("Rp 4.500.000")
+      {/* Di luar fieldset: proyek yang terkunci tetap bisa dihapus. */}
+      {admin && tab === "info" && <HapusProyek proyek={proyek} items={items} termin={termin} klien={klien} aksi={aksi} />}
 // dan disimpan saat pindah dari kolom. Kosong = harga belum diisi.
 const rupiah = (n) => (n ? `Rp ${Number(n).toLocaleString("id-ID")}` : "");
 
@@ -951,5 +954,63 @@ function TabInfo({ proyek, supervisors, aksi }) {
       </label>
       <button className="btn" disabled={aksi.sibuk}>Simpan</button>
     </form>
+  );
+}
+
+// Hapus permanen. Tombol baru aktif setelah nama proyek diketik persis.
+// Tidak lewat aksi.jalankan: setelah berhasil, halaman ini sudah tidak ada
+// (refresh akan 404), jadi langsung pindah ke daftar proyek.
+function HapusProyek({ proyek, items, termin, klien, aksi }) {
+  const router = useRouter();
+  const [buka, setBuka] = useState(false);
+  const [ketik, setKetik] = useState("");
+  const [busy, setBusy] = useState(false);
+  const cocok = ketik.trim() === proyek.nama.trim();
+  const ikut = [
+    items.length && `${items.length} item beserta progresnya`,
+    termin.length && `${termin.length} termin`,
+    klien.length && "link klien (tidak bisa dibuka lagi)",
+  ].filter(Boolean);
+
+  async function hapus() {
+    setBusy(true);
+    aksi.setMsg("");
+    let error;
+    try {
+      ({ error } = (await A.hapusProyek(proyek.id, ketik)) || {});
+    } catch {
+      error = "tidak tersambung ke server. Periksa koneksi lalu coba lagi.";
+    }
+    if (error) {
+      setBusy(false);
+      return aksi.setMsg(`Gagal: ${error}`);
+    }
+    router.replace("/portal");
+    router.refresh();
+  }
+
+  if (!buka)
+    return (
+      <button type="button" className="act bahaya" style={{ alignSelf: "flex-start" }} onClick={() => setBuka(true)}>
+        Hapus proyek
+      </button>
+    );
+  return (
+    <div className="card stack" style={{ borderColor: "var(--bad)" }}>
+      <b style={{ color: "var(--bad)" }}>Hapus proyek ini?</b>
+      <p className="small" style={{ margin: 0 }}>
+        Proyek dihapus permanen dan tidak bisa dikembalikan.
+        {ikut.length ? ` Ikut terhapus: ${ikut.join(", ")}.` : ""}
+      </p>
+      <label className="lbl">Ketik <b style={{ textTransform: "none", letterSpacing: 0 }}>{proyek.nama}</b> untuk konfirmasi
+        <input className="inp" value={ketik} onChange={(e) => setKetik(e.target.value)} autoComplete="off" spellCheck={false} />
+      </label>
+      <div className="acts">
+        <button type="button" className="act" disabled={busy} onClick={() => { setBuka(false); setKetik(""); }}>Batal</button>
+        <button type="button" className="act bahaya" disabled={!cocok || busy} onClick={hapus}>
+          {busy ? "Menghapus…" : "Hapus permanen"}
+        </button>
+      </div>
+    </div>
   );
 }

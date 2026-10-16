@@ -100,6 +100,18 @@ export async function ubahProyek(id, patch) {
 }
 
 /* ---------- Progres (admin & supervisor proyek) ---------- */
+// Hapus permanen, hanya master. Item, progres, termin, dan link klien ikut
+// terhapus (on delete cascade). Nama yang diketik dicek lagi di sini supaya
+// tidak salah proyek. Proyek yang sudah terkunci (lewat deadline) tetap bisa dihapus.
+export async function hapusProyek(id, namaKetik) {
+  return jalan(async () => {
+    const p = await ambilProyek(id);
+    if (!p) throw new Error("Proyek tidak ditemukan.");
+    if (String(namaKetik || "").trim() !== p.nama.trim()) throw new Error("nama proyek yang diketik tidak sama.");
+    await hapus("portal_proyek", id);
+  });
+}
+
 export async function setProgres(itemId, tahap, tanggal) {
   return jalan(async (staf) => {
     const item = await hasil(db().from("portal_item").select("proyek_id, jenis").eq("id", itemId).maybeSingle());
