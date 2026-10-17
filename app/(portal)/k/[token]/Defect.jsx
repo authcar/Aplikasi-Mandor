@@ -22,6 +22,8 @@ export default function Defect({ items, defect }) {
   const [baris, setBaris] = useState(() => [barisBaru()]);
   const [busy, setBusy] = useState("");
   const [pesan, setPesan] = useState(null); // [teks, kelas]
+  const [bukaLaporan, setBukaLaporan] = useState(false);
+  const belumSelesai = defect.filter((d) => d.status !== "SELESAI").length;
   // Lepas pratinjau foto yang masih ada saat tab ditutup.
   const sekarang = useRef(baris);
   sekarang.current = baris;
@@ -91,7 +93,10 @@ export default function Defect({ items, defect }) {
     setBusy("");
     // Semua terkirim -> form kembali ke satu baris kosong.
     if (!error) setBaris((bs) => (bs.length ? bs : [barisBaru()]));
-    if (terkirim) router.refresh();
+    if (terkirim) {
+      setBukaLaporan(true);
+      router.refresh();
+    }
     if (error)
       return setPesan([`${terkirim ? `${terkirim} keluhan terkirim. ` : ""}Gagal: ${error}`, "b-bad"]);
     setPesan([
@@ -160,13 +165,23 @@ export default function Defect({ items, defect }) {
         </button>
       </form>
 
+      {/* Daftar laporan bisa dibuka-tutup; terbuka sendiri setelah laporan baru terkirim. */}
       {defect.length > 0 && (
-        <div className="stack" style={{ gap: 8 }}>
-          <div className="area"><h2>Laporan Anda</h2><span className="num small">{defect.length}</span></div>
+        <details className="lipat" open={bukaLaporan} onToggle={(e) => setBukaLaporan(e.currentTarget.open)}>
+          <summary>
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <h2>Laporan Anda</h2>
+              <span className="small">
+                {defect.length} laporan
+                {belumSelesai ? ` · ${belumSelesai} belum selesai` : " · semua selesai"}
+              </span>
+            </span>
+          </summary>
+          <div className="lipat-b" style={{ gap: 8 }}>
           {defect.map((d) => {
             const [lab, cls] = STATUS_DEFECT[d.status] || STATUS_DEFECT.BARU;
             return (
-              <div key={d.id} className="card stack" style={{ gap: 8 }}>
+              <div key={d.id} className="defect-baris" style={{ gap: 8 }}>
                 <div className="row" style={{ alignItems: "center" }}>
                   <span className="small">{tglTh(tglJkt(d.created_at))}{d.item_id && namaItem[d.item_id] ? ` · ${namaItem[d.item_id]}` : ""}</span>
                   <span className={`badge ${cls}`}>{lab}</span>
@@ -196,7 +211,8 @@ export default function Defect({ items, defect }) {
               </div>
             );
           })}
-        </div>
+          </div>
+        </details>
       )}
     </>
   );
