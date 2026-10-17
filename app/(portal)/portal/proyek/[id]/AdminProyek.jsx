@@ -24,7 +24,7 @@ const TABS = [["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukan
 const TABS_SPV = [["progres", "Progres"], ["defect", "Defect"]];
 const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
 
-export default function AdminProyek({ proyek, items, termin, klien, supervisors, defect = [], staf }) {
+export default function AdminProyek({ proyek, items, termin, klien, supervisors, defect = [], mandor = null, staf }) {
   const admin = staf.role === "ADMIN";
   // Tukang (akun MANDOR): hanya melihat item timnya, tanpa bisa mengubah apa pun.
   const tukang = staf.role === "TUKANG";
@@ -83,7 +83,7 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
       ) : tab === "klien" ? (
         <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
       ) : tab === "defect" ? (
-        <TabDefect items={items} defect={defect} aksi={aksi} admin={admin} />
+        <TabDefect items={items} defect={defect} aksi={aksi} admin={admin} mandor={mandor} />
       ) : (
         <fieldset className="kunci" disabled={kunci}>
           {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} />}
@@ -945,20 +945,35 @@ const URUT_DEFECT = { BARU: 0, DIPROSES: 1, SELESAI: 2 };
 const MAKS_FOTO_TANGGAPAN = 5; // sama dengan MAKS_FOTO_DEFECT di lib/portal/defect.js
 const tglJkt = (ts) => new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-function TabDefect({ items, defect, aksi, admin }) {
+function TabDefect({ items, defect, aksi, admin, mandor }) {
   const namaItem = Object.fromEntries(items.map((i) => [i.id, i.nama]));
   const urut = [...defect].sort((a, b) => URUT_DEFECT[a.status] - URUT_DEFECT[b.status] || b.created_at.localeCompare(a.created_at));
+  // Tersambung ke proyek Mandor dengan nama sama: laporan klien masuk Defect List Mandor.
+  const infoMandor = mandor && (
+    <div className="card stack" style={{ gap: 10 }}>
+      <p className="small" style={{ margin: 0 }}>
+        Laporan klien proyek ini otomatis masuk ke <b>Defect List</b> Aplikasi Mandor (proyek {mandor.nama}) dan dikerjakan
+        lewat alur biasa: mandor kerjakan, kirim bukti, supervisor setujui. Status dan foto bukti yang disetujui tampil di halaman klien.
+      </p>
+      {mandor.path && <Link href={mandor.path} className="act">Buka Defect List Mandor</Link>}
+    </div>
+  );
   if (!defect.length)
     return (
-      <div className="card small">
-        Belum ada laporan defect dari klien. Klien bisa melapor lewat tab Defect di link klien, lengkap dengan foto.
-      </div>
+      <>
+        {infoMandor}
+        <div className="card small">
+          Belum ada laporan defect dari klien. Klien bisa melapor lewat tab Defect di link klien, lengkap dengan foto.
+        </div>
+      </>
     );
   return (
     <>
-      <p className="small" style={{ margin: 0 }}>
-        Laporan dari klien lewat link. Status dan tanggapan langsung tampil di halaman klien.
-      </p>
+      {infoMandor || (
+        <p className="small" style={{ margin: 0 }}>
+          Laporan dari klien lewat link. Status dan tanggapan langsung tampil di halaman klien.
+        </p>
+      )}
       {urut.map((d) => <KartuDefect key={d.id} d={d} namaItem={namaItem} aksi={aksi} admin={admin} />)}
     </>
   );
@@ -1011,8 +1026,23 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
           ))}
         </div>
       )}
+      {/* Tersambung ke Defect List Mandor: hanya dilihat di sini (status & foto bukti dari Mandor). */}
+      {d.mandor ? (
+        <>
+          {fotoT.length > 0 && (
+            <div className="lbl" style={{ gap: 8 }}>Foto bukti (disetujui)
+              <div className="foto-grid">
+                {fotoT.filter((f) => f.url).map((f, n) => (
+                  <a key={f.path} href={f.url} target="_blank" rel="noreferrer" className="foto"><img src={f.url} alt={`Foto bukti ${n + 1}`} /></a>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="small" style={{ margin: 0 }}>Dikelola di Defect List Aplikasi Mandor; status di sini mengikuti dari sana.</p>
+        </>
+      ) : (<>
       <div className="seg" role="group" aria-label="Status defect">
-        {Object.entries(STATUS_DEFECT).map(([k, [l]]) => (
+        {Object.entries(STATUS_DEFECT).filter(([k]) => k !== "DITUTUP").map(([k, [l]]) => (
           <button key={k} type="button" aria-pressed={d.status === k} disabled={aksi.sibuk}
             onClick={() => d.status !== k && aksi.jalankan(() => A.ubahDefect(d.id, { status: k }), `Status defect: ${l}.`)}>
             {l}
@@ -1059,6 +1089,7 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
           )}
         </div>
       )}
+      </>)}
       </div>
     </details>
   );

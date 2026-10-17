@@ -299,14 +299,18 @@ export async function resetBobotTahap(jenis) {
 }
 
 /* ---------- Defect dari klien ---------- */
+// Defect yang tersambung ke Defect List Aplikasi Mandor (checklist_id) dikelola di sana.
+const DI_MANDOR = "defect ini dikelola di Defect List Aplikasi Mandor.";
+
 // Admin & supervisor: ubah status (BARU/DIPROSES/SELESAI) dan tanggapan yang
 // tampil di halaman klien. Tidak ikut kunci deadline (keluhan sering datang
 // setelah serah terima).
 export async function ubahDefect(id, patch) {
   return jalan(async (staf) => {
-    const d = await hasil(db().from("portal_defect").select("proyek_id").eq("id", id).maybeSingle());
+    const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
     if (!d) throw new Error("Defect tidak ditemukan.");
     if (!bolehProyek(staf, await ambilProyek(d.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    if (d.checklist_id) throw new Error(DI_MANDOR);
     const isi = {};
     if ("status" in patch) {
       if (!["BARU", "DIPROSES", "SELESAI"].includes(patch.status)) throw new Error("Status tidak valid.");
@@ -327,6 +331,7 @@ export async function hapusFotoTanggapan(id, path) {
     const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
     if (!d) throw new Error("Defect tidak ditemukan.");
     if (!bolehProyek(staf, await ambilProyek(d.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    if (d.checklist_id) throw new Error(DI_MANDOR);
     if (!(d.foto_tanggapan || []).includes(path)) throw new Error("Foto tidak ditemukan.");
     await ubah("portal_defect", id, {
       foto_tanggapan: d.foto_tanggapan.filter((p) => p !== path), diubah_oleh: staf.id, diubah_at: new Date().toISOString(),
@@ -340,6 +345,7 @@ export async function hapusDefect(id) {
   return jalan(async () => {
     const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
     if (!d) throw new Error("Defect tidak ditemukan.");
+    if (d.checklist_id) throw new Error(`${DI_MANDOR} Batalkan itemnya di sana.`);
     await hapus("portal_defect", id);
     const foto = semuaFotoDefect(d);
     if (foto.length) await db().storage.from(BUCKET_DEFECT).remove(foto);

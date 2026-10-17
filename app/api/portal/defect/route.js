@@ -3,6 +3,7 @@ import { db, hasil, UUID } from "@/lib/portal/db";
 import { BUCKET_DEFECT, MAKS_FOTO_DEFECT, MAKS_KETERANGAN_DEFECT } from "@/lib/portal/defect";
 import { hariIni } from "@/lib/portal/format";
 import { sendPushToRoles } from "@/lib/push";
+import { cariProyekMandor, buatChecklistKlien, PATH_DEFECT_MANDOR } from "@/lib/portal/mandor";
 
 export const dynamic = "force-dynamic";
 
@@ -40,10 +41,12 @@ export async function POST(req) {
     const proyek = await hasil(db().from("portal_proyek").select("id, nama").eq("id", link.proyek_id).maybeSingle());
     if (!proyek) return gagal("link tidak berlaku.", 404);
 
+    let itemNama = null;
     if (itemId) {
       if (!UUID.test(itemId)) return gagal("item tidak valid.");
-      const it = await hasil(db().from("portal_item").select("proyek_id").eq("id", itemId).maybeSingle());
+      const it = await hasil(db().from("portal_item").select("proyek_id, nama").eq("id", itemId).maybeSingle());
       if (it?.proyek_id !== proyek.id) return gagal("item tidak valid.");
+      itemNama = it.nama;
     }
 
     const { count } = await db()
@@ -53,7 +56,28 @@ export async function POST(req) {
       .gte("created_at", `${hariIni()}T00:00:00+07:00`);
     if (count >= MAKS_PER_HARI) return gagal("sudah banyak laporan hari ini. Silakan hubungi tim Taraco langsung.", 429);
 
-    // Unggah foto dulu; kalau penyimpanan data gagal, foto yang sudah naik dihapus lagi.
+    // Proyek yang namanya sama dengan proyek Mandor aktif: laporan masuk Defect
+    // List Mandor (fotonya di sana); portal_defect hanya menyimpan catatan klien.
+    const pm = await cariProyekMandor(proyek.nama);
+    if (pm) {
+      const cl = await buatChecklistKlien(pm, { keterangan, pelapor: link.nama, itemNama, foto });
+      try {
+        await hasil(
+          db().from("portal_defect")
+            .insert({ proyek_id: proyek.id, item_id: itemId, keterangan, pelapor: link.nama || null, checklist_id: cl.id })
+        );
+      } catch (e) {
+        await cl.hapus();
+        throw e;
+      }
+      const isi = `${link.nama ? `${link.nama}: ` : ""}${keterangan.slice(0, 120)}`;
+      for (const [role, url] of Object.entries(PATH_DEFECT_MANDOR))
+        await sendPushToRoles([role], { title: `Defect klien · ${pm.nama}`, body: isi, url }).catch(() => {});
+      return NextResponse.json({ ok: true });
+    }
+
+    // Belum tersambung: defect portal biasa. Unggah foto dulu; kalau
+    // penyimpanan data gagal, foto yang sudah naik dihapus lagi.
     const paths = [];
     try {
       for (let i = 0; i < foto.length; i++) {

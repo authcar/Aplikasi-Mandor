@@ -196,8 +196,9 @@ export default function Defect({ items, defect }) {
                 )}
                 {(d.tanggapan || d.foto_tanggapan?.length > 0) && (
                   <div className="note b-n stack" style={{ gap: 8 }}>
+                    {/* Tanpa teks tanggapan = foto bukti pengerjaan dari Defect List Mandor. */}
                     <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                      <b>Tanggapan tim{d.diubah_at ? ` · ${tgl(tglJkt(d.diubah_at))}` : ""}:</b> {d.tanggapan}
+                      <b>{d.tanggapan ? "Tanggapan tim" : "Hasil perbaikan"}{d.diubah_at ? ` · ${tgl(tglJkt(d.diubah_at))}` : ""}{d.tanggapan ? ":" : ""}</b> {d.tanggapan}
                     </p>
                     {d.foto_tanggapan?.length > 0 && (
                       <div className="foto-grid">

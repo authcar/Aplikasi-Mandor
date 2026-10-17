@@ -34,6 +34,7 @@ export async function POST(req) {
     const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
     if (!d) return gagal("defect tidak ditemukan.", 404);
     if (!bolehProyek(staf, await ambilProyek(d.proyek_id))) return gagal("tidak punya akses ke proyek ini.", 403);
+    if (d.checklist_id) return gagal("defect ini dikelola di Defect List Aplikasi Mandor.");
     if (!("foto_tanggapan" in d))
       return gagal("kolom foto tanggapan belum ada. Jalankan supabase/add_portal_defect_foto_tanggapan.sql di Supabase dulu.", 503);
     const lama = d.foto_tanggapan || [];
