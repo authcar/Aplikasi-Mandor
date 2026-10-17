@@ -152,6 +152,8 @@ h3{font-size:1rem;font-weight:700}
 .foto.tambah{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:var(--r);color:var(--muted);font-size:1.6rem;font-weight:300;cursor:pointer;text-transform:none;letter-spacing:0}
 .foto-x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border:0;border-radius:50%;background:var(--fg);color:var(--bg);font-size:.9rem;line-height:1;padding:0}
 .inp.teks{font-family:var(--fb);min-height:96px;font-size:16px}
+.defect-baris{display:flex;flex-direction:column;gap:12px;min-width:0;margin:0;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.act.tambah-baris{width:100%;border-style:dashed;border-width:2px;color:var(--muted)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .kotak.gembok{border-color:var(--muted);border-style:dashed;background:none}
 .kotak.gembok::after{content:"";position:absolute;inset:3px;background:var(--muted);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E") center/contain no-repeat}

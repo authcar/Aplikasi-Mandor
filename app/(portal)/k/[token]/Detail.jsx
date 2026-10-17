@@ -74,7 +74,7 @@ export default function Detail({ P }) {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
           <span className={`badge ${cls}`} style={{ alignSelf: "flex-start" }}>{st}</span>
           <div className="small">
-            {naik > 0 ? <><span className="delta">+{pct(naik)}</span> dalam 7 hari terakhir</> : "Tidak ada perubahan 7 hari terakhir"}
+            {naik > 0 ? <><span className="delta">+{pct(naik)}</span> progress dalam 7 hari terakhir</> : "Tidak ada perubahan 7 hari terakhir"}
           </div>
           {p > 0 && <div className="small">Termasuk persiapan &amp; material {SPREAD_KLIEN}%</div>}
           {P.deadline && (
