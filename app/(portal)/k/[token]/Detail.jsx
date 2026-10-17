@@ -148,15 +148,12 @@ export default function Detail({ P }) {
                 <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{total > 0 ? rp(Math.max(0, total - dibayar)) : "—"}</div></div>
               </div>
             )}
-            {JENIS_TERMIN.map(([jenis, judul]) => {
+            {/* Tanpa judul jenis termin ("Jasa produksi"): nilainya sudah tampil di Total nilai proyek. */}
+            {JENIS_TERMIN.map(([jenis]) => {
               const daftar = P.termin.filter((t) => jenisTermin(t) === jenis);
               if (!daftar.length) return null;
               return (
                 <section key={jenis} className="card">
-                  <div className="row" style={{ marginBottom: 4 }}>
-                    <h3>{judul}</h3>
-                    {nilaiT[jenis] > 0 && <span className="num small">{rp(nilaiT[jenis])}</span>}
-                  </div>
                   <ul className="tl">
                     {daftar.map((t, n) => {
                       const masuk = dibayarTermin(t, nilaiT);
