@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek, ambilBobotTahap, bacaProgres } from "@/lib/portal/data";
+import { BUCKET_DEFECT, hapusFotoDefect } from "@/lib/portal/defect";
 import { FASE, JENIS, TAHAP, tahapItem, faseMenghalangi } from "@/lib/portal/progresBoq";
 import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
 
@@ -108,6 +109,7 @@ export async function hapusProyek(id, namaKetik) {
     const p = await ambilProyek(id);
     if (!p) throw new Error("Proyek tidak ditemukan.");
     if (String(namaKetik || "").trim() !== p.nama.trim()) throw new Error("nama proyek yang diketik tidak sama.");
+    await hapusFotoDefect(id); // baris defect ikut terhapus (cascade), fotonya tidak
     await hapus("portal_proyek", id);
   });
 }
@@ -293,6 +295,39 @@ export async function resetBobotTahap(jenis) {
   return jalan(async () => {
     if (!TAHAP[jenis]) throw new Error("Jenis tidak valid.");
     await hasil(db().from("portal_bobot_tahap").delete().eq("jenis", jenis));
+  });
+}
+
+/* ---------- Defect dari klien ---------- */
+// Admin & supervisor: ubah status (BARU/DIPROSES/SELESAI) dan tanggapan yang
+// tampil di halaman klien. Tidak ikut kunci deadline (keluhan sering datang
+// setelah serah terima).
+export async function ubahDefect(id, patch) {
+  return jalan(async (staf) => {
+    const d = await hasil(db().from("portal_defect").select("proyek_id").eq("id", id).maybeSingle());
+    if (!d) throw new Error("Defect tidak ditemukan.");
+    if (!bolehProyek(staf, await ambilProyek(d.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    const isi = {};
+    if ("status" in patch) {
+      if (!["BARU", "DIPROSES", "SELESAI"].includes(patch.status)) throw new Error("Status tidak valid.");
+      isi.status = patch.status;
+    }
+    if ("tanggapan" in patch) {
+      const t = String(patch.tanggapan || "").trim();
+      if (t.length > 1000) throw new Error("tanggapan maksimal 1000 huruf.");
+      isi.tanggapan = t || null;
+    }
+    await ubah("portal_defect", id, { ...isi, diubah_oleh: staf.id, diubah_at: new Date().toISOString() });
+  }, { admin: false });
+}
+
+// Hapus defect (mis. laporan dobel/iseng), hanya admin. Fotonya ikut dihapus.
+export async function hapusDefect(id) {
+  return jalan(async () => {
+    const d = await hasil(db().from("portal_defect").select("foto").eq("id", id).maybeSingle());
+    if (!d) throw new Error("Defect tidak ditemukan.");
+    await hapus("portal_defect", id);
+    if (d.foto?.length) await db().storage.from(BUCKET_DEFECT).remove(d.foto);
   });
 }
 

@@ -145,6 +145,14 @@ h3{font-size:1rem;font-weight:700}
 .pill.sebagian[aria-pressed="true"] .w{color:var(--fg);font-size:.8rem;font-weight:700;opacity:1}
 .pill.sebagian[aria-pressed="true"] .kotak{border-color:var(--c);background:var(--c)}
 .pill.sebagian[aria-pressed="true"] .kotak::after{border-color:var(--on-accent)}
+/* Defect: foto kecil (lampiran & hasil), tombol tambah foto, keterangan */
+.foto-grid{display:flex;flex-wrap:wrap;gap:8px}
+.foto{position:relative;display:block;width:72px;height:72px;flex:none}
+.foto img{width:100%;height:100%;object-fit:cover;border-radius:var(--r);border:1px solid var(--line);display:block}
+.foto.tambah{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:var(--r);color:var(--muted);font-size:1.6rem;font-weight:300;cursor:pointer;text-transform:none;letter-spacing:0}
+.foto-x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border:0;border-radius:50%;background:var(--fg);color:var(--bg);font-size:.9rem;line-height:1;padding:0}
+.inp.teks{font-family:var(--fb);min-height:96px;font-size:16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .kotak.gembok{border-color:var(--muted);border-style:dashed;background:none}
 .kotak.gembok::after{content:"";position:absolute;inset:3px;background:var(--muted);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E") center/contain no-repeat}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 calc(-1*var(--gut));padding:2px var(--gut)}
@@ -176,6 +184,7 @@ textarea.inp{padding:10px 12px;font-family:var(--fm);min-height:140px;resize:ver
 .tabbar button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabbar svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .tabbar button[aria-pressed="true"]{color:var(--fg)}
+.lencana{position:absolute;top:6px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-style:normal;font-size:.62rem;font-weight:700;line-height:17px;letter-spacing:0;text-align:center}
 .tabbar button[aria-pressed="true"]::before{content:"";position:absolute;top:-1px;left:50%;width:28px;height:3px;margin-left:-14px;background:var(--wood)}
 /* Pop up loading: muncul setelah jeda singkat supaya aksi cepat tidak berkedip. */
 .memuat{position:fixed;inset:0;z-index:8;display:grid;place-items:center;background:rgb(62 44 32/.18);animation:muncul .15s .15s both}
@@ -193,6 +202,7 @@ body:has(.tabbar) .toast{bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-b
   .tabbar{position:static;justify-content:flex-start;gap:4px;background:none;border-top:0;border-bottom:1px solid var(--line);box-shadow:none;padding:0}
   .tabbar button{flex:none;max-width:none;height:46px;flex-direction:row;gap:8px;padding:0 12px;font-size:.7rem;letter-spacing:.12em}
   .tabbar svg{width:18px;height:18px}
+  .lencana{position:static;margin-left:-2px}
   .tabbar button[aria-pressed="true"]::before{top:auto;bottom:-1px;left:0;right:0;width:auto;margin:0;height:2px;background:var(--fg)}
   body:has(.tabbar) .foot{padding-bottom:32px}
   .toast,body:has(.tabbar) .toast{left:50%;right:auto;bottom:24px;width:528px;margin-left:-264px}

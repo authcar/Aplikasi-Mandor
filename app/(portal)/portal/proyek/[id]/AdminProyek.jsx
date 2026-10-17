@@ -12,17 +12,18 @@ import {
 } from "@/lib/portal/progresBoq";
 import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
-  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin,
+  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin, STATUS_DEFECT,
 } from "@/lib/portal/format";
 import { bacaBoq, bacaBaris, formatLama, bacaJasa, infoSheet } from "@/lib/portal/imporBoq";
 import { bukaXlsx } from "@/lib/portal/bacaXlsx";
 import * as A from "../../aksi";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
-const TABS = [["progres", "Progres"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]];
+const TABS = [["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]];
+const TABS_SPV = [["progres", "Progres"], ["defect", "Defect"]];
 const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
 
-export default function AdminProyek({ proyek, items, termin, klien, supervisors, staf }) {
+export default function AdminProyek({ proyek, items, termin, klien, supervisors, defect = [], staf }) {
   const admin = staf.role === "ADMIN";
   // Tukang (akun MANDOR): hanya melihat item timnya, tanpa bisa mengubah apa pun.
   const tukang = staf.role === "TUKANG";
@@ -67,16 +68,21 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
           </div>
         </div>}
       </div>
-      {/* Supervisor hanya punya tab Progres, jadi tidak perlu navigasi. */}
-      {(admin || tukang) && <TabBar tabs={tukang ? TABS_TUKANG : TABS} value={tab} onChange={(k) => { setTab(k); aksi.setMsg(""); }} />}
+      {/* Angka di tab Defect = defect BARU yang belum ditanggapi. */}
+      <TabBar
+        tabs={(tukang ? TABS_TUKANG : admin ? TABS : TABS_SPV).map(([k, l]) => [k, l, k === "defect" ? defect.filter((d) => d.status === "BARU").length : 0])}
+        value={tab} onChange={(k) => { setTab(k); aksi.setMsg(""); }} />
       <Pesan aksi={aksi} />
 
       {/* Lewat deadline: semua isian & tombol dimatikan sekaligus lewat fieldset. Tab Klien
-          di luar fieldset supaya link masih bisa disalin / dikirim; tombolnya diatur sendiri. */}
+          dan Defect di luar fieldset: link masih bisa disalin / dikirim, dan keluhan klien
+          sering datang setelah serah terima. */}
       {tukang ? (
         tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} admin={false} lihat /> : <JasaTukangLihat items={items} />
       ) : tab === "klien" ? (
         <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
+      ) : tab === "defect" ? (
+        <TabDefect items={items} defect={defect} aksi={aksi} admin={admin} />
       ) : (
         <fieldset className="kunci" disabled={kunci}>
           {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} />}
@@ -928,6 +934,85 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
         </>
       )}
     </section>
+  );
+}
+
+/* ---------- Defect dari klien ---------- */
+// Keluhan yang dikirim klien lewat link (tab Defect di halaman klien). Yang
+// belum selesai di atas. Status & tanggapan tampil di halaman klien.
+const URUT_DEFECT = { BARU: 0, DIPROSES: 1, SELESAI: 2 };
+const tglJkt = (ts) => new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+
+function TabDefect({ items, defect, aksi, admin }) {
+  const namaItem = Object.fromEntries(items.map((i) => [i.id, i.nama]));
+  const urut = [...defect].sort((a, b) => URUT_DEFECT[a.status] - URUT_DEFECT[b.status] || b.created_at.localeCompare(a.created_at));
+  if (!defect.length)
+    return (
+      <div className="card small">
+        Belum ada laporan defect dari klien. Klien bisa melapor lewat tab Defect di link klien, lengkap dengan foto.
+      </div>
+    );
+  return (
+    <>
+      <p className="small" style={{ margin: 0 }}>
+        Laporan dari klien lewat link. Status dan tanggapan langsung tampil di halaman klien.
+      </p>
+      {urut.map((d) => <KartuDefect key={d.id} d={d} namaItem={namaItem} aksi={aksi} admin={admin} />)}
+    </>
+  );
+}
+
+function KartuDefect({ d, namaItem, aksi, admin }) {
+  const [tanggapan, setTanggapan] = useState(d.tanggapan || "");
+  useEffect(() => setTanggapan(d.tanggapan || ""), [d.tanggapan]);
+  const [lab, cls] = STATUS_DEFECT[d.status] || STATUS_DEFECT.BARU;
+  const berubah = tanggapan.trim() !== (d.tanggapan || "");
+  return (
+    <div className="card stack" style={{ gap: 10 }}>
+      <div className="row" style={{ alignItems: "center" }}>
+        <span className="small">
+          {[tglTh(tglJkt(d.created_at)), d.pelapor, d.item_id && namaItem[d.item_id]].filter(Boolean).join(" · ")}
+        </span>
+        <span className={`badge ${cls}`}>{lab}</span>
+      </div>
+      <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{d.keterangan}</p>
+      {d.foto.length > 0 && (
+        <div className="foto-grid">
+          {d.foto.filter((f) => f.url).map((f, n) => (
+            <a key={f.path} href={f.url} target="_blank" rel="noreferrer" className="foto"><img src={f.url} alt={`Foto ${n + 1}`} /></a>
+          ))}
+        </div>
+      )}
+      <div className="seg" role="group" aria-label="Status defect">
+        {Object.entries(STATUS_DEFECT).map(([k, [l]]) => (
+          <button key={k} type="button" aria-pressed={d.status === k} disabled={aksi.sibuk}
+            onClick={() => d.status !== k && aksi.jalankan(() => A.ubahDefect(d.id, { status: k }), `Status defect: ${l}.`)}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <label className="lbl">Tanggapan untuk klien
+        <textarea className="inp teks" rows={2} maxLength={1000} value={tanggapan} onChange={(e) => setTanggapan(e.target.value)}
+          placeholder="Mis. Tim kami jadwalkan perbaikan hari Senin, 20 Okt." />
+      </label>
+      {d.diubah_at && <span className="small">Terakhir diubah {d.diubah_nama ? `oleh ${d.diubah_nama} ` : ""}{tgl(tglJkt(d.diubah_at))}</span>}
+      {(berubah || admin) && (
+        <div className="acts">
+          {berubah && (
+            <button type="button" className="act" disabled={aksi.sibuk}
+              onClick={() => aksi.jalankan(() => A.ubahDefect(d.id, { tanggapan }), "Tanggapan disimpan.")}>
+              Simpan tanggapan
+            </button>
+          )}
+          {admin && (
+            <button type="button" className="act bahaya" disabled={aksi.sibuk}
+              onClick={() => confirm("Hapus laporan defect ini beserta fotonya?") && aksi.jalankan(() => A.hapusDefect(d.id), "Defect dihapus.")}>
+              Hapus
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ambilStaf } from "@/lib/portal/server";
 import { ambilItem, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
+import { hitungDefectBaru } from "@/lib/portal/defect";
 import { persenProyek } from "@/lib/portal/progresBoq";
 import { tglTh, pct, statusProyek, labelDeadline, lewatDeadline } from "@/lib/portal/format";
 import ProyekBaru from "./ProyekBaru";
@@ -9,7 +10,11 @@ export default async function PortalBeranda() {
   const { staf } = await ambilStaf();
   const admin = staf.role === "ADMIN";
   const tukang = staf.role === "TUKANG";
-  const [proyek, supervisors] = await Promise.all([ambilProyekStaf(staf), admin ? ambilSupervisor() : []]);
+  const [proyek, supervisors, defectBaru] = await Promise.all([
+    ambilProyekStaf(staf),
+    admin ? ambilSupervisor() : [],
+    tukang ? {} : hitungDefectBaru(),
+  ]);
   // Tukang: jumlah item dan progres dihitung dari item timnya saja.
   const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));
 
@@ -39,7 +44,10 @@ export default async function PortalBeranda() {
           <Link key={p.id} href={`/portal/proyek/${p.id}`} className="proj">
             <div className="row" style={{ alignItems: "center" }}>
               <span className="small" style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[p.kode, p.klien_nama].filter(Boolean).join(" · ") || "—"}</span>
-              <span className={`badge ${p.aktif ? cls : "b-n"}`}>{p.aktif ? st : "Arsip"}</span>
+              <span className="row" style={{ gap: 6, flex: "none" }}>
+                {defectBaru[p.id] > 0 && <span className="badge b-bad">{defectBaru[p.id]} defect baru</span>}
+                <span className={`badge ${p.aktif ? cls : "b-n"}`}>{p.aktif ? st : "Arsip"}</span>
+              </span>
             </div>
             <h3>{p.nama}</h3>
             <div className="small" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>

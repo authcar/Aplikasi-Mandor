@@ -8,6 +8,7 @@ import {
   persenKlien, SPREAD_KLIEN,
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
+import Defect from "./Defect";
 
 function Ring({ p }) {
   const r = 34, c = 2 * Math.PI * r;
@@ -85,7 +86,7 @@ export default function Detail({ P }) {
       </section>
 
       <TabBar
-        tabs={[["progres", "Progres"], ["bayar", "Pembayaran"], ["info", "Info"]]}
+        tabs={[["progres", "Progres"], ["bayar", "Pembayaran"], ["defect", "Defect"], ["info", "Info"]]}
         value={tab}
         onChange={setTab}
       />
@@ -179,6 +180,8 @@ export default function Detail({ P }) {
           </>
         )
       )}
+
+      {tab === "defect" && <Defect items={items} defect={P.defect || []} />}
 
       {tab === "info" && (
         <section className="card">

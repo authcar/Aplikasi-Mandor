@@ -9,10 +9,12 @@ const IKON = {
   item: <path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8" />,
   termin: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M9 3v4M15 3v4" /></>,
   klien: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6" /></>,
+  defect: <><path d="M12 3l9.5 17h-19L12 3z" /><path d="M12 10v4.5M12 17.5h.01" /></>,
 };
 
 // Navigasi antar bagian. Di HP menempel di bawah layar (mudah dijangkau jempol);
-// di layar lebar jadi deretan tab biasa. `tabs` = [[kunci, label], ...].
+// di layar lebar jadi deretan tab biasa. `tabs` = [[kunci, label, angka?], ...];
+// angka > 0 tampil sebagai lencana kecil (mis. jumlah defect baru).
 export default function TabBar({ tabs, value, onChange }) {
   function pilih(k) {
     onChange(k);
@@ -27,10 +29,11 @@ export default function TabBar({ tabs, value, onChange }) {
     <>
       <div id="isi-tab" className="anchor" />
       <nav className="tabbar" aria-label="Bagian halaman">
-        {tabs.map(([k, label]) => (
+        {tabs.map(([k, label, n]) => (
           <button key={k} type="button" aria-pressed={value === k} onClick={() => pilih(k)}>
             <svg viewBox="0 0 24 24" aria-hidden="true">{IKON[k]}</svg>
             <span>{label}</span>
+            {n > 0 && <i className="lencana" aria-label={`${n} baru`}>{n}</i>}
           </button>
         ))}
       </nav>
