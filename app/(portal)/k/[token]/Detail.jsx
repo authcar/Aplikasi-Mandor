@@ -5,6 +5,7 @@ import { persenItem, persenProyek, areaProgres } from "@/lib/portal/progresBoq";
 import {
   hariIni, tambahHari, tgl, tglTh, rp, pct, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, labelDeadline, judulTermin, keteranganTermin,
+  persenKlien, SPREAD_KLIEN,
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
 
@@ -48,8 +49,10 @@ export default function Detail({ P }) {
   const now = hariIni();
   const lalu = tambahHari(now, -7);
   const items = P.items;
-  const p = persenProyek(items);
-  const naik = p - persenProyek(items, lalu);
+  // Semua angka progres di halaman ini sudah termasuk persiapan & material
+  // (persenKlien, lihat lib/portal/format.js); keterangannya tampil di bawah lingkaran.
+  const p = persenKlien(persenProyek(items));
+  const naik = p - persenKlien(persenProyek(items, lalu));
   const [st, cls] = statusProyek(P);
   const [sisa, kelasSisa] = P.deadline ? labelDeadline(P.deadline) : [];
   const areas = [...new Set(items.map((i) => i.area))];
@@ -72,6 +75,7 @@ export default function Detail({ P }) {
           <div className="small">
             {naik > 0 ? <><span className="delta">+{pct(naik)}</span> dalam 7 hari terakhir</> : "Tidak ada perubahan 7 hari terakhir"}
           </div>
+          {p > 0 && <div className="small">Termasuk persiapan &amp; material {SPREAD_KLIEN}%</div>}
           {P.deadline && (
             <div className="small" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
               Deadline {tglTh(P.deadline)} <span className={`badge ${kelasSisa}`}>{sisa}</span>
@@ -94,20 +98,21 @@ export default function Detail({ P }) {
             {/* Klien hanya melihat persentase per area dan per item; rincian fase/tahap cukup untuk staf. */}
             {areas.filter(areaProgres).map((a) => {
               const its = items.filter((i) => i.area === a);
+              const pa = persenKlien(persenProyek(its));
               return (
                 <details key={a} className="lipat">
                   <summary>
                     <span style={{ minWidth: 0, flex: 1 }}>
                       <span className="row">
                         <h2>{a}</h2>
-                        <span className="num small" style={{ margin: 0, whiteSpace: "nowrap" }}>{pct(persenProyek(its))} · {its.length} item</span>
+                        <span className="num small" style={{ margin: 0, whiteSpace: "nowrap" }}>{pct(pa)} · {its.length} item</span>
                       </span>
-                      <span className="bar" style={{ display: "block", marginTop: 8 }}><i style={{ width: `${persenProyek(its)}%` }} /></span>
+                      <span className="bar" style={{ display: "block", marginTop: 8 }}><i style={{ width: `${pa}%` }} /></span>
                     </span>
                   </summary>
                   <div className="lipat-b">
                   {its.map((it) => {
-                    const v = persenItem(it);
+                    const v = persenKlien(persenItem(it));
                     return (
                       <div key={it.id} className="item mini">
                         <div className="row">
