@@ -179,10 +179,19 @@ export default function Defect({ items, defect }) {
                     ))}
                   </div>
                 )}
-                {d.tanggapan && (
-                  <p className="note b-n" style={{ whiteSpace: "pre-wrap" }}>
-                    <b>Tanggapan tim{d.diubah_at ? ` · ${tgl(tglJkt(d.diubah_at))}` : ""}:</b> {d.tanggapan}
-                  </p>
+                {(d.tanggapan || d.foto_tanggapan?.length > 0) && (
+                  <div className="note b-n stack" style={{ gap: 8 }}>
+                    <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                      <b>Tanggapan tim{d.diubah_at ? ` · ${tgl(tglJkt(d.diubah_at))}` : ""}:</b> {d.tanggapan}
+                    </p>
+                    {d.foto_tanggapan?.length > 0 && (
+                      <div className="foto-grid">
+                        {d.foto_tanggapan.map((u, n) => (
+                          <a key={u} href={u} target="_blank" rel="noreferrer" className="foto"><img src={u} alt={`Foto tanggapan ${n + 1}`} /></a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             );

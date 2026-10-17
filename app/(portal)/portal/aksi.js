@@ -6,7 +6,7 @@ import { randomBytes } from "crypto";
 import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek, ambilBobotTahap, bacaProgres } from "@/lib/portal/data";
-import { BUCKET_DEFECT, hapusFotoDefect } from "@/lib/portal/defect";
+import { BUCKET_DEFECT, hapusFotoDefect, semuaFotoDefect } from "@/lib/portal/defect";
 import { FASE, JENIS, TAHAP, tahapItem, faseMenghalangi } from "@/lib/portal/progresBoq";
 import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
 
@@ -321,13 +321,28 @@ export async function ubahDefect(id, patch) {
   }, { admin: false });
 }
 
-// Hapus defect (mis. laporan dobel/iseng), hanya admin. Fotonya ikut dihapus.
+// Hapus satu foto tanggapan (diunggah lewat app/api/portal/defect/tanggapan).
+export async function hapusFotoTanggapan(id, path) {
+  return jalan(async (staf) => {
+    const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
+    if (!d) throw new Error("Defect tidak ditemukan.");
+    if (!bolehProyek(staf, await ambilProyek(d.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    if (!(d.foto_tanggapan || []).includes(path)) throw new Error("Foto tidak ditemukan.");
+    await ubah("portal_defect", id, {
+      foto_tanggapan: d.foto_tanggapan.filter((p) => p !== path), diubah_oleh: staf.id, diubah_at: new Date().toISOString(),
+    });
+    await db().storage.from(BUCKET_DEFECT).remove([path]);
+  }, { admin: false });
+}
+
+// Hapus defect (mis. laporan dobel/iseng), hanya admin. Semua fotonya ikut dihapus.
 export async function hapusDefect(id) {
   return jalan(async () => {
-    const d = await hasil(db().from("portal_defect").select("foto").eq("id", id).maybeSingle());
+    const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
     if (!d) throw new Error("Defect tidak ditemukan.");
     await hapus("portal_defect", id);
-    if (d.foto?.length) await db().storage.from(BUCKET_DEFECT).remove(d.foto);
+    const foto = semuaFotoDefect(d);
+    if (foto.length) await db().storage.from(BUCKET_DEFECT).remove(foto);
   });
 }
 

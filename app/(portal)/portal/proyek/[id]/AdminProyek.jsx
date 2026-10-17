@@ -17,6 +17,7 @@ import {
 import { bacaBoq, bacaBaris, formatLama, bacaJasa, infoSheet } from "@/lib/portal/imporBoq";
 import { bukaXlsx } from "@/lib/portal/bacaXlsx";
 import * as A from "../../aksi";
+import { kompresBanyakGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const TABS = [["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]];
@@ -941,6 +942,7 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
 // Keluhan yang dikirim klien lewat link (tab Defect di halaman klien). Yang
 // belum selesai di atas. Status & tanggapan tampil di halaman klien.
 const URUT_DEFECT = { BARU: 0, DIPROSES: 1, SELESAI: 2 };
+const MAKS_FOTO_TANGGAPAN = 5; // sama dengan MAKS_FOTO_DEFECT di lib/portal/defect.js
 const tglJkt = (ts) => new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
 function TabDefect({ items, defect, aksi, admin }) {
@@ -967,6 +969,23 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
   useEffect(() => setTanggapan(d.tanggapan || ""), [d.tanggapan]);
   const [lab, cls] = STATUS_DEFECT[d.status] || STATUS_DEFECT.BARU;
   const berubah = tanggapan.trim() !== (d.tanggapan || "");
+  const fotoT = d.foto_tanggapan || [];
+
+  // Foto dikompres di browser dulu, lalu dikirim lewat route (bukan server
+  // action, yang dibatasi 1 MB): app/api/portal/defect/tanggapan.
+  async function unggahFoto(e) {
+    const files = Array.from(e.target.files || []).slice(0, MAKS_FOTO_TANGGAPAN - fotoT.length);
+    e.target.value = "";
+    if (!files.length) return;
+    await aksi.jalankan(async () => {
+      const fd = new FormData();
+      fd.set("id", d.id);
+      for (const f of await kompresBanyakGambar(files)) fd.append("foto", f);
+      const r = await fetch("/api/portal/defect/tanggapan", { method: "POST", body: fd });
+      return r.ok ? {} : { error: (await r.json().catch(() => ({}))).error || "foto gagal diunggah." };
+    }, files.length > 1 ? `${files.length} foto tanggapan diunggah.` : "Foto tanggapan diunggah.");
+  }
+
   return (
     <div className="card stack" style={{ gap: 10 }}>
       <div className="row" style={{ alignItems: "center" }}>
@@ -995,6 +1014,25 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
         <textarea className="inp teks" rows={2} maxLength={1000} value={tanggapan} onChange={(e) => setTanggapan(e.target.value)}
           placeholder="Mis. Tim kami jadwalkan perbaikan hari Senin, 20 Okt." />
       </label>
+      {/* Foto tanggapan (mis. sesudah diperbaiki): langsung terunggah saat dipilih, tampil ke klien. */}
+      <div className="lbl" style={{ gap: 8 }}>Foto tanggapan ({fotoT.length}/{MAKS_FOTO_TANGGAPAN})
+        <div className="foto-grid">
+          {fotoT.map((f, n) => (
+            <span key={f.path} className="foto">
+              {f.url && <a href={f.url} target="_blank" rel="noreferrer"><img src={f.url} alt={`Foto tanggapan ${n + 1}`} /></a>}
+              <button type="button" className="foto-x" aria-label={`Hapus foto tanggapan ${n + 1}`} disabled={aksi.sibuk}
+                onClick={() => confirm("Hapus foto tanggapan ini?") && aksi.jalankan(() => A.hapusFotoTanggapan(d.id, f.path), "Foto tanggapan dihapus.")}>×</button>
+            </span>
+          ))}
+          {fotoT.length < MAKS_FOTO_TANGGAPAN && (
+            <label className="foto tambah" aria-disabled={aksi.sibuk}>
+              <span aria-hidden="true">+</span>
+              <span className="sr">Tambah foto tanggapan</span>
+              <input type="file" accept="image/*" multiple hidden disabled={aksi.sibuk} onChange={unggahFoto} />
+            </label>
+          )}
+        </div>
+      </div>
       {d.diubah_at && <span className="small">Terakhir diubah {d.diubah_nama ? `oleh ${d.diubah_nama} ` : ""}{tgl(tglJkt(d.diubah_at))}</span>}
       {(berubah || admin) && (
         <div className="acts">
