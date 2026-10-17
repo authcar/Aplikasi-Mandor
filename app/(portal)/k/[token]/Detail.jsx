@@ -76,7 +76,6 @@ export default function Detail({ P }) {
           <div className="small">
             {naik > 0 ? <><span className="delta">+{pct(naik)}</span> progress dalam 7 hari terakhir</> : "Tidak ada perubahan 7 hari terakhir"}
           </div>
-          {p > 0 && <div className="small">Termasuk persiapan &amp; material {SPREAD_KLIEN}%</div>}
           {P.deadline && (
             <div className="small" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
               Deadline {tglTh(P.deadline)} <span className={`badge ${kelasSisa}`}>{sisa}</span>
