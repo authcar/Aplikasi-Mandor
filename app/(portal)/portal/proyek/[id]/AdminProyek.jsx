@@ -970,6 +970,7 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
   const [lab, cls] = STATUS_DEFECT[d.status] || STATUS_DEFECT.BARU;
   const berubah = tanggapan.trim() !== (d.tanggapan || "");
   const fotoT = d.foto_tanggapan || [];
+  const [buka, setBuka] = useState(false);
 
   // Foto dikompres di browser dulu, lalu dikirim lewat route (bukan server
   // action, yang dibatasi 1 MB): app/api/portal/defect/tanggapan.
@@ -986,14 +987,22 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
     }, files.length > 1 ? `${files.length} foto tanggapan diunggah.` : "Foto tanggapan diunggah.");
   }
 
+  // Tertutup: ringkasan (titik merah = BARU, tanggal · pelapor · item, potongan
+  // keterangan, status). Dibuka untuk foto, status, dan tanggapan.
+  const baru = d.status === "BARU";
   return (
-    <div className="card stack" style={{ gap: 10 }}>
-      <div className="row" style={{ alignItems: "center" }}>
-        <span className="small">
-          {[tglTh(tglJkt(d.created_at)), d.pelapor, d.item_id && namaItem[d.item_id]].filter(Boolean).join(" · ")}
+    <details className={`lipat defect-staf${baru ? " baru" : ""}`} open={buka} onToggle={(e) => setBuka(e.currentTarget.open)}>
+      <summary>
+        {baru && <i className="titik-baru" aria-label="Defect baru" />}
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span className="nm">{d.keterangan}</span>
+          <span className="small">
+            {[tglTh(tglJkt(d.created_at)), d.pelapor, d.item_id && namaItem[d.item_id]].filter(Boolean).join(" · ")}
+          </span>
         </span>
         <span className={`badge ${cls}`}>{lab}</span>
-      </div>
+      </summary>
+      <div className="lipat-b" style={{ gap: 10 }}>
       <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{d.keterangan}</p>
       {d.foto.length > 0 && (
         <div className="foto-grid">
@@ -1050,7 +1059,8 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </details>
   );
 }
 
