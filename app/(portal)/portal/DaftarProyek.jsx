@@ -79,13 +79,15 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, children })
           placeholder="Cari nama proyek, kode, atau klien…" aria-label="Cari proyek" />
       )}
       {!kartu.length && <div className="card small">{kosong}</div>}
-      {kartu.length > 0 && !tampil.length && <div className="card small">Tidak ada proyek yang cocok dengan “{cari.trim()}”.</div>}
-      {aktif.map((k) => <Kartu key={k.id} k={k} />)}
-      {(bukaArsip || (bukaCari && q)) && arsip.length > 0 && (
+      {!bukaArsip && kartu.length > 0 && !aktif.length && <div className="card small">Tidak ada proyek yang cocok dengan “{cari.trim()}”.</div>}
+      {bukaArsip ? (
         <>
           <div className="fl" style={{ margin: "8px 0 0" }}>Proyek arsip ({arsip.length})</div>
+          {!arsip.length && <div className="card small">{q ? "Tidak ada proyek arsip yang cocok." : "Belum ada proyek arsip."}</div>}
           {arsip.map((k) => <Kartu key={k.id} k={k} />)}
         </>
+      ) : (
+        aktif.map((k) => <Kartu key={k.id} k={k} />)
       )}
     </>
   );
