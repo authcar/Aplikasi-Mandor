@@ -406,6 +406,25 @@ function Isian({ label, nilai, onSimpan, akhiran, ...rest }) {
   );
 }
 
+// Satu dropdown per area di tab Jasa tukang: nama area, jumlah item, dan total jasanya.
+function AreaJasa({ area, items, children }) {
+  const its = items.filter((i) => i.area === area);
+  const total = its.reduce((a, i) => a + (Number(i.harga) || 0), 0);
+  return (
+    <details className="lipat">
+      <summary>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span className="row">
+            <h2>{area}</h2>
+            <span className="num small" style={{ margin: 0, whiteSpace: "nowrap" }}>{total ? `${rp(total)} · ` : ""}{its.length} item</span>
+          </span>
+        </span>
+      </summary>
+      <div className="lipat-b">{children(its)}</div>
+    </details>
+  );
+}
+
 function TabItem({ proyek, items, aksi }) {
   const [buka, setBuka] = useState(null);
   // `ok` = pesan hijau setelah tersimpan.
@@ -421,9 +440,8 @@ function TabItem({ proyek, items, aksi }) {
       <RingkasJasa items={items} />
 
       {areas.map((a) => (
-        <div key={a} className="stack" style={{ gap: 8 }}>
-          <div className="area"><h2>{a}</h2></div>
-          {items.filter((i) => i.area === a).map((it) => {
+        <AreaJasa key={a} area={a} items={items}>
+          {(its) => its.map((it) => {
             const open = buka === it.id;
             return (
               <div key={it.id} className={`item acc${open ? " open" : ""}`}>
@@ -478,7 +496,7 @@ function TabItem({ proyek, items, aksi }) {
               </div>
             );
           })}
-        </div>
+        </AreaJasa>
       ))}
 
       <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />
@@ -513,9 +531,8 @@ function JasaTukangLihat({ items }) {
     <>
       <RingkasJasa items={items} />
       {areas.map((a) => (
-        <div key={a} className="stack" style={{ gap: 8 }}>
-          <div className="area"><h2>{a}</h2></div>
-          {items.filter((i) => i.area === a).map((it) => (
+        <AreaJasa key={a} area={a} items={items}>
+          {(its) => its.map((it) => (
             <div key={it.id} className="item acc">
               <div className="acc-h">
                 <span className="t">
@@ -526,7 +543,7 @@ function JasaTukangLihat({ items }) {
               </div>
             </div>
           ))}
-        </div>
+        </AreaJasa>
       ))}
     </>
   );
