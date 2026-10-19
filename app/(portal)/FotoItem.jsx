@@ -1,8 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
-// Tombol kecil "Lihat gambar" di baris item; ketuk -> pop up foto (geser dengan panah
-// atau ketuk gambar berikutnya). Esc / ketuk latar / × untuk menutup.
+// Gambar mini item (foto pertama) di baris item; ketuk -> pop up foto besar
+// (geser dengan panah / ketuk gambar). Esc / ketuk latar / × untuk menutup.
+// Dipakai di dalam baris yang bisa diketuk (kartu akordeon), jadi semua ketukan
+// di sini tidak diteruskan ke baris itu.
+const berhenti = (e) => e.stopPropagation();
+
 export default function FotoItem({ nama, foto }) {
   const [buka, setBuka] = useState(false);
   const [n, setN] = useState(0);
@@ -27,15 +32,14 @@ export default function FotoItem({ nama, foto }) {
   if (!jml) return null;
   return (
     <>
-      <button type="button" className="fbtn" aria-label={`Lihat foto ${nama}`} onClick={() => { setN(0); setBuka(true); }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="M21 16l-5-5-8 9" />
-        </svg>
-        <span>Lihat gambar{jml > 1 ? ` (${jml})` : ""}</span>
+      <button type="button" className="fthumb" aria-label={`Perbesar foto ${nama}${jml > 1 ? ` (${jml} foto)` : ""}`}
+        onClick={(e) => { berhenti(e); setN(0); setBuka(true); }} onKeyDown={berhenti}>
+        <img src={foto[0]} alt="" loading="lazy" />
+        {jml > 1 && <span className="fcount">{jml}</span>}
       </button>
-      {buka && (
-        <div className="fmodal" role="dialog" aria-modal="true" aria-label={`Foto ${nama}`} onClick={() => setBuka(false)}>
-          <div className="fbox" onClick={(e) => e.stopPropagation()}>
+      {buka && createPortal(
+        <div className="fmodal" role="dialog" aria-modal="true" aria-label={`Foto ${nama}`} onClick={(e) => { berhenti(e); setBuka(false); }}>
+          <div className="fbox" onClick={berhenti}>
             <div className="fhead">
               <b>{nama}</b>
               <button type="button" aria-label="Tutup" onClick={() => setBuka(false)}>×</button>
@@ -49,7 +53,8 @@ export default function FotoItem({ nama, foto }) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

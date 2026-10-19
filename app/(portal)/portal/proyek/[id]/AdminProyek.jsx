@@ -164,15 +164,16 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
     const bar = tahapBar(it).filter((s) => (!fase || s.w > 0) && !tahapTerkunci(it, s));
     return (
       <div key={it.id} className={`item acc${open ? " open" : ""}`}>
-        <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
+        <div role="button" tabIndex={0} className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}
+          onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setBuka(open ? null : it.id); } }}>
           <span className="t">
             <span className="nm">{it.nama}</span>
             <span className="small">{[it.kode, JENIS_LABEL[it.jenis], !tim && it.tim].filter(Boolean).join(" · ")}</span>
           </span>
+          {it.foto?.length > 0 && <FotoItem nama={it.nama} foto={it.foto} />}
           <b className="num">{persenItem(it)}%</b>
           <i className="chev" aria-hidden="true" />
-        </button>
-        {it.foto?.length > 0 && <div className="acc-f"><FotoItem nama={it.nama} foto={it.foto} /></div>}
+        </div>
         {/* Tiap bagian bar = satu tahap yang sudah terbuka (lebar = bobotnya), terisi
             sebanyak persen tahap itu; boleh dicentang tidak berurutan. */}
         <div className="track tap">
@@ -426,17 +427,18 @@ function TabItem({ proyek, items, aksi }) {
             const open = buka === it.id;
             return (
               <div key={it.id} className={`item acc${open ? " open" : ""}`}>
-                <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
+                <div role="button" tabIndex={0} className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}
+                  onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setBuka(open ? null : it.id); } }}>
                   <span className="t">
                     <span className="nm">{it.nama}</span>
                     <span className="small">
                       {[it.kode, teksQty(it), it.dimensi, it.harga_satuan && `@ ${rp(it.harga_satuan)}`, it.tim].filter(Boolean).join(" · ")}
                     </span>
                   </span>
+                  {it.foto?.length > 0 && <FotoItem nama={it.nama} foto={it.foto} />}
                   <span className="num small">{it.harga ? rp(it.harga) : "—"}</span>
                   <i className="chev" aria-hidden="true" />
-                </button>
-                {it.foto?.length > 0 && <div className="acc-f"><FotoItem nama={it.nama} foto={it.foto} /></div>}
+                </div>
                 {open && (
                   <div className="acc-b">
                     <Isian label="Nama item" nilai={it.nama}
