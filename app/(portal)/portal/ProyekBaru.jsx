@@ -118,10 +118,6 @@ export default function ProyekBaru({ supervisors }) {
     <details className="lipat">
       <summary><b>+ Proyek baru</b></summary>
       <form className="lipat-b" style={{ gap: 12 }} onSubmit={simpan}>
-      <p className="small" style={{ margin: 0 }}>
-        Pilih file BoQ atau Hitungan Jasa Pekerjaan untuk mengisi data proyek dan item-itemnya sekaligus, atau lewati
-        dan isi manual. Beberapa sheet boleh dicentang sekaligus; itemnya digabung jadi satu proyek.
-      </p>
       <label className="lbl">File Excel (.xlsx)
         <input className="inp" type="file" style={{ padding: "9px 12px" }} onChange={pilihFile}
           accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
