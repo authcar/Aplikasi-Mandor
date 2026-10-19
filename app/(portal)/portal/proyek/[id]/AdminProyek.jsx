@@ -157,10 +157,9 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
   const kartu = (it) => {
     const akhir = tahapTerakhir(it), next = tahapBerikut(it), open = buka === it.id;
     const fase = faseKini(it);
-    // Fase berjalan saja; kalau semua selesai, tampilkan semua tahap (penuh).
-    // Selama produksi belum selesai, tahap fase sesudahnya tidak tampil/tidak bisa dicatat.
-    const bar = (fase ? tahapBar(it).filter((s) => s.fase === fase.k && s.w > 0) : tahapBar(it))
-      .filter((s) => !tahapTerkunci(it, s));
+    // Fase yang sudah selesai (terisi penuh) + fase berjalan; kalau semua selesai,
+    // semua tahap (penuh). Fase yang masih terkunci tidak tampil/tidak bisa dicatat.
+    const bar = tahapBar(it).filter((s) => (!fase || s.w > 0) && !tahapTerkunci(it, s));
     return (
       <div key={it.id} className={`item acc${open ? " open" : ""}`}>
         <button type="button" className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}>
@@ -171,7 +170,7 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
           <b className="num">{persenItem(it)}%</b>
           <i className="chev" aria-hidden="true" />
         </button>
-        {/* Tiap bagian bar = satu tahap di fase berjalan (lebar = bobotnya), terisi
+        {/* Tiap bagian bar = satu tahap yang sudah terbuka (lebar = bobotnya), terisi
             sebanyak persen tahap itu; boleh dicentang tidak berurutan. */}
         <div className="track tap">
           {bar.map((s) => {

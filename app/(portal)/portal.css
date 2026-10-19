@@ -206,7 +206,8 @@ body:has(.tabbar) .toast{bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-b
   .wrap{padding-top:28px;gap:16px}
   .logo{width:104px}
   .anchor{display:none}
-  .tabbar{position:static;justify-content:flex-start;gap:4px;background:none;border-top:0;border-bottom:1px solid var(--line);box-shadow:none;padding:0}
+  /* z-index:auto: .tabbar anak flex (.wrap), jadi z-index 6 tetap berlaku dan menimpa header yang sticky saat digulir. */
+  .tabbar{position:static;z-index:auto;justify-content:flex-start;gap:4px;background:none;border-top:0;border-bottom:1px solid var(--line);box-shadow:none;padding:0}
   /* Tab berbagi lebar konten (560px) secara rata supaya 6 tab admin tetap muat. */
   .tabbar button{flex:1 1 auto;min-width:0;max-width:none;height:46px;flex-direction:row;gap:6px;padding:0 4px;font-size:.66rem;letter-spacing:.06em}
   .tabbar svg{width:16px;height:16px}
