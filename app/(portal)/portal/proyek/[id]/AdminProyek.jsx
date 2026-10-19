@@ -177,7 +177,7 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
             const p = persenTahap(it, s);
             return (
               <button key={s.k} type="button" className={p ? "on" : ""} disabled={kunci}
-                style={{ flex: s.w, "--c": WARNA[s.fase], ...isiBar(p), ...(busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null) }}
+                style={{ flex: s.w, "--c": WARNA[s.fase], ...isiBar(p, s.fase), ...(busy === `${it.id}:${s.k}` ? { opacity: 0.5 } : null) }}
                 title={p ? `${s.label} ${p >= 100 ? "✓" : pct(p)} ${tgl(it.progres[s.k])}` : s.label}
                 aria-label={p ? `Batalkan ${s.label}` : `Catat ${s.label}`} aria-pressed={!!p}
                 onClick={() => toggle(it, s)} />
@@ -257,9 +257,10 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
 // sekilas: oranye 1–30%, kuning 31–60%, hijau muda 61–99%, hijau 100%
 // (variabel --p1..--p4 di portal.css). Dipakai bar dan tombol tahap.
 const warnaPersen = (p) => (p >= 100 ? "var(--p4)" : p > 60 ? "var(--p3)" : p > 30 ? "var(--p2)" : "var(--p1)");
-// Potongan bar satu tahap: terisi selebar persennya.
-const isiBar = (p) =>
-  p > 0 ? { background: p < 100 ? `linear-gradient(to right, ${warnaPersen(p)} ${p}%, var(--sunk) ${p}%)` : warnaPersen(p) } : null;
+// Potongan bar satu tahap: terisi selebar persennya. Tahap 100% memakai warna
+// fasenya (WARNA) supaya Produksi, Pengiriman, dst. terbedakan di bar.
+const isiBar = (p, fase) =>
+  p > 0 ? { background: p < 100 ? `linear-gradient(to right, ${warnaPersen(p)} ${p}%, var(--sunk) ${p}%)` : WARNA[fase] } : null;
 // Tombol tahap ikut terisi sebanyak persennya (warna dimudakan supaya teks
 // tetap terbaca); 100% = tombol penuh hijau.
 const isiTombol = (p) =>
