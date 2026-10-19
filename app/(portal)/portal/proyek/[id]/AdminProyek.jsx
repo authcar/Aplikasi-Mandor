@@ -565,15 +565,28 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
   const [teks, setTeks] = useState("");
   const [file, setFile] = useState(null); // { sheet, rows } dari UnggahBoq
   const [unggahKe, setUnggahKe] = useState(0); // ganti key = kosongkan pilihan file
-  const [ganti, setGanti] = useState(false); // false = menambah, true = mengganti seluruh BOQ
+  // perbarui = isi harga/total/tim item yang sama (progres tidak tersentuh), tambah = item baru saja, ganti = hapus semua lalu isi.
+  const [mode, setMode] = useState(items.length ? "perbarui" : "tambah");
+  const ganti = mode === "ganti", perbarui = mode === "perbarui";
   const [centang, setCentang] = useState({}); // { [n]: true/false } centang yang diubah admin
   const preview = useMemo(() => (file ? bacaItemSheet(file.rows, urutan, file.gambar) : teks ? bacaBoq(teks, urutan) : []), [file, teks, urutan]);
   const sudahAda = useMemo(() => new Set(items.map(kunciItem)), [items]);
+  // Baris Excel -> item proyek yang sama (area, nama, kode); tiap item dipakai sekali.
+  const cocokan = useMemo(() => {
+    const sisa = new Map();
+    for (const i of items) { const k = kunciItem(i); sisa.set(k, [...(sisa.get(k) || []), i]); }
+    return preview.map((p) => sisa.get(kunciItem(p))?.shift() || null);
+  }, [items, preview]);
 
   // Saat menambah, baris yang sudah ada di proyek tidak dicentang (impor dua kali tidak menggandakan).
-  const kembar = (p) => !ganti && sudahAda.has(kunciItem(p));
-  const dipakai = (p, n) => centang[n] ?? !kembar(p);
-  const terpilih = preview.filter((p, n) => dipakai(p, n));
+  // Mode perbarui: baris yang cocok dan membawa harga/tim dicentang, baris baru tidak.
+  const kembar = (p) => !ganti && !perbarui && sudahAda.has(kunciItem(p));
+  const awal = (p, n) => (perbarui ? !!cocokan[n] && (p.harga != null || p.harga_satuan != null || !!p.tim) : !kembar(p));
+  const dipakai = (p, n) => centang[n] ?? awal(p, n);
+  const terpilihN = preview.map((p, n) => [p, n]).filter(([p, n]) => dipakai(p, n));
+  const terpilih = terpilihN.map(([p]) => p);
+  const diperbarui = perbarui ? terpilihN.filter(([, n]) => cocokan[n]) : [];
+  const barus = perbarui ? terpilihN.filter(([, n]) => !cocokan[n]).map(([p]) => p) : terpilih;
   const nKembar = preview.filter(kembar).length;
   const nProgres = items.reduce((a, i) => a + Object.keys(i.progres).length, 0);
   const areaPv = [...new Set(preview.map((p) => p.area))];
@@ -583,17 +596,40 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
     if (ganti && !confirm(`Ganti seluruh BOQ? ${items.length} item lama${nProgres ? ` dan ${nProgres} centang progresnya` : ""} akan dihapus.`)) return;
     const ok = await aksi.jalankan(
       async () => {
-        const { items: siap, gagal, pesan } = await unggahFotoItem(proyek.id, terpilih);
-        const r = await (ganti ? A.gantiItem(proyek.id, siap) : A.tambahItem(proyek.id, siap));
-        if (!r?.error && gagal) alert(`${gagal} foto gagal diunggah (${pesan}); itemnya tetap tersimpan.`);
-        return r;
+        let gagalFoto = 0, pesanFoto = "";
+        if (perbarui && diperbarui.length) {
+          // Hanya harga, total, tim (kalau ada di Excel) dan foto untuk item yang belum punya foto.
+          const baris = diperbarui.map(([p, n]) => {
+            const lama = cocokan[n];
+            const r = { id: lama.id };
+            if (p.harga != null) r.harga = p.harga;
+            if (p.harga_satuan != null) r.harga_satuan = p.harga_satuan;
+            if (p.tim) r.tim = p.tim;
+            if (!lama.foto?.length && p._gambar?.length) r._gambar = p._gambar;
+            return r;
+          });
+          const f = await unggahFotoItem(proyek.id, baris);
+          gagalFoto += f.gagal; pesanFoto ||= f.pesan;
+          const r = await A.simpanJasaTukang(proyek.id, f.items);
+          if (r?.error) return r;
+        }
+        if (barus.length || ganti) {
+          const f = await unggahFotoItem(proyek.id, barus);
+          gagalFoto += f.gagal; pesanFoto ||= f.pesan;
+          const r = await (ganti ? A.gantiItem(proyek.id, f.items) : A.tambahItem(proyek.id, f.items));
+          if (r?.error) return r;
+        }
+        if (gagalFoto) alert(`${gagalFoto} foto gagal diunggah (${pesanFoto}); itemnya tetap tersimpan.`);
+        return {};
       },
-      ganti ? `BOQ diganti dengan ${terpilih.length} item.` : `${terpilih.length} item ditambahkan.`
+      ganti ? `BOQ diganti dengan ${terpilih.length} item.`
+        : perbarui ? `${diperbarui.length} item diperbarui${barus.length ? `, ${barus.length} item ditambahkan` : ""}.`
+        : `${terpilih.length} item ditambahkan.`
     );
     if (!ok) return;
     setTeks("");
     setFile(null);
-    setGanti(false);
+    setMode("perbarui");
     sumberBaru();
     setUnggahKe((n) => n + 1);
   }
@@ -636,10 +672,17 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
             <div>
               <div className="fl">Proyek ini sudah punya {items.length} item</div>
               <div className="seg">
-                <button type="button" aria-pressed={!ganti} onClick={() => { setGanti(false); setCentang({}); }}>Tambahkan</button>
-                <button type="button" aria-pressed={ganti} onClick={() => { setGanti(true); setCentang({}); }}>Ganti seluruh BOQ</button>
+                <button type="button" aria-pressed={perbarui} onClick={() => { setMode("perbarui"); setCentang({}); }}>Perbarui</button>
+                <button type="button" aria-pressed={mode === "tambah"} onClick={() => { setMode("tambah"); setCentang({}); }}>Tambahkan</button>
+                <button type="button" aria-pressed={ganti} onClick={() => { setMode("ganti"); setCentang({}); }}>Ganti semua</button>
               </div>
             </div>
+          )}
+          {perbarui && (
+            <p className="note b-ok">
+              Item yang sama (area, nama, dan kode) hanya diubah harga satuan, total jasa, dan timnya. Progres, centang, dan item lain tidak disentuh.
+              {!preview.some((p, n) => cocokan[n] && (p.harga != null || p.harga_satuan != null || p.tim)) && " Tidak ada harga yang terbaca untuk item yang cocok; pastikan memilih sheet Hitungan Jasa Pekerjaan."}
+            </p>
           )}
           {ganti && (
             <p className="note b-bad">
@@ -665,7 +708,7 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
                       onChange={(e) => setCentang({ ...centang, [n]: e.target.checked })} />
                     <span className="t">
                       <span className="nm">{p.nama}</span>
-                      <span className="small">{[p.kode, teksQty(p), p.dimensi, p.harga != null && rp(p.harga), p._gambar?.length > 0 && `${p._gambar.length} foto`, kembar(p) && "sudah ada"].filter(Boolean).join(" · ")}</span>
+                      <span className="small">{[p.kode, teksQty(p), p.dimensi, p.harga != null && rp(p.harga), p._gambar?.length > 0 && `${p._gambar.length} foto`, kembar(p) && "sudah ada", perbarui && (cocokan[n] ? "diperbarui" : "belum ada di proyek")].filter(Boolean).join(" · ")}</span>
                     </span>
                   </div>
                 ))}
@@ -675,7 +718,7 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
         </>
       )}
       <button type="button" className="btn" disabled={aksi.sibuk || !terpilih.length} onClick={simpan}>
-        {ganti ? `Ganti dengan ${terpilih.length} item` : `Tambahkan ${terpilih.length || ""} item`}
+        {ganti ? `Ganti dengan ${terpilih.length} item` : perbarui ? `Perbarui ${diperbarui.length} item${barus.length ? ` + tambah ${barus.length}` : ""}` : `Tambahkan ${terpilih.length || ""} item`}
       </button>
       </div>
     </details>

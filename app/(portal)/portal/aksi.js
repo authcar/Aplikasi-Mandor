@@ -198,13 +198,15 @@ export async function gantiItem(proyekId, rows) {
 }
 
 // Isi jasa tukang beberapa item sekaligus (hasil impor Excel Hitungan Jasa
-// Pekerjaan). rows = [{ id, harga_satuan, harga, tim }]; hanya item proyek ini.
+// Pekerjaan; mode Perbarui di impor BOQ, progres tidak tersentuh).
+// rows = [{ id, harga_satuan, harga, tim, foto }]; hanya item proyek ini.
 export async function simpanJasaTukang(proyekId, rows) {
   return jalan(async () => {
     await cekTerbuka(proyekId);
     const milik = new Set((await hasil(db().from("portal_item").select("id").eq("proyek_id", proyekId))).map((i) => i.id));
     if (rows.some((r) => !milik.has(r.id))) throw new Error("ada item yang bukan milik proyek ini.");
-    for (const r of rows) await ubah("portal_item", r.id, cekItem(pilih(r, ["harga_satuan", "harga", "tim"])));
+    cekFoto(rows, proyekId);
+    for (const r of rows) await ubah("portal_item", r.id, cekItem(pilih(r, ["harga_satuan", "harga", "tim", "foto"])));
   });
 }
 
