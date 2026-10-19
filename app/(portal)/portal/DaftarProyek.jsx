@@ -27,28 +27,65 @@ function Kartu({ k }) {
   );
 }
 
-// Daftar proyek dengan kolom cari; proyek arsip dilipat di bawahnya.
-export default function DaftarProyek({ kartu, kosong }) {
+const ikon = (d) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>
+);
+const IKON_CARI = ikon(<><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></>);
+const IKON_ARSIP = ikon(<><rect x="3" y="4" width="18" height="5" rx="1" /><path d="M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9M10 13h4" /></>);
+
+// Judul halaman, tombol cari & arsip, lalu daftar proyek. `children` (form
+// proyek baru) tampil di antara judul dan daftar. Kolom cari dan proyek arsip
+// tersembunyi sampai tombolnya diketuk.
+export default function DaftarProyek({ kartu, kosong, label, tautan, children }) {
   const [cari, setCari] = useState("");
+  const [bukaCari, setBukaCari] = useState(false);
+  const [bukaArsip, setBukaArsip] = useState(false);
   const q = cari.trim().toLowerCase();
   const tampil = kartu.filter((k) => cocok(k, q));
   const aktif = tampil.filter((k) => k.aktif);
   const arsip = tampil.filter((k) => !k.aktif);
+  const nArsip = kartu.filter((k) => !k.aktif).length;
 
   return (
     <>
-      {kartu.length > 0 && (
-        <input className="inp" type="search" value={cari} onChange={(e) => setCari(e.target.value)}
+      <div className="row" style={{ alignItems: "center" }}>
+        <div>
+          <div className="eb">{label}</div>
+          <h1>Proyek</h1>
+        </div>
+        <div className="acts" style={{ flex: "none" }}>
+          {kartu.length > 0 && (
+            <button type="button" className="act" aria-label="Cari proyek" aria-pressed={bukaCari}
+              style={{ width: 48, padding: 0, ...(bukaCari && { background: "var(--accent)", color: "var(--on-accent)", borderColor: "var(--accent)" }) }}
+              onClick={() => { setBukaCari((b) => !b); if (bukaCari) setCari(""); }}>
+              {IKON_CARI}
+            </button>
+          )}
+          {nArsip > 0 && (
+            <button type="button" className="act" aria-label={`Proyek arsip (${nArsip})`} aria-pressed={bukaArsip}
+              style={{ minWidth: 48, padding: "0 10px", gap: 6, ...(bukaArsip && { background: "var(--accent)", color: "var(--on-accent)", borderColor: "var(--accent)" }) }}
+              onClick={() => setBukaArsip((b) => !b)}>
+              {IKON_ARSIP}<span>{nArsip}</span>
+            </button>
+          )}
+          {tautan}
+        </div>
+      </div>
+
+      {children}
+
+      {bukaCari && (
+        <input className="inp" type="search" autoFocus value={cari} onChange={(e) => setCari(e.target.value)}
           placeholder="Cari nama proyek, kode, atau klien…" aria-label="Cari proyek" />
       )}
       {!kartu.length && <div className="card small">{kosong}</div>}
       {kartu.length > 0 && !tampil.length && <div className="card small">Tidak ada proyek yang cocok dengan “{cari.trim()}”.</div>}
       {aktif.map((k) => <Kartu key={k.id} k={k} />)}
-      {arsip.length > 0 && (
-        <details className="lipat" open={!!q || undefined}>
-          <summary><b>Proyek arsip</b><span className="num small">{arsip.length}</span></summary>
-          <div className="lipat-b">{arsip.map((k) => <Kartu key={k.id} k={k} />)}</div>
-        </details>
+      {(bukaArsip || (bukaCari && q)) && arsip.length > 0 && (
+        <>
+          <div className="fl" style={{ margin: "8px 0 0" }}>Proyek arsip ({arsip.length})</div>
+          {arsip.map((k) => <Kartu key={k.id} k={k} />)}
+        </>
       )}
     </>
   );

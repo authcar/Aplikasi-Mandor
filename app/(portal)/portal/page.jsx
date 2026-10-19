@@ -33,17 +33,14 @@ export default async function PortalBeranda() {
 
   return (
     <main className="wrap">
-      <div className="row" style={{ alignItems: "center" }}>
-        <div>
-          <div className="eb">{admin ? "Admin" : tukang ? "Tukang" : "Supervisor"}</div>
-          <h1>Proyek</h1>
-        </div>
-        {admin && <Link href="/portal/bobot" className="act">Bobot tahap</Link>}
-      </div>
-
-      {admin && <ProyekBaru supervisors={supervisors} />}
-
-      <DaftarProyek kartu={kartu} kosong={admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim tukang “${staf.nama}”.` : "Belum ada proyek."} />
+      <DaftarProyek
+        label={admin ? "Admin" : tukang ? "Tukang" : "Supervisor"}
+        tautan={admin && <Link href="/portal/bobot" className="act">Bobot tahap</Link>}
+        kartu={kartu}
+        kosong={admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim tukang “${staf.nama}”.` : "Belum ada proyek."}
+      >
+        {admin && <ProyekBaru supervisors={supervisors} />}
+      </DaftarProyek>
     </main>
   );
 }
