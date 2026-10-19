@@ -989,11 +989,6 @@ function TabKlien({ proyek, klien, aksi, kunci }) {
 
   return (
     <>
-      <p className="small" style={{ margin: 0 }}>
-        Klien membuka proyek lewat link rahasia, tanpa login. Satu proyek satu link, dan semua perubahan progres,
-        item, dan termin langsung tampil di link yang sama. Siapa pun yang memegang link bisa melihat proyek ini,
-        jadi kirim hanya ke klien. Hapus link kalau bocor atau tidak dipakai lagi.
-      </p>
       {klien.length > 1 && (
         <p className="note b-warn">Proyek ini punya {klien.length} link. Cukup satu, hapus yang tidak dipakai.</p>
       )}
