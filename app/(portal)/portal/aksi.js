@@ -49,6 +49,9 @@ function cekItem(r) {
 
 // Foto item harus milik proyek ini (path diawali id proyek, lihat api/portal/item-foto).
 function cekFoto(rows, proyekId) {
+  // Insert massal mengisi kolom yang tak ada di sebuah baris dengan NULL (bukan
+  // default), padahal portal_item.foto not null: samakan semua baris.
+  if (rows.some((r) => r.foto)) for (const r of rows) r.foto ||= [];
   if (rows.some((r) => (r.foto || []).some((p) => !p.startsWith(`${proyekId}/`) || p.includes(".."))))
     throw new Error("foto item bukan milik proyek ini.");
 }
