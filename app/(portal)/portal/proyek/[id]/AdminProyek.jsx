@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
+import FotoItem from "../../../FotoItem";
 import { unggahFotoItem } from "@/lib/portal/unggahFotoItem";
 import TabBar from "../../../TabBar";
 import {
@@ -171,6 +172,7 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
           <b className="num">{persenItem(it)}%</b>
           <i className="chev" aria-hidden="true" />
         </button>
+        {it.foto?.length > 0 && <div style={{ display: "flex" }}><FotoItem nama={it.nama} foto={it.foto} /></div>}
         {/* Tiap bagian bar = satu tahap yang sudah terbuka (lebar = bobotnya), terisi
             sebanyak persen tahap itu; boleh dicentang tidak berurutan. */}
         <div className="track tap">
@@ -424,6 +426,7 @@ function TabItem({ proyek, items, aksi }) {
                   <span className="num small">{it.harga ? rp(it.harga) : "—"}</span>
                   <i className="chev" aria-hidden="true" />
                 </button>
+                {it.foto?.length > 0 && <div style={{ display: "flex" }}><FotoItem nama={it.nama} foto={it.foto} /></div>}
                 {open && (
                   <div className="acc-b">
                     <Isian label="Nama item" nilai={it.nama}

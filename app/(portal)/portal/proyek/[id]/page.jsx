@@ -3,7 +3,14 @@ import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilItem, ambilProyek, ambilTermin, ambilKlien, ambilSupervisor, timSaya } from "@/lib/portal/data";
 import { ambilDefect } from "@/lib/portal/defect";
 import { cariProyekMandor, PATH_DEFECT_MANDOR } from "@/lib/portal/mandor";
+import { urlFotoItem } from "@/lib/portal/fotoItem";
 import AdminProyek from "./AdminProyek";
+
+// portal_item.foto (path storage) -> daftar signed URL untuk ditampilkan.
+async function urlkanFoto(items) {
+  const url = await urlFotoItem(items.flatMap((i) => i.foto || [])).catch(() => ({}));
+  return items.map((i) => ({ ...i, foto: (i.foto || []).map((f) => url[f]).filter(Boolean) }));
+}
 
 export default async function PortalProyekPage({ params }) {
   const { staf } = await ambilStaf();
@@ -17,14 +24,14 @@ export default async function PortalProyekPage({ params }) {
   // satuan tidak dikirim ke browser). Tidak ada item timnya = bukan proyeknya.
   if (tukang) {
     const { nilai_proyek, nilai_perancangan, ...p2 } = proyek;
-    const items = (await ambilItem([proyek])).filter((i) => timSaya(staf, i)).map(({ harga_satuan, ...i }) => i);
+    const items = await urlkanFoto((await ambilItem([proyek])).filter((i) => timSaya(staf, i)).map(({ harga_satuan, ...i }) => i));
     if (!items.length) notFound();
     return <AdminProyek proyek={p2} items={items} termin={[]} klien={[]} supervisors={[]} staf={staf} />;
   }
 
   const admin = staf.role === "ADMIN";
   const [items, termin, klien, supervisors, defect, pm] = await Promise.all([
-    ambilItem([proyek]),
+    ambilItem([proyek]).then(urlkanFoto),
     admin ? ambilTermin(proyek.id) : [],
     admin ? ambilKlien(proyek.id) : [],
     admin ? ambilSupervisor() : [],

@@ -9,7 +9,7 @@ import {
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
 import Defect from "./Defect";
-import FotoItem from "./FotoItem";
+import FotoItem from "../../FotoItem";
 
 function Ring({ p }) {
   const r = 34, c = 2 * Math.PI * r;
@@ -120,11 +120,9 @@ export default function Detail({ P }) {
                           <div style={{ minWidth: 0 }}>
                             {it.kode && <div className="small num">{it.kode}</div>}
                             <h3>{it.nama}</h3>
+                            <div style={{ marginTop: 6, display: "flex" }}><FotoItem nama={it.nama} foto={it.foto || []} /></div>
                           </div>
-                          <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
-                            <FotoItem nama={it.nama} foto={it.foto || []} />
-                            <b className="num">{v}%</b>
-                          </span>
+                          <b className="num">{v}%</b>
                         </div>
                         <span className="bar" style={{ display: "block" }}>
                           <i style={{ width: `${v}%`, background: v >= 100 ? "var(--ok)" : undefined }} />

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-// Tombol kecil "Foto" di baris item; ketuk -> pop up foto (geser dengan panah
+// Tombol kecil "Lihat gambar" di baris item; ketuk -> pop up foto (geser dengan panah
 // atau ketuk gambar berikutnya). Esc / ketuk latar / × untuk menutup.
 export default function FotoItem({ nama, foto }) {
   const [buka, setBuka] = useState(false);
@@ -31,7 +31,7 @@ export default function FotoItem({ nama, foto }) {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="M21 16l-5-5-8 9" />
         </svg>
-        {jml > 1 && <span>{jml}</span>}
+        <span>Lihat gambar{jml > 1 ? ` (${jml})` : ""}</span>
       </button>
       {buka && (
         <div className="fmodal" role="dialog" aria-modal="true" aria-label={`Foto ${nama}`} onClick={() => setBuka(false)}>

@@ -234,7 +234,7 @@ body:has(.tabbar) .toast{bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-b
 .fase-h .num{padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--c) 25%,var(--surface));color:var(--fg);letter-spacing:0;font-size:.75rem}
 
 /* Foto contoh item (halaman klien): tombol kecil + pop up */
-.fbtn{display:inline-flex;align-items:center;gap:4px;min-height:32px;padding:0 9px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:var(--r);font-size:.78rem;font-weight:600}
+.fbtn{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;align-self:flex-start;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:var(--r);font-size:.78rem;font-weight:600}
 .fbtn:hover{border-color:var(--fg);color:var(--fg)}
 .fmodal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px}
 .fbox{background:var(--surface);border-radius:var(--r);width:min(560px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden}
