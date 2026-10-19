@@ -213,11 +213,9 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
           <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>Belum ditetapkan</span>
         )}
       </div>
-      <p className="small" style={{ margin: 0 }}>
-        {lihat
-          ? "Progres dicatat oleh supervisor. Ketuk nama item untuk melihat semua tahap."
-          : "Ketuk bagian bar untuk mencatat tahap fase berjalan, ketuk lagi untuk membatalkan. Ketuk nama item untuk mencentang tahap satu per satu."}
-      </p>
+      {lihat && (
+        <p className="small" style={{ margin: 0 }}>Progres dicatat oleh supervisor. Ketuk nama item untuk melihat semua tahap.</p>
+      )}
       <div className="card" style={{ padding: "10px 14px" }}>
         <div className="g2" style={adaTim ? null : { gridTemplateColumns: "1fr" }}>
           {adaTim && (
