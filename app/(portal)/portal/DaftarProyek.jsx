@@ -15,45 +15,6 @@ function Kartu({ k, pilih, dipilih, onToggle }) {
           style={{ cursor: "pointer", ...(dipilih && { borderColor: "var(--bad)", boxShadow: "0 0 0 1px var(--bad)" }) }}>
           {children}
 
-      {hapusMode && (
-        <div className="card" style={{ position: "sticky", bottom: 12, zIndex: 5, display: "flex", flexDirection: "column", gap: 10, borderColor: "var(--bad)" }}>
-          {!konfirm ? (
-            <>
-              <div className="small">
-                {dipilih.length ? <b>{dipilih.length} proyek dipilih</b> : "Ketuk kartu proyek untuk memilih yang akan dihapus."}
-              </div>
-              <div className="acts">
-                <button type="button" className="act" onClick={() => setDipilih((d) => (d.length === daftarId.length ? [] : daftarId))}>
-                  {dipilih.length === daftarId.length && daftarId.length ? "Batal pilih" : "Pilih semua"}
-                </button>
-                <button type="button" className="act" onClick={() => { setHapusMode(false); setDipilih([]); }}>Batal</button>
-                <button type="button" className="act bahaya" disabled={!dipilih.length} onClick={() => setKonfirm(true)}>Hapus ({dipilih.length})</button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="note b-bad" style={{ margin: 0 }}>
-                {dipilih.length} proyek dihapus permanen beserta item, progres, termin, foto, dan link kliennya (klien tidak bisa membuka link lagi). Tidak bisa dibatalkan:
-                {" "}{kartu.filter((k) => dipilih.includes(k.id)).map((k) => k.nama).join(", ")}.
-              </p>
-              <label className="lbl">Ketik HAPUS untuk mengonfirmasi
-                <input className="inp" value={ketik} onChange={(e) => setKetik(e.target.value)} autoCapitalize="characters" />
-              </label>
-              <div className="acts">
-                <button type="button" className="act" onClick={() => { setKonfirm(false); setKetik(""); }}>Kembali</button>
-                <button type="button" className="act bahaya" disabled={aksi.sibuk || ketik.trim() !== "HAPUS"}
-                  onClick={async () => {
-                    const ok = await aksi.jalankan(() => hapusBanyakProyek(dipilih, ketik), `${dipilih.length} proyek dihapus.`);
-                    if (ok) { setHapusMode(false); setDipilih([]); setKonfirm(false); setKetik(""); }
-                  }}>
-                  Hapus permanen
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-      <Pesan aksi={aksi} />
         </div>
       )
     : ({ children }) => <Link href={`/portal/proyek/${k.id}`} className="proj">{children}</Link>;
@@ -142,6 +103,46 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, admin, chil
       </div>
 
       {children}
+
+      {hapusMode && (
+        <div className="card" style={{ position: "sticky", bottom: 12, zIndex: 5, display: "flex", flexDirection: "column", gap: 10, borderColor: "var(--bad)" }}>
+          {!konfirm ? (
+            <>
+              <div className="small">
+                {dipilih.length ? <b>{dipilih.length} proyek dipilih</b> : "Ketuk kartu proyek untuk memilih yang akan dihapus."}
+              </div>
+              <div className="acts">
+                <button type="button" className="act" onClick={() => setDipilih((d) => (d.length === daftarId.length ? [] : daftarId))}>
+                  {dipilih.length === daftarId.length && daftarId.length ? "Batal pilih" : "Pilih semua"}
+                </button>
+                <button type="button" className="act" onClick={() => { setHapusMode(false); setDipilih([]); }}>Batal</button>
+                <button type="button" className="act bahaya" disabled={!dipilih.length} onClick={() => setKonfirm(true)}>Hapus ({dipilih.length})</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="note b-bad" style={{ margin: 0 }}>
+                {dipilih.length} proyek dihapus permanen beserta item, progres, termin, foto, dan link kliennya (klien tidak bisa membuka link lagi). Tidak bisa dibatalkan:
+                {" "}{kartu.filter((k) => dipilih.includes(k.id)).map((k) => k.nama).join(", ")}.
+              </p>
+              <label className="lbl">Ketik HAPUS untuk mengonfirmasi
+                <input className="inp" value={ketik} onChange={(e) => setKetik(e.target.value)} autoCapitalize="characters" />
+              </label>
+              <div className="acts">
+                <button type="button" className="act" onClick={() => { setKonfirm(false); setKetik(""); }}>Kembali</button>
+                <button type="button" className="act bahaya" disabled={aksi.sibuk || ketik.trim() !== "HAPUS"}
+                  onClick={async () => {
+                    const ok = await aksi.jalankan(() => hapusBanyakProyek(dipilih, ketik), `${dipilih.length} proyek dihapus.`);
+                    if (ok) { setHapusMode(false); setDipilih([]); setKonfirm(false); setKetik(""); }
+                  }}>
+                  Hapus permanen
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      <Pesan aksi={aksi} />
 
       {bukaCari && (
         <input className="inp" type="search" autoFocus value={cari} onChange={(e) => setCari(e.target.value)}
