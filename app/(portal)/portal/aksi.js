@@ -113,15 +113,31 @@ export async function ubahProyek(id, patch) {
 // Hapus permanen, hanya master. Item, progres, termin, dan link klien ikut
 // terhapus (on delete cascade). Nama yang diketik dicek lagi di sini supaya
 // tidak salah proyek. Proyek yang sudah terkunci (lewat deadline) tetap bisa dihapus.
+async function hapusSatuProyek(id) {
+  const fotoItem = await hasil(db().from("portal_item").select("*").eq("proyek_id", id));
+  await hapusFotoItem(fotoItem.flatMap((i) => i.foto || []));
+  await hapusFotoDefect(id); // baris defect ikut terhapus (cascade), fotonya tidak
+  await hapus("portal_proyek", id);
+}
+
 export async function hapusProyek(id, namaKetik) {
   return jalan(async () => {
     const p = await ambilProyek(id);
     if (!p) throw new Error("Proyek tidak ditemukan.");
     if (String(namaKetik || "").trim() !== p.nama.trim()) throw new Error("nama proyek yang diketik tidak sama.");
-    const fotoItem = await hasil(db().from("portal_item").select("*").eq("proyek_id", id));
-    await hapusFotoItem(fotoItem.flatMap((i) => i.foto || []));
-    await hapusFotoDefect(id); // baris defect ikut terhapus (cascade), fotonya tidak
-    await hapus("portal_proyek", id);
+    await hapusSatuProyek(id);
+  });
+}
+
+// Hapus beberapa proyek sekaligus dari beranda (pilih kartu). Kata konfirmasi
+// "HAPUS" dicek lagi di sini. Isi yang ikut terhapus sama dengan hapusProyek.
+export async function hapusBanyakProyek(ids, kata) {
+  return jalan(async () => {
+    if (String(kata || "").trim() !== "HAPUS") throw new Error("ketik HAPUS untuk mengonfirmasi.");
+    if (!Array.isArray(ids) || !ids.length || ids.length > 50) throw new Error("pilih 1–50 proyek.");
+    for (const id of ids) {
+      if (await ambilProyek(id)) await hapusSatuProyek(id);
+    }
   });
 }
 

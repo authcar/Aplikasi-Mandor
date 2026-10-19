@@ -34,6 +34,7 @@ export default async function PortalBeranda() {
   return (
     <main className="wrap">
       <DaftarProyek
+        admin={admin}
         label={admin ? "Admin" : tukang ? "Tukang" : "Supervisor"}
         tautan={admin && (
           <Link href="/portal/bobot" className="act" aria-label="Bobot tahap" title="Bobot tahap" style={{ width: 48, padding: 0, flex: "none" }}>

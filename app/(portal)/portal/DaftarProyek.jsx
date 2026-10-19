@@ -1,12 +1,65 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useAksi } from "./useAksi";
+import Pesan from "./Pesan";
+import { hapusBanyakProyek } from "./aksi";
 
 const cocok = (k, q) => !q || [k.nama, k.kode, k.klien, k.lokasi].some((x) => (x || "").toLowerCase().includes(q));
 
-function Kartu({ k }) {
+function Kartu({ k, pilih, dipilih, onToggle }) {
+  const Pembungkus = pilih
+    ? ({ children }) => (
+        <div className="proj" role="checkbox" aria-checked={dipilih} tabIndex={0} onClick={onToggle}
+          onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); onToggle(); } }}
+          style={{ cursor: "pointer", ...(dipilih && { borderColor: "var(--bad)", boxShadow: "0 0 0 1px var(--bad)" }) }}>
+          {children}
+
+      {hapusMode && (
+        <div className="card" style={{ position: "sticky", bottom: 12, zIndex: 5, display: "flex", flexDirection: "column", gap: 10, borderColor: "var(--bad)" }}>
+          {!konfirm ? (
+            <>
+              <div className="small">
+                {dipilih.length ? <b>{dipilih.length} proyek dipilih</b> : "Ketuk kartu proyek untuk memilih yang akan dihapus."}
+              </div>
+              <div className="acts">
+                <button type="button" className="act" onClick={() => setDipilih((d) => (d.length === daftarId.length ? [] : daftarId))}>
+                  {dipilih.length === daftarId.length && daftarId.length ? "Batal pilih" : "Pilih semua"}
+                </button>
+                <button type="button" className="act" onClick={() => { setHapusMode(false); setDipilih([]); }}>Batal</button>
+                <button type="button" className="act bahaya" disabled={!dipilih.length} onClick={() => setKonfirm(true)}>Hapus ({dipilih.length})</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="note b-bad" style={{ margin: 0 }}>
+                {dipilih.length} proyek dihapus permanen beserta item, progres, termin, foto, dan link kliennya (klien tidak bisa membuka link lagi). Tidak bisa dibatalkan:
+                {" "}{kartu.filter((k) => dipilih.includes(k.id)).map((k) => k.nama).join(", ")}.
+              </p>
+              <label className="lbl">Ketik HAPUS untuk mengonfirmasi
+                <input className="inp" value={ketik} onChange={(e) => setKetik(e.target.value)} autoCapitalize="characters" />
+              </label>
+              <div className="acts">
+                <button type="button" className="act" onClick={() => { setKonfirm(false); setKetik(""); }}>Kembali</button>
+                <button type="button" className="act bahaya" disabled={aksi.sibuk || ketik.trim() !== "HAPUS"}
+                  onClick={async () => {
+                    const ok = await aksi.jalankan(() => hapusBanyakProyek(dipilih, ketik), `${dipilih.length} proyek dihapus.`);
+                    if (ok) { setHapusMode(false); setDipilih([]); setKonfirm(false); setKetik(""); }
+                  }}>
+                  Hapus permanen
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      <Pesan aksi={aksi} />
+        </div>
+      )
+    : ({ children }) => <Link href={`/portal/proyek/${k.id}`} className="proj">{children}</Link>;
   return (
-    <Link href={`/portal/proyek/${k.id}`} className="proj">
+    <Pembungkus>
+      {pilih && <input type="checkbox" checked={dipilih} readOnly tabIndex={-1} aria-hidden="true" style={{ width: 20, height: 20, accentColor: "var(--bad)", pointerEvents: "none" }} />}
       <div className="row" style={{ alignItems: "center" }}>
         <span className="small" style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[k.kode, k.klien].filter(Boolean).join(" · ") || "—"}</span>
         <span className="row" style={{ gap: 6, flex: "none" }}>
@@ -23,7 +76,7 @@ function Kartu({ k }) {
         <div className="bar" style={{ flex: 1 }}><i style={{ width: `${k.persen}%` }} /></div>
         <b className="num">{k.persenTeks}</b>
       </div>
-    </Link>
+    </Pembungkus>
   );
 }
 
@@ -31,12 +84,18 @@ const ikon = (d) => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>
 );
 const IKON_CARI = ikon(<><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></>);
+const IKON_HAPUS = ikon(<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />);
 const IKON_ARSIP = ikon(<><rect x="3" y="4" width="18" height="5" rx="1" /><path d="M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9M10 13h4" /></>);
 
 // Judul halaman, tombol cari & arsip, lalu daftar proyek. `children` (form
 // proyek baru) tampil di antara judul dan daftar. Kolom cari dan proyek arsip
 // tersembunyi sampai tombolnya diketuk.
-export default function DaftarProyek({ kartu, kosong, label, tautan, children }) {
+export default function DaftarProyek({ kartu, kosong, label, tautan, admin, children }) {
+  const aksi = useAksi();
+  const [hapusMode, setHapusMode] = useState(false);
+  const [dipilih, setDipilih] = useState([]); // id proyek
+  const [konfirm, setKonfirm] = useState(false);
+  const [ketik, setKetik] = useState("");
   const [cari, setCari] = useState("");
   const [bukaCari, setBukaCari] = useState(false);
   const [bukaArsip, setBukaArsip] = useState(false);
@@ -45,6 +104,9 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, children })
   const aktif = tampil.filter((k) => k.aktif);
   const arsip = tampil.filter((k) => !k.aktif);
   const nArsip = kartu.filter((k) => !k.aktif).length;
+  const daftarId = (bukaArsip ? arsip : aktif).map((k) => k.id);
+  const toggle = (id) => setDipilih((d) => (d.includes(id) ? d.filter((x) => x !== id) : [...d, id]));
+  const kartuProps = (k) => ({ k, pilih: hapusMode, dipilih: dipilih.includes(k.id), onToggle: () => toggle(k.id) });
 
   return (
     <>
@@ -69,6 +131,13 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, children })
             </button>
           )}
           {tautan}
+          {admin && kartu.length > 0 && (
+            <button type="button" className="act" aria-label="Pilih proyek untuk dihapus" aria-pressed={hapusMode}
+              style={{ width: 48, padding: 0, ...(hapusMode && { background: "var(--bad)", color: "#fff", borderColor: "var(--bad)" }) }}
+              onClick={() => { setHapusMode((b) => !b); setDipilih([]); setKonfirm(false); setKetik(""); }}>
+              {IKON_HAPUS}
+            </button>
+          )}
         </div>
       </div>
 
@@ -84,10 +153,10 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, children })
         <>
           <div className="fl" style={{ margin: "8px 0 0" }}>Proyek arsip ({arsip.length})</div>
           {!arsip.length && <div className="card small">{q ? "Tidak ada proyek arsip yang cocok." : "Belum ada proyek arsip."}</div>}
-          {arsip.map((k) => <Kartu key={k.id} k={k} />)}
+          {arsip.map((k) => <Kartu key={k.id} {...kartuProps(k)} />)}
         </>
       ) : (
-        aktif.map((k) => <Kartu key={k.id} k={k} />)
+        aktif.map((k) => <Kartu key={k.id} {...kartuProps(k)} />)
       )}
     </>
   );
