@@ -553,6 +553,9 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
   const kosong = { area: areas[areas.length - 1] || "", nama: "", kode: "", jenis: "HPL", qty: "1", satuan: "unit", dimensi: "", harga_satuan: null, harga: null, tim: "" };
   const [f, setF] = useState(kosong);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  // Area dipilih dari dropdown (semua area proyek + Lain-lain); "+ Area baru…" membuka kolom ketik.
+  const pilihanArea = [...new Set([...areas, "Lain-lain"])];
+  const [areaBaru, setAreaBaru] = useState(!areas.length);
 
   return (
     <details className="lipat">
@@ -570,9 +573,22 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
       }}>
         <label className="lbl">Nama item<input className="inp" required value={f.nama} onChange={set("nama")} placeholder="Lemari pakaian 2 pintu" /></label>
         <div className="g2">
-          <label className="lbl">Area<input className="inp" required list="daftar-area" value={f.area} onChange={set("area")} placeholder="Kamar Anak" /></label>
+          <label className="lbl">Area
+            <select className="inp" required value={areaBaru ? "__baru" : f.area}
+              onChange={(e) => {
+                const baru = e.target.value === "__baru";
+                setAreaBaru(baru);
+                setF({ ...f, area: baru ? "" : e.target.value });
+              }}>
+              {pilihanArea.map((a) => <option key={a} value={a}>{a}</option>)}
+              <option value="__baru">+ Area baru…</option>
+            </select>
+          </label>
           <label className="lbl">Kode<input className="inp" value={f.kode} onChange={set("kode")} placeholder="FF.01" /></label>
         </div>
+        {areaBaru && (
+          <label className="lbl">Nama area baru<input className="inp" required autoFocus value={f.area} onChange={set("area")} placeholder="Kamar Anak" /></label>
+        )}
         <div className="g2" style={{ gridTemplateColumns: "72px 88px minmax(0,1fr)" }}>
           <label className="lbl">Qty<input className="inp" inputMode="decimal" value={f.qty} onChange={set("qty")} /></label>
           <label className="lbl">Satuan<input className="inp" value={f.satuan} onChange={set("satuan")} /></label>
