@@ -14,8 +14,7 @@ import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin, STATUS_DEFECT, DEFECT_AKTIF,
 } from "@/lib/portal/format";
-import { bacaBoq, bacaBaris, formatLama, bacaJasa, infoSheet } from "@/lib/portal/imporBoq";
-import { bukaXlsx } from "@/lib/portal/bacaXlsx";
+import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
 import { kompresBanyakGambar } from "@/lib/gambar";
 
@@ -462,7 +461,6 @@ function TabItem({ proyek, items, aksi }) {
         </div>
       ))}
 
-      <ImporJasa proyek={proyek} items={items} aksi={aksi} />
       <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />
       <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
     </>
@@ -511,131 +509,6 @@ function JasaTukangLihat({ items }) {
         </div>
       ))}
     </>
-  );
-}
-
-// Impor Excel "Hitungan Jasa Pekerjaan" (satu sheet per tim): harga satuan dan
-// total masuk ke item proyek yang nama + kodenya sama. Baris tambahan (ambalan,
-// LED, stopkontak) dilewati; item yang tidak ada di proyek ditampilkan saja.
-const kunciNama = (i) => (i.nama || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-function cocokkanJasa(rows, items) {
-  const dipakai = new Set();
-  return rows.map((r) => {
-    const sama = (i) => !dipakai.has(i.id) && kunciNama(i) === kunciNama(r);
-    const it = items.find((i) => sama(i) && (i.kode || "") === (r.kode || "")) || items.find(sama);
-    if (it) dipakai.add(it.id);
-    return { ...r, item: it || null };
-  });
-}
-
-// Satu file bisa berisi beberapa sheet (satu per tim, mis. Mas Alan & Pak
-// Ndan): semua sheet yang berisi item jasa bisa dicentang sekaligus dan
-// digabung jadi satu impor; tim tiap baris diambil dari sheet asalnya.
-function ImporJasa({ proyek, items, aksi }) {
-  const [buku, setBuku] = useState(null); // { sheets: [{ nama, rows, tim }] }
-  const [pilih, setPilih] = useState({}); // { [sheet]: true/false }
-  const [tim, setTim] = useState({}); // { [sheet]: nama tim }
-  const [galat, setGalat] = useState("");
-  const [unggahKe, setUnggahKe] = useState(0); // ganti key = kosongkan pilihan file
-  const hasil = useMemo(() => {
-    if (!buku) return [];
-    const baris = buku.sheets.filter((x) => pilih[x.nama]).flatMap((x) => x.rows.map((r) => ({ ...r, sheet: x.nama })));
-    return cocokkanJasa(baris, items);
-  }, [buku, pilih, items]);
-  const cocok = hasil.filter((r) => r.item);
-  const timBaris = (r) => (tim[r.sheet] || "").trim() || null;
-
-  async function pilihFile(e) {
-    const file = e.target.files?.[0];
-    setGalat("");
-    setBuku(null);
-    aksi.setMsg("");
-    if (!file) return;
-    try {
-      const b = bukaXlsx(await file.arrayBuffer());
-      const sheets = b.sheets
-        .map((nama) => { const rows = b.baca(nama); return { nama, rows: bacaJasa(rows), tim: infoSheet(rows).tim || "" }; })
-        .filter((x) => x.rows.length);
-      if (!sheets.length) throw new Error("kosong");
-      setBuku({ sheets });
-      setPilih(Object.fromEntries(sheets.map((x) => [x.nama, true])));
-      setTim(Object.fromEntries(sheets.map((x) => [x.nama, x.tim])));
-    } catch (err) {
-      setGalat(err.message === "kosong"
-        ? "Tidak ada item jasa yang terbaca. Pastikan ini file Hitungan Jasa Pekerjaan."
-        : "File tidak bisa dibaca. Pastikan formatnya Excel .xlsx (bukan .xls atau PDF).");
-    }
-  }
-
-  async function simpan() {
-    const tims = [...new Set(cocok.map(timBaris).filter(Boolean))];
-    const ok = await aksi.jalankan(
-      () => A.simpanJasaTukang(proyek.id, cocok.map((r) => ({ id: r.item.id, harga_satuan: r.harga_satuan, harga: r.harga, tim: timBaris(r) }))),
-      `Jasa tukang ${cocok.length} item disimpan${tims.length ? ` (tim ${tims.join(", ")})` : ""}.`
-    );
-    if (!ok) return;
-    setBuku(null);
-    setUnggahKe((n) => n + 1);
-  }
-
-  return (
-    <div className="card stack">
-      <h3>Impor jasa tukang dari Excel</h3>
-      <div className="stack">
-        <p className="small" style={{ margin: 0 }}>
-          Untuk file <b>Hitungan Jasa Pekerjaan</b>. Pilih file, lalu centang sheet tim yang mau dimasukkan (boleh lebih dari satu, digabung jadi satu impor).
-          Harga satuan dan total tiap item bernomor masuk ke item proyek yang namanya sama. Baris tambahan seperti
-          ambalan, LED strip, dan stopkontak dilewati.
-        </p>
-        <label className="lbl">File hitungan jasa (.xlsx)
-          <input key={unggahKe} className="inp" type="file" style={{ padding: "9px 12px" }} onChange={pilihFile}
-            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-        </label>
-        {galat && <p className="note b-bad">{galat}</p>}
-        {buku && (
-          <div className="stack" style={{ gap: 8 }}>
-            <div className="fl" style={{ margin: 0 }}>Sheet ({buku.sheets.length})</div>
-            {buku.sheets.map((x) => (
-              <div key={x.nama} className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", alignItems: "end" }}>
-                <label className="cek" style={{ minWidth: 0 }}>
-                  <input type="checkbox" checked={!!pilih[x.nama]} onChange={(e) => setPilih({ ...pilih, [x.nama]: e.target.checked })} />
-                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{x.nama} · {x.rows.length} item</span>
-                </label>
-                <input className="inp" list="daftar-tim" aria-label={`Tim untuk ${x.nama}`} placeholder="Tim tukang"
-                  value={tim[x.nama] || ""} onChange={(e) => setTim({ ...tim, [x.nama]: e.target.value })} />
-              </div>
-            ))}
-          </div>
-        )}
-        {hasil.length > 0 && (
-          <>
-            <div>
-              {hasil.map((r, n) => (
-                <div key={n} className={`pv${r.item ? "" : " off"}`} style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}>
-                  <span className="t">
-                    <span className="nm">{r.nama}{r.kode ? ` (${r.kode})` : ""}</span>
-                    <span className="small">
-                      {[`${Number(r.qty).toLocaleString("id-ID")} × ${r.harga_satuan ? rp(r.harga_satuan) : "—"}`, timBaris(r),
-                        r.item ? `ke ${r.item.area}` : "tidak ada di proyek ini, dilewati"].filter(Boolean).join(" · ")}
-                    </span>
-                  </span>
-                  <b className="num small">{r.harga != null ? rp(r.harga) : "—"}</b>
-                </div>
-              ))}
-            </div>
-            <div className="row small">
-              <span>Total {cocok.length} item</span>
-              <b className="num">{rp(cocok.reduce((a, r) => a + (Number(r.harga) || 0), 0))}</b>
-            </div>
-          </>
-        )}
-        {buku && (
-          <button type="button" className="btn" disabled={aksi.sibuk || !cocok.length} onClick={simpan}>
-            Simpan jasa {cocok.length} item
-          </button>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -717,13 +590,8 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
 
   return (
     <details className="lipat">
-      <summary><b>Impor item BOQ dari Excel</b></summary>
+      <summary><b>Tambah / Ganti Item BOQ sekaligus</b></summary>
       <div className="lipat-b" style={{ gap: 12 }}>
-      <p className="small" style={{ margin: 0 }}>
-        Untuk menambah atau mengganti <b>daftar item</b> dari file <b>BoQ</b> (bukan file jasa tukang). Pilih file, lalu sheet proyeknya. Yang diambil hanya item bernomor (kabinet, wardrobe, dll.)
-        beserta area, kode, dimensi, dan qty-nya; aksesoris tanpa nomor seperti LED, handle, dan stopkontak dilewati.
-        Nilai jasa tukang diisi setelah impor.
-      </p>
       <UnggahBoq key={unggahKe} petunjuk={[proyek.nama, proyek.kode]} onPilih={(f) => { setFile(f); sumberBaru(); aksi.setMsg(""); }} />
       {!file && (
         <details>
