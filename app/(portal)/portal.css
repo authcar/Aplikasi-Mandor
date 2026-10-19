@@ -244,3 +244,4 @@ body:has(.tabbar) .toast{bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-b
 .fbox img{display:block;width:100%;max-height:70vh;object-fit:contain;background:var(--sunk)}
 .fnav{display:flex;align-items:center;justify-content:center;gap:18px;padding:6px;font-size:.82rem;color:var(--muted)}
 .fnav button{border:0;background:none;font-size:1.8rem;line-height:1;color:var(--fg);min-width:44px;min-height:40px}
+.acc-f{display:flex;padding:0 14px 10px;margin-top:-4px}
