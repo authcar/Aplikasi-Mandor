@@ -243,11 +243,21 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
       </div>
       {areas.filter((a) => !area || a === area).map((a) => {
         const its = tampil.filter((i) => i.area === a);
+        const pa = persenProyek(its);
+        // Satu dropdown per area (Living Room, Powder Room, ...); terbuka otomatis kalau area dipilih lewat saringan.
         return (
-          <div key={a} className="stack" style={{ gap: 8 }}>
-            <div className="area"><h2>{a}</h2><span className="num small">{pct(persenProyek(its))} · {its.length} item</span></div>
-            {its.map(kartu)}
-          </div>
+          <details key={a} className="lipat" open={!!area || undefined}>
+            <summary>
+              <span style={{ minWidth: 0, flex: 1 }}>
+                <span className="row">
+                  <h2>{a}</h2>
+                  <span className="num small" style={{ margin: 0, whiteSpace: "nowrap" }}>{pct(pa)} · {its.length} item</span>
+                </span>
+                <span className="bar" style={{ display: "block", marginTop: 8 }}><i style={{ width: `${pa}%` }} /></span>
+              </span>
+            </summary>
+            <div className="lipat-b">{its.map(kartu)}</div>
+          </details>
         );
       })}
     </>
