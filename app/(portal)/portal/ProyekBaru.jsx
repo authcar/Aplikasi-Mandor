@@ -20,6 +20,7 @@ export default function ProyekBaru({ supervisors }) {
   const router = useRouter();
   const { msg, setMsg } = useAksi();
   const [sibuk, setSibuk] = useState(false);
+  const [langkah, setLangkah] = useState(""); // keterangan di tombol selama menyimpan
   const [f, setF] = useState({ nama: "", kode: "", klien_nama: "", lokasi: "", mulai: hariIni(), deadline: "", supervisor_id: "" });
   const [buku, setBuku] = useState(null); // hasil bukaXlsx
   const [dibaca, setDibaca] = useState({}); // { [sheet]: { nama, jasa, rows } } sheet yang sudah dibaca
@@ -106,7 +107,8 @@ export default function ProyekBaru({ supervisors }) {
     }
     if (boq?.items.length) {
       // Proyek sudah jadi; kalau itemnya gagal, admin bisa mengimpor ulang di tab Jasa tukang.
-      const { items: siap, gagal, pesan } = await unggahFotoItem(hasil.id, boq.items);
+      const { items: siap, gagal, pesan } = await unggahFotoItem(hasil.id, boq.items, (n, t) => setLangkah(`Mengunggah foto ${n}/${t}…`));
+      setLangkah("Menyimpan item…");
       if (gagal) alert(`${gagal} foto gagal diunggah (${pesan}); item tetap diimpor tanpa foto itu.`);
       const r = await tambahItem(hasil.id, siap).catch(() => ({ error: "tidak tersambung ke server" }));
       if (r?.error) alert(`Proyek dibuat, tetapi item BOQ gagal diimpor (${r.error}). Impor ulang dari tab Jasa tukang.`);
@@ -169,7 +171,7 @@ export default function ProyekBaru({ supervisors }) {
         </select>
       </label>
       {msg && <p className="note b-bad">{msg}</p>}
-      <button className="btn" disabled={sibuk || !f.nama.trim()}>{sibuk ? "Menyimpan…" : boq?.items.length ? `Buat proyek + ${boq.items.length} item` : "Buat proyek"}</button>
+      <button className="btn" disabled={sibuk || !f.nama.trim()}>{sibuk ? langkah || "Menyimpan…" : boq?.items.length ? `Buat proyek + ${boq.items.length} item` : "Buat proyek"}</button>
       </form>
     </details>
   );
