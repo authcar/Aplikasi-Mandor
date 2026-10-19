@@ -1,4 +1,5 @@
 import Link from "next/link";
+import DaftarProyek from "./DaftarProyek";
 import { ambilStaf } from "@/lib/portal/server";
 import { ambilItem, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
 import { hitungDefectBaru } from "@/lib/portal/defect";
@@ -18,6 +19,18 @@ export default async function PortalBeranda() {
   // Tukang: jumlah item dan progres dihitung dari item timnya saja.
   const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));
 
+  const kartu = proyek.map((p) => {
+    const its = items.filter((i) => i.proyek_id === p.id);
+    const v = persenProyek(its);
+    const [status, kelas] = statusProyek({ ...p, items: its });
+    return {
+      id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
+      n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null,
+      sisa: p.deadline && p.aktif ? [lewatDeadline(p) ? "Terkunci" : labelDeadline(p.deadline)[0], labelDeadline(p.deadline)[1]] : null,
+      status, kelas, persen: v, persenTeks: pct(v), defect: defectBaru[p.id] || 0,
+    };
+  });
+
   return (
     <main className="wrap">
       <div className="row" style={{ alignItems: "center" }}>
@@ -30,40 +43,7 @@ export default async function PortalBeranda() {
 
       {admin && <ProyekBaru supervisors={supervisors} />}
 
-      {!proyek.length && (
-        <div className="card small">
-          {admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim tukang “${staf.nama}”.` : "Belum ada proyek."}
-        </div>
-      )}
-
-      {proyek.map((p) => {
-        const its = items.filter((i) => i.proyek_id === p.id);
-        const v = persenProyek(its);
-        const [st, cls] = statusProyek({ ...p, items: its });
-        return (
-          <Link key={p.id} href={`/portal/proyek/${p.id}`} className="proj">
-            <div className="row" style={{ alignItems: "center" }}>
-              <span className="small" style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[p.kode, p.klien_nama].filter(Boolean).join(" · ") || "—"}</span>
-              <span className="row" style={{ gap: 6, flex: "none" }}>
-                {defectBaru[p.id] > 0 && <span className="badge b-bad">{defectBaru[p.id]} defect baru</span>}
-                <span className={`badge ${p.aktif ? cls : "b-n"}`}>{p.aktif ? st : "Arsip"}</span>
-              </span>
-            </div>
-            <h3>{p.nama}</h3>
-            <div className="small" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-              {its.length} item{p.deadline ? ` · Deadline ${tglTh(p.deadline)}` : ""}
-              {p.deadline && p.aktif && (() => {
-                const [teks, kelas] = labelDeadline(p.deadline);
-                return <span className={`badge ${kelas}`}>{lewatDeadline(p) ? "Terkunci" : teks}</span>;
-              })()}
-            </div>
-            <div className="row" style={{ alignItems: "center" }}>
-              <div className="bar" style={{ flex: 1 }}><i style={{ width: `${v}%` }} /></div>
-              <b className="num">{pct(v)}</b>
-            </div>
-          </Link>
-        );
-      })}
+      <DaftarProyek kartu={kartu} kosong={admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim tukang “${staf.nama}”.` : "Belum ada proyek."} />
     </main>
   );
 }
