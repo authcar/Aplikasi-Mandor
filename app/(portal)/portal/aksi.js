@@ -114,8 +114,7 @@ export async function ubahProyek(id, patch) {
 }
 
 // Hapus permanen, hanya master. Item, progres, termin, dan link klien ikut
-// terhapus (on delete cascade). Nama yang diketik dicek lagi di sini supaya
-// tidak salah proyek. Proyek yang sudah terkunci (lewat deadline) tetap bisa dihapus.
+// terhapus (on delete cascade). Konfirmasi dilakukan di UI. Proyek yang sudah terkunci (lewat deadline) tetap bisa dihapus.
 async function hapusSatuProyek(id) {
   const fotoItem = await hasil(db().from("portal_item").select("*").eq("proyek_id", id));
   await hapusFotoItem(fotoItem.flatMap((i) => i.foto || []));
@@ -123,11 +122,9 @@ async function hapusSatuProyek(id) {
   await hapus("portal_proyek", id);
 }
 
-export async function hapusProyek(id, namaKetik) {
+export async function hapusProyek(id) {
   return jalan(async () => {
-    const p = await ambilProyek(id);
-    if (!p) throw new Error("Proyek tidak ditemukan.");
-    if (String(namaKetik || "").trim() !== p.nama.trim()) throw new Error("nama proyek yang diketik tidak sama.");
+    if (!(await ambilProyek(id))) throw new Error("Proyek tidak ditemukan.");
     await hapusSatuProyek(id);
   });
 }

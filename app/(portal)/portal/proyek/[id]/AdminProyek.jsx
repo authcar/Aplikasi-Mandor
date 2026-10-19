@@ -1160,9 +1160,7 @@ function TabInfo({ proyek, supervisors, aksi }) {
 function HapusProyek({ proyek, items, termin, klien, aksi }) {
   const router = useRouter();
   const [buka, setBuka] = useState(false);
-  const [ketik, setKetik] = useState("");
   const [busy, setBusy] = useState(false);
-  const cocok = ketik.trim() === proyek.nama.trim();
   const ikut = [
     items.length && `${items.length} item beserta progresnya`,
     termin.length && `${termin.length} termin`,
@@ -1174,7 +1172,7 @@ function HapusProyek({ proyek, items, termin, klien, aksi }) {
     aksi.setMsg("");
     let error;
     try {
-      ({ error } = (await A.hapusProyek(proyek.id, ketik)) || {});
+      ({ error } = (await A.hapusProyek(proyek.id)) || {});
     } catch {
       error = "tidak tersambung ke server. Periksa koneksi lalu coba lagi.";
     }
@@ -1199,12 +1197,9 @@ function HapusProyek({ proyek, items, termin, klien, aksi }) {
         Proyek dihapus permanen dan tidak bisa dikembalikan.
         {ikut.length ? ` Ikut terhapus: ${ikut.join(", ")}.` : ""}
       </p>
-      <label className="lbl">Ketik <b style={{ textTransform: "none", letterSpacing: 0 }}>{proyek.nama}</b> untuk konfirmasi
-        <input className="inp" value={ketik} onChange={(e) => setKetik(e.target.value)} autoComplete="off" spellCheck={false} />
-      </label>
       <div className="acts">
-        <button type="button" className="act" disabled={busy} onClick={() => { setBuka(false); setKetik(""); }}>Batal</button>
-        <button type="button" className="act bahaya" disabled={!cocok || busy} onClick={hapus}>
+        <button type="button" className="act" disabled={busy} onClick={() => setBuka(false)}>Batal</button>
+        <button type="button" className="act bahaya" disabled={busy} onClick={hapus}>
           {busy ? "Menghapus…" : "Hapus permanen"}
         </button>
       </div>
