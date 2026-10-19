@@ -8,7 +8,7 @@ import UnggahBoq from "../../UnggahBoq";
 import TabBar from "../../../TabBar";
 import {
   FASE, JENIS_LABEL, tahapItem, persenItem, persenProyek,
-  tahapTerakhir, tahapBerikut, tahapBar, areaProgres, faseKini, faseTerkunci, faseMenghalangi, tahapTerkunci, persenTahap, tahapSelesai,
+  tahapTerakhir, tahapBerikut, tahapBar, areaProgres, faseKini, faseTerkunci, tahapTerkunci, persenTahap, tahapSelesai,
 } from "@/lib/portal/progresBoq";
 import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
@@ -295,14 +295,26 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat }) {
   };
   // Simpan kalau berbeda dari yang tercatat.
   const kirim = (s) => v[s.k] !== awal[s.k] && catat(it, s, v[s.k]);
-  // Fase terkunci pertama yang dimiliki item ini, untuk catatan di bawah.
-  const faseTutup = FASE.find((f) => faseTerkunci(it, f.k) && tahap.some((s) => s.fase === f.k));
-  const penghalang = faseTutup && faseMenghalangi(it, faseTutup.k);
+  // Fase sebelum fase berjalan sudah selesai 100%: tombolnya disembunyikan supaya
+  // yang tampil hanya fase berikutnya. Bisa dibuka lagi untuk membetulkan salah centang.
+  const kini = faseKini(it);
+  const iKini = kini ? FASE.findIndex((f) => f.k === kini.k) : FASE.length;
+  const faseLewat = FASE.slice(0, iKini).filter((f) => tahap.some((s) => s.fase === f.k));
+  const [lihatLewat, setLihatLewat] = useState(false);
 
   return (
     <div className="acc-b">
-      {FASE.map((f) => {
+      {faseLewat.length > 0 && (
+        <div className="row small" style={{ alignItems: "center" }}>
+          <span><b style={{ fontWeight: 600 }}>{faseLewat.map((f) => f.label).join(", ")}</b> selesai ✓</span>
+          <button type="button" className="act" onClick={() => setLihatLewat(!lihatLewat)}>
+            {lihatLewat ? "Sembunyikan" : "Tampilkan"}
+          </button>
+        </div>
+      )}
+      {FASE.map((f, i) => {
         const st = tahap.filter((s) => s.fase === f.k);
+        if (i < iKini && !lihatLewat) return null;
         // Fase yang fase sebelumnya belum selesai 100% disembunyikan, kecuali
         // sudah ada tahap tercatat (data lama), supaya masih bisa dibatalkan.
         const tutup = faseTerkunci(it, f.k);
@@ -343,11 +355,6 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat }) {
           </div>
         );
       })}
-      {faseTutup && (
-        <p className="small" style={{ margin: 0 }}>
-          {faseTutup.label} terbuka setelah semua tahap {penghalang.label.toLowerCase()} selesai 100%.
-        </p>
-      )}
       {admin && it.bobot_khusus && (
         <div className="row small" style={{ alignItems: "center" }}>
           <span>Item ini memakai bobot tahap khusus.</span>
