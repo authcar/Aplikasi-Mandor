@@ -2,19 +2,36 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+// Tombol baru dikunci (`sibuk`) kalau aksi / pemuatan data belum selesai
+// setelah jeda ini. Kolom isian menyimpan saat ditinggalkan (blur): kalau
+// tombol langsung terkunci saat itu, ketukan pertama pada tombol lain hilang
+// (klik tidak sampai ke tombol yang sudah disabled) dan harus diketuk dua kali.
+const JEDA_SIBUK_MS = 250;
+
 // Jalankan satu server action (lihat aksi.js), tampilkan pesan, lalu muat ulang data server.
 // `sibuk` = aksi berjalan ATAU data baru masih dimuat (dipakai pop up loading di Pesan.jsx).
 export function useAksi() {
   const router = useRouter();
   const [sibuk, setSibuk] = useState(false);
   const [memuat, mulai] = useTransition();
+  const [muatLama, setMuatLama] = useState(false);
   const [msg, setMsg] = useState("");
   const timer = useRef();
-  useEffect(() => () => clearTimeout(timer.current), []);
+  const tunda = useRef();
+  const berjalan = useRef(0); // aksi yang belum selesai (simpan-saat-blur dan klik bisa tumpang tindih)
+  useEffect(() => () => { clearTimeout(timer.current); clearTimeout(tunda.current); }, []);
+  useEffect(() => {
+    if (!memuat) return setMuatLama(false);
+    const t = setTimeout(() => setMuatLama(true), JEDA_SIBUK_MS);
+    return () => clearTimeout(t);
+  }, [memuat]);
 
   const jalankan = async (fn, ok) => {
     clearTimeout(timer.current);
-    setSibuk(true);
+    if (berjalan.current++ === 0) {
+      clearTimeout(tunda.current);
+      tunda.current = setTimeout(() => setSibuk(true), JEDA_SIBUK_MS);
+    }
     setMsg("");
     let error;
     try {
@@ -23,7 +40,10 @@ export function useAksi() {
       // Mis. sinyal hilang di lokasi/workshop.
       error = "tidak tersambung ke server. Periksa koneksi lalu coba lagi.";
     }
-    setSibuk(false);
+    if (--berjalan.current === 0) {
+      clearTimeout(tunda.current);
+      setSibuk(false);
+    }
     if (error) {
       setMsg(`Gagal: ${error}`);
       return false;
@@ -37,5 +57,5 @@ export function useAksi() {
     return true;
   };
 
-  return { jalankan, sibuk: sibuk || memuat, msg, setMsg };
+  return { jalankan, sibuk: sibuk || muatLama, msg, setMsg };
 }
