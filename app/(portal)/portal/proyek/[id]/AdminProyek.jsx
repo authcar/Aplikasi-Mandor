@@ -374,16 +374,20 @@ const kunciItem = (i) => [i.area, i.nama, i.kode].map((x) => (x || "").toLowerCa
 
 // Kolom yang tersimpan saat pindah dari kolom (atau Enter). onSimpan(v)
 // mengembalikan false kalau ditolak; isi kolom lalu kembali ke nilai semula.
-function Isian({ label, nilai, onSimpan, ...rest }) {
+// `akhiran` = satuan tetap di ujung kanan kotak (mis. "%"), tidak ikut tersimpan.
+function Isian({ label, nilai, onSimpan, akhiran, ...rest }) {
   const awal = String(nilai ?? "");
+  const input = (
+    <input className="inp" defaultValue={awal} {...rest}
+      onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+      onBlur={async (e) => {
+        const el = e.target, v = el.value.trim();
+        if (v !== awal && !(await onSimpan(v))) el.value = awal;
+      }} />
+  );
   return (
     <label className="lbl">{label}
-      <input className="inp" defaultValue={awal} {...rest}
-        onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
-        onBlur={async (e) => {
-          const el = e.target, v = el.value.trim();
-          if (v !== awal && !(await onSimpan(v))) el.value = awal;
-        }} />
+      {akhiran ? <span className="akhiran">{input}<i aria-hidden="true">{akhiran}</i></span> : input}
     </label>
   );
 }
@@ -758,7 +762,7 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                 <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) 84px" }}>
                   <Isian label="Keterangan" placeholder="mis. DP, saat progres 50%" nilai={keteranganTermin(t)}
                     onSimpan={(v) => ubah(t.id, { label: v })} />
-                  <Isian label="Persen" inputMode="decimal" style={{ textAlign: "right" }} nilai={Number(t.persen).toLocaleString("id-ID")}
+                  <Isian label="Persen" akhiran="%" inputMode="decimal" style={{ textAlign: "right" }} nilai={Number(t.persen).toLocaleString("id-ID")}
                     onSimpan={(v) => angka(v) > 0 && angka(v) <= 100 && ubah(t.id, { persen: angka(v) })} />
                 </div>
                 <div className="row" style={{ alignItems: "center" }}>
