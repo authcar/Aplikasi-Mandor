@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek, ambilBobotTahap, bacaProgres } from "@/lib/portal/data";
+import { hapusFotoItem } from "@/lib/portal/fotoItem";
 import { BUCKET_DEFECT, hapusFotoDefect, semuaFotoDefect } from "@/lib/portal/defect";
 import { FASE, JENIS, TAHAP, tahapItem, faseMenghalangi } from "@/lib/portal/progresBoq";
 import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
@@ -13,7 +14,7 @@ import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/li
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
 
 const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "supervisor_id", "aktif", "timbang_harga", "nilai_proyek"];
-const F_ITEM = ["area", "kode", "nama", "jenis", "qty", "satuan", "dimensi", "harga", "harga_satuan", "tim", "bobot", "urutan"];
+const F_ITEM = ["area", "kode", "nama", "jenis", "qty", "satuan", "dimensi", "harga", "harga_satuan", "tim", "bobot", "urutan", "foto"];
 const F_TERMIN = ["urutan", "jenis", "label", "persen", "jatuh_tempo", "lunas_tgl", "dibayar"];
 
 async function jalan(fn, { admin = true } = {}) {
@@ -27,7 +28,7 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, dan add_portal_progres_persen.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, add_portal_progres_persen.sql, dan add_portal_item_foto.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
 }
@@ -40,8 +41,16 @@ function cekItem(r) {
   if ("qty" in r && !(Number(r.qty) > 0)) throw new Error("Qty harus > 0.");
   if (r.harga != null && !(Number(r.harga) >= 0)) throw new Error("Total jasa tukang tidak valid.");
   if (r.harga_satuan != null && !(Number(r.harga_satuan) >= 0)) throw new Error("Harga satuan tidak valid.");
+  if ("foto" in r && (!Array.isArray(r.foto) || r.foto.length > 5 || r.foto.some((p) => typeof p !== "string")))
+    throw new Error("foto item tidak valid.");
   if ("tim" in r) r.tim = String(r.tim || "").trim() || null;
   return r;
+}
+
+// Foto item harus milik proyek ini (path diawali id proyek, lihat api/portal/item-foto).
+function cekFoto(rows, proyekId) {
+  if (rows.some((r) => (r.foto || []).some((p) => !p.startsWith(`${proyekId}/`) || p.includes(".."))))
+    throw new Error("foto item bukan milik proyek ini.");
 }
 
 function cekTermin(r) {
@@ -109,6 +118,8 @@ export async function hapusProyek(id, namaKetik) {
     const p = await ambilProyek(id);
     if (!p) throw new Error("Proyek tidak ditemukan.");
     if (String(namaKetik || "").trim() !== p.nama.trim()) throw new Error("nama proyek yang diketik tidak sama.");
+    const fotoItem = await hasil(db().from("portal_item").select("*").eq("proyek_id", id));
+    await hapusFotoItem(fotoItem.flatMap((i) => i.foto || []));
     await hapusFotoDefect(id); // baris defect ikut terhapus (cascade), fotonya tidak
     await hapus("portal_proyek", id);
   });
@@ -157,6 +168,7 @@ export async function tambahItem(proyekId, rows) {
   return jalan(async () => {
     await cekTerbuka(proyekId);
     const baru = rows.filter((r) => r.nama).map((r) => ({ ...cekItem(pilih(r, F_ITEM)), proyek_id: proyekId }));
+    cekFoto(baru, proyekId);
     if (baru.length) await hasil(db().from("portal_item").insert(baru));
   });
 }
@@ -176,10 +188,12 @@ export async function gantiItem(proyekId, rows) {
     await cekTerbuka(proyekId);
     const baru = rows.filter((r) => r.nama).map((r) => ({ ...cekItem(pilih(r, F_ITEM)), proyek_id: proyekId }));
     if (!baru.length) throw new Error("Tidak ada item pengganti.");
-    const lama = await hasil(db().from("portal_item").select("id").eq("proyek_id", proyekId));
+    cekFoto(baru, proyekId);
+    const lama = await hasil(db().from("portal_item").select("*").eq("proyek_id", proyekId));
     await hasil(db().from("portal_item").insert(baru));
     for (let n = 0; n < lama.length; n += 100)
       await hasil(db().from("portal_item").delete().in("id", lama.slice(n, n + 100).map((i) => i.id)));
+    await hapusFotoItem(lama.flatMap((i) => i.foto || []));
   });
 }
 
@@ -198,7 +212,9 @@ export async function simpanJasaTukang(proyekId, rows) {
 export async function hapusItem(id) {
   return jalan(async () => {
     await cekTerbuka(await proyekDari("portal_item", "id", id));
+    const it = await hasil(db().from("portal_item").select("*").eq("id", id).maybeSingle());
     await hapus("portal_item", id);
+    await hapusFotoItem(it?.foto);
   });
 }
 

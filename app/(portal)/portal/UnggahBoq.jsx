@@ -15,7 +15,7 @@ export default function UnggahBoq({ petunjuk = [], onPilih, label = "File BoQ (.
 
   function pilihSheet(b, s) {
     setSheet(s);
-    onPilih(s ? { sheet: s, rows: b.baca(s) } : null);
+    onPilih(s ? { sheet: s, rows: b.baca(s), gambar: b.gambar(s) } : null);
   }
 
   async function pilihFile(e) {

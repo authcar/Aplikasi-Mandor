@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
+import { unggahFotoItem } from "@/lib/portal/unggahFotoItem";
 import TabBar from "../../../TabBar";
 import {
   FASE, JENIS_LABEL, tahapItem, persenItem, persenProyek,
@@ -14,7 +15,7 @@ import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin, STATUS_DEFECT, DEFECT_AKTIF,
 } from "@/lib/portal/format";
-import { bacaBoq, bacaBaris, formatLama } from "@/lib/portal/imporBoq";
+import { bacaBoq, bacaItemSheet, formatLama } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
 import { kompresBanyakGambar } from "@/lib/gambar";
 
@@ -566,7 +567,7 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
   const [unggahKe, setUnggahKe] = useState(0); // ganti key = kosongkan pilihan file
   const [ganti, setGanti] = useState(false); // false = menambah, true = mengganti seluruh BOQ
   const [centang, setCentang] = useState({}); // { [n]: true/false } centang yang diubah admin
-  const preview = useMemo(() => (file ? bacaBaris(file.rows, urutan) : teks ? bacaBoq(teks, urutan) : []), [file, teks, urutan]);
+  const preview = useMemo(() => (file ? bacaItemSheet(file.rows, urutan, file.gambar) : teks ? bacaBoq(teks, urutan) : []), [file, teks, urutan]);
   const sudahAda = useMemo(() => new Set(items.map(kunciItem)), [items]);
 
   // Saat menambah, baris yang sudah ada di proyek tidak dicentang (impor dua kali tidak menggandakan).
@@ -581,7 +582,12 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
   async function simpan() {
     if (ganti && !confirm(`Ganti seluruh BOQ? ${items.length} item lama${nProgres ? ` dan ${nProgres} centang progresnya` : ""} akan dihapus.`)) return;
     const ok = await aksi.jalankan(
-      () => (ganti ? A.gantiItem(proyek.id, terpilih) : A.tambahItem(proyek.id, terpilih)),
+      async () => {
+        const { items: siap, gagal, pesan } = await unggahFotoItem(proyek.id, terpilih);
+        const r = await (ganti ? A.gantiItem(proyek.id, siap) : A.tambahItem(proyek.id, siap));
+        if (!r?.error && gagal) alert(`${gagal} foto gagal diunggah (${pesan}); itemnya tetap tersimpan.`);
+        return r;
+      },
       ganti ? `BOQ diganti dengan ${terpilih.length} item.` : `${terpilih.length} item ditambahkan.`
     );
     if (!ok) return;
@@ -659,7 +665,7 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
                       onChange={(e) => setCentang({ ...centang, [n]: e.target.checked })} />
                     <span className="t">
                       <span className="nm">{p.nama}</span>
-                      <span className="small">{[p.kode, teksQty(p), p.dimensi, kembar(p) && "sudah ada"].filter(Boolean).join(" · ")}</span>
+                      <span className="small">{[p.kode, teksQty(p), p.dimensi, p.harga != null && rp(p.harga), p._gambar?.length > 0 && `${p._gambar.length} foto`, kembar(p) && "sudah ada"].filter(Boolean).join(" · ")}</span>
                     </span>
                   </div>
                 ))}

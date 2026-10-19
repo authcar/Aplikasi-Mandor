@@ -3,9 +3,10 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAksi } from "./useAksi";
 import { hariIni } from "@/lib/portal/format";
-import { bacaBaris, bacaBarisJasa, bacaJasa, formatLama, infoSheet } from "@/lib/portal/imporBoq";
+import { bacaBaris, bacaItemSheet, bacaJasa, formatLama, infoSheet } from "@/lib/portal/imporBoq";
 import { bukaXlsx } from "@/lib/portal/bacaXlsx";
 import { buatProyek, tambahItem } from "./aksi";
+import { unggahFotoItem } from "@/lib/portal/unggahFotoItem";
 
 // "001374 - G Apartment" / "BoQ - DC Apartment" -> nama proyeknya saja.
 const namaDariSheet = (s) => s.replace(/^\s*(boq\s*-\s*)?(\d+\s*-\s*)?/i, "").trim() || s.trim();
@@ -13,10 +14,7 @@ const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 // Satu sheet file: { nama, jasa, rows } -> item proyek. Sheet Hitungan Jasa
 // Pekerjaan (ada kolom Harga Satuan & Total) ikut membawa harga, total, dan tim.
-function itemSheet(x, mulai) {
-  if (!x.jasa) return bacaBaris(x.rows, mulai);
-  return bacaBarisJasa(x.rows, infoSheet(x.rows).tim, mulai);
-}
+const itemSheet = (x, mulai) => bacaItemSheet(x.rows, mulai, x.gambar);
 
 export default function ProyekBaru({ supervisors }) {
   const router = useRouter();
@@ -32,7 +30,7 @@ export default function ProyekBaru({ supervisors }) {
   const baca = (b, nama, cache) => {
     if (cache[nama]) return cache[nama];
     const rows = b.baca(nama);
-    return (cache[nama] = { nama, rows, jasa: bacaJasa(rows).length > 0 });
+    return (cache[nama] = { nama, rows, gambar: b.gambar(nama), jasa: bacaJasa(rows).length > 0 });
   };
 
   // Beberapa sheet boleh dicentang sekaligus; item semuanya digabung jadi satu proyek.
@@ -108,7 +106,9 @@ export default function ProyekBaru({ supervisors }) {
     }
     if (boq?.items.length) {
       // Proyek sudah jadi; kalau itemnya gagal, admin bisa mengimpor ulang di tab Jasa tukang.
-      const r = await tambahItem(hasil.id, boq.items).catch(() => ({ error: "tidak tersambung ke server" }));
+      const { items: siap, gagal, pesan } = await unggahFotoItem(hasil.id, boq.items);
+      if (gagal) alert(`${gagal} foto gagal diunggah (${pesan}); item tetap diimpor tanpa foto itu.`);
+      const r = await tambahItem(hasil.id, siap).catch(() => ({ error: "tidak tersambung ke server" }));
       if (r?.error) alert(`Proyek dibuat, tetapi item BOQ gagal diimpor (${r.error}). Impor ulang dari tab Jasa tukang.`);
     }
     router.push(`/portal/proyek/${hasil.id}`);
@@ -144,6 +144,7 @@ export default function ProyekBaru({ supervisors }) {
             ? `Tidak ada item yang terbaca di sheet yang dicentang. Proyek tetap bisa dibuat tanpa item.`
             : `${boq.items.length} item di ${new Set(boq.items.map((i) => i.area)).size} area dari ${boq.sheets.length} sheet akan ikut diimpor.` +
               (boq.items.some((i) => i.tim) ? ` Harga satuan, total jasa, dan tim tukang ikut terisi.` : "") +
+              (boq.items.some((i) => i._gambar?.length) ? ` ${boq.items.reduce((a, i) => a + (i._gambar?.length || 0), 0)} foto item ikut diunggah.` : "") +
               (boq.tebakan ? " Ada sheet tanpa nomor item, jadi item ditebak dari baris yang punya dimensi; periksa hasilnya setelah proyek dibuat." : "")}
         </p>
       )}
