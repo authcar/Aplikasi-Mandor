@@ -5,7 +5,7 @@ import { persenItem, persenProyek, areaProgres } from "@/lib/portal/progresBoq";
 import {
   hariIni, tambahHari, tgl, tglTh, rp, pct, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, labelDeadline, judulTermin, keteranganTermin,
-  persenKlien, SPREAD_KLIEN,
+  persenKlien, SPREAD_KLIEN, DEFECT_AKTIF,
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
 import Defect from "./Defect";
@@ -85,7 +85,7 @@ export default function Detail({ P }) {
       </section>
 
       <TabBar
-        tabs={[["progres", "Progres"], ["bayar", "Pembayaran"], ["defect", "Defect"], ["info", "Info"]]}
+        tabs={[["progres", "Progres"], ["bayar", "Pembayaran"], ...(DEFECT_AKTIF ? [["defect", "Defect"]] : []), ["info", "Info"]]}
         value={tab}
         onChange={setTab}
       />

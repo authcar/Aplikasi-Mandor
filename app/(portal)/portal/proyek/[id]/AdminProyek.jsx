@@ -12,7 +12,7 @@ import {
 } from "@/lib/portal/progresBoq";
 import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
-  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin, STATUS_DEFECT,
+  JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin, STATUS_DEFECT, DEFECT_AKTIF,
 } from "@/lib/portal/format";
 import { bacaBoq, bacaBaris, formatLama, bacaJasa, infoSheet } from "@/lib/portal/imporBoq";
 import { bukaXlsx } from "@/lib/portal/bacaXlsx";
@@ -20,8 +20,9 @@ import * as A from "../../aksi";
 import { kompresBanyakGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
-const TABS = [["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]];
-const TABS_SPV = [["progres", "Progres"], ["defect", "Defect"]];
+const tanpaDefect = (tabs) => (DEFECT_AKTIF ? tabs : tabs.filter(([k]) => k !== "defect"));
+const TABS = tanpaDefect([["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]]);
+const TABS_SPV = tanpaDefect([["progres", "Progres"], ["defect", "Defect"]]);
 const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
 
 export default function AdminProyek({ proyek, items, termin, klien, supervisors, defect = [], mandor = null, staf }) {

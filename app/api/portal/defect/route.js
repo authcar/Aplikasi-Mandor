@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, hasil, UUID } from "@/lib/portal/db";
 import { BUCKET_DEFECT, MAKS_FOTO_DEFECT, MAKS_KETERANGAN_DEFECT } from "@/lib/portal/defect";
-import { hariIni } from "@/lib/portal/format";
+import { hariIni, DEFECT_AKTIF } from "@/lib/portal/format";
 import { sendPushToRoles } from "@/lib/push";
 import { cariProyekMandor, buatChecklistKlien, PATH_DEFECT_MANDOR } from "@/lib/portal/mandor";
 
@@ -17,6 +17,7 @@ const gagal = (error, status = 400) => NextResponse.json({ error }, { status });
 // login). multipart: token, keterangan, item_id (opsional), foto (0..5 file).
 // Tidak ikut kunci deadline: keluhan justru sering datang setelah serah terima.
 export async function POST(req) {
+  if (!DEFECT_AKTIF) return gagal("fitur defect sedang dinonaktifkan.", 403);
   let form;
   try {
     form = await req.formData();

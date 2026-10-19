@@ -3,7 +3,7 @@ import { ambilStaf } from "@/lib/portal/server";
 import { ambilItem, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
 import { hitungDefectBaru } from "@/lib/portal/defect";
 import { persenProyek } from "@/lib/portal/progresBoq";
-import { tglTh, pct, statusProyek, labelDeadline, lewatDeadline } from "@/lib/portal/format";
+import { tglTh, pct, statusProyek, labelDeadline, lewatDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
 import ProyekBaru from "./ProyekBaru";
 
 export default async function PortalBeranda() {
@@ -13,7 +13,7 @@ export default async function PortalBeranda() {
   const [proyek, supervisors, defectBaru] = await Promise.all([
     ambilProyekStaf(staf),
     admin ? ambilSupervisor() : [],
-    tukang ? {} : hitungDefectBaru(),
+    tukang || !DEFECT_AKTIF ? {} : hitungDefectBaru(),
   ]);
   // Tukang: jumlah item dan progres dihitung dari item timnya saja.
   const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));
