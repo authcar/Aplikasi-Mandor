@@ -38,7 +38,10 @@ export default async function PortalProyekPage({ params }) {
   // proyek, dan termin tidak ikut dikirim ke browser sama sekali (bukan sekadar disembunyikan).
   if (!admin) {
     const { nilai_proyek, nilai_perancangan, ...p2 } = proyek;
-    const items2 = items.map(({ harga, harga_satuan, ...i }) => i);
+    // `berat` = harga item (rupiah) kalau semua item berharga, jadi diubah ke
+    // porsi (total 100) supaya hitungan progres tetap sama tanpa membuka nilainya.
+    const totalBerat = items.reduce((a, i) => a + (Number(i.berat) || 0), 0) || 1;
+    const items2 = items.map(({ harga, harga_satuan, berat, ...i }) => ({ ...i, berat: ((Number(berat) || 0) / totalBerat) * 100 }));
     return <AdminProyek proyek={p2} items={items2} termin={[]} klien={[]} supervisors={[]} defect={defect} mandor={mandor} staf={staf} />;
   }
   return <AdminProyek proyek={proyek} items={items} termin={termin} klien={klien} supervisors={supervisors} defect={defect} mandor={mandor} staf={staf} />;
