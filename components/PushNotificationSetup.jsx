@@ -136,7 +136,8 @@ export default function PushNotificationSetup() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(subscription.toJSON()),
     });
-    if (!res.ok) throw new Error("Server menolak pendaftaran notifikasi. Coba lagi nanti.");
+    if (!res.ok)
+      throw new Error(`Server menolak pendaftaran notifikasi (kode ${res.status}). Coba lagi nanti.`);
 
     if (hidup.current) {
       setGalat(null);
