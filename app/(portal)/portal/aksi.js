@@ -129,11 +129,10 @@ export async function hapusProyek(id, namaKetik) {
   });
 }
 
-// Hapus beberapa proyek sekaligus dari beranda (pilih kartu). Kata konfirmasi
-// "HAPUS" dicek lagi di sini. Isi yang ikut terhapus sama dengan hapusProyek.
-export async function hapusBanyakProyek(ids, kata) {
+// Hapus beberapa proyek sekaligus dari beranda (pilih kartu, lalu konfirmasi di
+// UI). Isi yang ikut terhapus sama dengan hapusProyek.
+export async function hapusBanyakProyek(ids) {
   return jalan(async () => {
-    if (String(kata || "").trim() !== "HAPUS") throw new Error("ketik HAPUS untuk mengonfirmasi.");
     if (!Array.isArray(ids) || !ids.length || ids.length > 50) throw new Error("pilih 1–50 proyek.");
     for (const id of ids) {
       if (await ambilProyek(id)) await hapusSatuProyek(id);

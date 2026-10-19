@@ -56,7 +56,6 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, admin, chil
   const [hapusMode, setHapusMode] = useState(false);
   const [dipilih, setDipilih] = useState([]); // id proyek
   const [konfirm, setKonfirm] = useState(false);
-  const [ketik, setKetik] = useState("");
   const [cari, setCari] = useState("");
   const [bukaCari, setBukaCari] = useState(false);
   const [bukaArsip, setBukaArsip] = useState(false);
@@ -95,7 +94,7 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, admin, chil
           {admin && kartu.length > 0 && (
             <button type="button" className="act" aria-label="Pilih proyek untuk dihapus" aria-pressed={hapusMode}
               style={{ width: 48, padding: 0, ...(hapusMode && { background: "var(--bad)", color: "#fff", borderColor: "var(--bad)" }) }}
-              onClick={() => { setHapusMode((b) => !b); setDipilih([]); setKonfirm(false); setKetik(""); }}>
+              onClick={() => { setHapusMode((b) => !b); setDipilih([]); setKonfirm(false); }}>
               {IKON_HAPUS}
             </button>
           )}
@@ -125,15 +124,12 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, admin, chil
                 {dipilih.length} proyek dihapus permanen beserta item, progres, termin, foto, dan link kliennya (klien tidak bisa membuka link lagi). Tidak bisa dibatalkan:
                 {" "}{kartu.filter((k) => dipilih.includes(k.id)).map((k) => k.nama).join(", ")}.
               </p>
-              <label className="lbl">Ketik HAPUS untuk mengonfirmasi
-                <input className="inp" value={ketik} onChange={(e) => setKetik(e.target.value)} autoCapitalize="characters" />
-              </label>
               <div className="acts">
-                <button type="button" className="act" onClick={() => { setKonfirm(false); setKetik(""); }}>Kembali</button>
-                <button type="button" className="act bahaya" disabled={aksi.sibuk || ketik.trim() !== "HAPUS"}
+                <button type="button" className="act" onClick={() => setKonfirm(false)}>Kembali</button>
+                <button type="button" className="act bahaya" disabled={aksi.sibuk}
                   onClick={async () => {
-                    const ok = await aksi.jalankan(() => hapusBanyakProyek(dipilih, ketik), `${dipilih.length} proyek dihapus.`);
-                    if (ok) { setHapusMode(false); setDipilih([]); setKonfirm(false); setKetik(""); }
+                    const ok = await aksi.jalankan(() => hapusBanyakProyek(dipilih), `${dipilih.length} proyek dihapus.`);
+                    if (ok) { setHapusMode(false); setDipilih([]); setKonfirm(false); }
                   }}>
                   Hapus permanen
                 </button>
