@@ -50,7 +50,7 @@ export default function Detail({ P }) {
   const [tab, setTab] = useState("progres");
   const now = hariIni();
   const lalu = tambahHari(now, -7);
-  const items = P.items;
+  const items = P.items.filter((i) => !i.hanya_jasa); // baris tanpa nomor hanya untuk Jasa tukang
   // Semua angka progres di halaman ini sudah termasuk persiapan & material
   // (persenKlien, lihat lib/portal/format.js); keterangannya tampil di bawah lingkaran.
   const p = persenKlien(persenProyek(items));

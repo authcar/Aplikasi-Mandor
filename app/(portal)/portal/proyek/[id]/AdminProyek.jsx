@@ -10,7 +10,7 @@ import { unggahFotoItem } from "@/lib/portal/unggahFotoItem";
 import TabBar from "../../../TabBar";
 import {
   FASE, JENIS_LABEL, tahapItem, persenItem, persenProyek,
-  tahapTerakhir, tahapBerikut, tahapBar, areaProgres, faseKini, faseTerkunci, tahapTerkunci, persenTahap, tahapSelesai,
+  tahapTerakhir, tahapBerikut, tahapBar, itemProgres, faseKini, faseTerkunci, tahapTerkunci, persenTahap, tahapSelesai,
 } from "@/lib/portal/progresBoq";
 import {
   hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
@@ -128,7 +128,7 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
   const [busy, setBusy] = useState(null);
   const [tim, setTim] = useState(""); // "" = semua tim
   const [area, setArea] = useState(""); // "" = semua area
-  items = items.filter((i) => areaProgres(i.area));
+  items = items.filter(itemProgres);
   const kunci = !!busy || aksi.sibuk || !!lihat;
   // Saring lewat dua dropdown (Tim, Area) supaya daftar item langsung terlihat
   // tanpa buka-tutup bertingkat. Item dikelompokkan per area dengan judul biasa.
