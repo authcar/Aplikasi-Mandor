@@ -30,10 +30,11 @@ export function TombolFoto({ item, jumlah, aksi, ikon }) {
   }
 
   return (
-    <label className={ikon ? `fprog-plus${mati ? " mati" : ""}` : `act fprog-tambah${mati ? " mati" : ""}`}
-      title="Tambah foto progres" aria-label={`Tambah foto progres ${item.nama}`}
+    <label className={ikon ? `fprog-plus${jumlah > 0 ? " ada" : ""}${mati ? " mati" : ""}` : `act fprog-tambah${mati ? " mati" : ""}`}
+      title={jumlah > 0 ? `${jumlah} foto sudah diunggah · ketuk untuk menambah` : "Tambah foto progres"}
+      aria-label={jumlah > 0 ? `${jumlah} foto progres ${item.nama} sudah diunggah, tambah lagi` : `Tambah foto progres ${item.nama}`}
       onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-      {ikon ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg> : "+ Foto"}
+      {ikon ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d={jumlah > 0 ? "M5 12.5l4.5 4.5L19 7.5" : "M12 5v14M5 12h14"} /></svg> : "+ Foto"}
       <input type="file" accept="image/*" multiple hidden disabled={mati} onChange={unggah} />
     </label>
   );

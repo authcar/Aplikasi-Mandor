@@ -277,3 +277,5 @@ div.acc-h{cursor:pointer}
 .fprog-plus{flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1.5px solid var(--wood);border-radius:50%;background:var(--surface);color:var(--wood);cursor:pointer}
 .fprog-plus svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 .fprog-plus:hover{background:var(--wood);color:var(--on-accent)}.fprog-plus.mati{opacity:.4;pointer-events:none}
+.fprog-plus.ada{border-color:var(--ok);background:var(--ok);color:#fff}
+.fprog-plus.ada:hover{background:var(--ok);filter:brightness(1.1)}
