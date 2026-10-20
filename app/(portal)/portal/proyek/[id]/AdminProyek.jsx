@@ -24,9 +24,9 @@ import { kompresBanyakGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const tanpaDefect = (tabs) => (DEFECT_AKTIF ? tabs : tabs.filter(([k]) => k !== "defect"));
-const TABS = tanpaDefect([["progres", "Progres"], ["mingguan", "Mingguan"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]]);
-const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Mingguan"], ["defect", "Defect"]]);
-const TABS_TUKANG = [["progres", "Progres"], ["mingguan", "Mingguan"], ["item", "Jasa tukang"]];
+const TABS = tanpaDefect([["progres", "Progres"], ["upah", "Upah"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]]);
+const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["defect", "Defect"]]);
+const TABS_TUKANG = [["progres", "Progres"], ["upah", "Upah"], ["item", "Jasa tukang"]];
 
 export default function AdminProyek({ proyek, items, termin, klien, supervisors, defect = [], mandor = null, staf, fotoProgres = [], riwayat = [] }) {
   const admin = staf.role === "ADMIN";
@@ -84,11 +84,11 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
           sering datang setelah serah terima. */}
       {tukang ? (
         tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} admin={false} lihat fotoProgres={fotoProgres} />
-          : tab === "mingguan" ? <Mingguan proyek={proyek} items={items} riwayat={riwayat} upah lihatTim />
+          : tab === "upah" ? <Mingguan proyek={proyek} items={items} riwayat={riwayat} tampil="upah" lihatTim />
           : <JasaTukangLihat items={items} />
-      ) : tab === "mingguan" ? (
+      ) : tab === "mingguan" || tab === "upah" ? (
         // Laporan hanya dibaca, jadi tetap bisa dibuka setelah proyek terkunci.
-        <Mingguan proyek={proyek} items={items} riwayat={riwayat} upah={admin} />
+        <Mingguan proyek={proyek} items={items} riwayat={riwayat} tampil={tab === "upah" ? "upah" : "laporan"} />
       ) : tab === "klien" ? (
         <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
       ) : tab === "defect" ? (

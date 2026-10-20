@@ -34,10 +34,11 @@ function Donut({ bagian, tengah }) {
   );
 }
 
-// Laporan mingguan satu proyek: progres sebelum/sesudah per 7 hari, tahap yang
-// dikerjakan (donut), dan upah jasa tukang per tim. `upah` = tampilkan upah
-// (admin dan tukang; supervisor tidak menerima nilai rupiah dari server).
-export default function Mingguan({ proyek, items, riwayat, upah, lihatTim }) {
+// Satu proyek per minggu. tampil="laporan" (supervisor): progres sebelum/sesudah per
+// 7 hari dan tahap yang dikerjakan (donut). tampil="upah" (admin dan tukang):
+// upah jasa tukang per tim; supervisor tidak menerima nilai rupiah dari server.
+export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", lihatTim }) {
+  const upah = tampil === "upah";
   const hari = hariIni();
   const idx = useMemo(() => indeksRiwayat(riwayat), [riwayat]);
   const minggu = useMemo(() => daftarMinggu(proyek, items, riwayat, hari), [proyek, items, riwayat, hari]);
@@ -60,6 +61,8 @@ export default function Mingguan({ proyek, items, riwayat, upah, lihatTim }) {
         </select>
       </label>
 
+      {!upah && (
+        <>
       <div className="card stack" style={{ gap: 10 }}>
         <div className="row" style={{ alignItems: "center" }}>
           <h3>Progres minggu ini</h3>
@@ -74,9 +77,6 @@ export default function Mingguan({ proyek, items, riwayat, upah, lihatTim }) {
           <i style={{ width: `${Math.min(h.sebelum, h.sesudah)}%` }} />
           <b style={{ width: `${Math.abs(h.naik)}%`, background: h.naik < 0 ? "var(--bad)" : "var(--ok)" }} />
         </div>
-        <p className="small" style={{ margin: 0 }}>
-          {m.berjalan ? `Dihitung sampai hari ini (${tgl(hari)}); masih bisa berubah sampai ${tglTh(m.akhir)}.` : `Hari ke-${(m.no - 1) * 7 + 1} s.d. ${m.no * 7} sejak mulai.`}
-        </p>
       </div>
 
       <div className="card stack" style={{ gap: 12 }}>
@@ -98,12 +98,10 @@ export default function Mingguan({ proyek, items, riwayat, upah, lihatTim }) {
         ) : (
           <p className="small" style={{ margin: 0 }}>Belum ada tahap yang dikerjakan di minggu ini.</p>
         )}
-        {bagian.length > 0 && (
-          <p className="small" style={{ margin: 0 }}>
-            Persen di donut = porsi tiap tahap dari seluruh kemajuan minggu ini; angka “+” = sumbangannya ke progres proyek.
-          </p>
-        )}
       </div>
+
+        </>
+      )}
 
       {upah && (
         <div className="card stack" style={{ gap: 12 }}>
@@ -120,7 +118,7 @@ export default function Mingguan({ proyek, items, riwayat, upah, lihatTim }) {
       )}
 
       <div className="stack" style={{ gap: 8 }}>
-        <h3 style={{ marginTop: 6 }}>Riwayat mingguan</h3>
+        <h3 style={{ marginTop: 6 }}>{upah ? "Upah tiap minggu" : "Riwayat mingguan"}</h3>
         <div className="card" style={{ padding: "4px 14px" }}>
           {semua.map(({ x, h: r }) => (
             <button key={x.no} type="button" className={`baris-minggu${x.no === m.no ? " aktif" : ""}`} onClick={() => setNo(x.no)}>
@@ -128,9 +126,14 @@ export default function Mingguan({ proyek, items, riwayat, upah, lihatTim }) {
                 <span className="nm">Minggu {x.no}{x.berjalan ? " · berjalan" : ""}</span>
                 <span className="small">{rentang(x)}</span>
               </span>
-              <span className="num small">{pct(r.sebelum)} → {pct(r.sesudah)}</span>
-              <b className={`num ${r.naik > 0.005 ? "delta" : ""}`}>{naik(r.naik)}</b>
-              {upah && <span className="num small">{rp(r.tim.reduce((a, t) => a + t.upah, 0))}</span>}
+              {upah ? (
+                <b className="num">{rp(r.tim.reduce((a, t) => a + t.upah, 0))}</b>
+              ) : (
+                <>
+                  <span className="num small">{pct(r.sebelum)} → {pct(r.sesudah)}</span>
+                  <b className={`num ${r.naik > 0.005 ? "delta" : ""}`}>{naik(r.naik)}</b>
+                </>
+              )}
             </button>
           ))}
         </div>
