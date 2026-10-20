@@ -6,7 +6,7 @@ import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
 import FotoItem from "../../../FotoItem";
-import FotoProgres from "./FotoProgres";
+import FotoProgres, { TombolFoto } from "./FotoProgres";
 import Mingguan from "./Mingguan";
 import { unggahFotoItem } from "@/lib/portal/unggahFotoItem";
 import TabBar from "../../../TabBar";
@@ -178,6 +178,7 @@ function TabProgres({ proyek, items, aksi, admin, lihat, fotoProgres = [] }) {
             <span className="nm">{it.nama}</span>
             <span className="small">{[it.kode, JENIS_LABEL[it.jenis], !tim && it.tim].filter(Boolean).join(" · ")}</span>
           </span>
+          {!lihat && <TombolFoto item={it} jumlah={fotoItem(it).length} aksi={aksi} ikon />}
           {it.foto?.length > 0 && <FotoItem nama={it.nama} foto={it.foto} />}
           <b className="num">{persenItem(it)}%</b>
           <i className="chev" aria-hidden="true" />
