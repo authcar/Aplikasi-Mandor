@@ -24,9 +24,9 @@ import { kompresBanyakGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const tanpaDefect = (tabs) => (DEFECT_AKTIF ? tabs : tabs.filter(([k]) => k !== "defect"));
-const TABS = tanpaDefect([["progres", "Progres"], ["upah", "Upah"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]]);
+const TABS = tanpaDefect([["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]]);
 const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["defect", "Defect"]]);
-const TABS_TUKANG = [["progres", "Progres"], ["upah", "Upah"], ["item", "Jasa tukang"]];
+const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
 
 export default function AdminProyek({ proyek, items, termin, klien, supervisors, defect = [], mandor = null, staf, fotoProgres = [], riwayat = [] }) {
   const admin = staf.role === "ADMIN";
@@ -84,22 +84,24 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
           sering datang setelah serah terima. */}
       {tukang ? (
         tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} admin={false} lihat fotoProgres={fotoProgres} />
-          : tab === "upah" ? <Mingguan proyek={proyek} items={items} riwayat={riwayat} tampil="upah" lihatTim />
-          : <JasaTukangLihat items={items} />
-      ) : tab === "mingguan" || tab === "upah" ? (
+          : <JasaTukangLihat items={items} proyek={proyek} riwayat={riwayat} />
+      ) : tab === "mingguan" ? (
         // Laporan hanya dibaca, jadi tetap bisa dibuka setelah proyek terkunci.
-        <Mingguan proyek={proyek} items={items} riwayat={riwayat} tampil={tab === "upah" ? "upah" : "laporan"} />
+        <Mingguan proyek={proyek} items={items} riwayat={riwayat} />
       ) : tab === "klien" ? (
         <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
       ) : tab === "defect" ? (
         <TabDefect items={items} defect={defect} aksi={aksi} admin={admin} mandor={mandor} />
       ) : (
+        <>
+        {tab === "item" && <UpahMingguan proyek={proyek} items={items} riwayat={riwayat} />}
         <fieldset className="kunci" disabled={kunci}>
           {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} fotoProgres={fotoProgres} />}
           {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
           {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} nilai={nilaiT} aksi={aksi} />}
           {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
         </fieldset>
+        </>
       )}
       {/* Di luar fieldset: proyek yang terkunci tetap bisa dihapus. */}
       {admin && tab === "info" && <HapusProyek proyek={proyek} items={items} termin={termin} klien={klien} aksi={aksi} />}
@@ -516,6 +518,18 @@ function TabItem({ proyek, items, aksi }) {
   );
 }
 
+// Upah jasa tukang per minggu dan per tim (laporan di Mingguan.jsx), dilipat di tab Jasa tukang.
+function UpahMingguan({ proyek, items, riwayat, lihatTim }) {
+  return (
+    <details className="lipat">
+      <summary><b>Upah jasa tukang per minggu</b></summary>
+      <div className="lipat-b" style={{ gap: 12 }}>
+        <Mingguan proyek={proyek} items={items} riwayat={riwayat} tampil="upah" lihatTim={lihatTim} />
+      </div>
+    </details>
+  );
+}
+
 // Total jasa tukang semua item, dipecah per tim.
 function RingkasJasa({ items }) {
   const total = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
@@ -536,11 +550,12 @@ function RingkasJasa({ items }) {
 
 // Jasa tukang untuk tukang: hanya total per item (harga satuan tidak dikirim
 // dari server), tanpa isian apa pun.
-function JasaTukangLihat({ items }) {
+function JasaTukangLihat({ items, proyek, riwayat }) {
   const areas = [...new Set(items.map((i) => i.area))];
   return (
     <>
       <RingkasJasa items={items} />
+      <UpahMingguan proyek={proyek} items={items} riwayat={riwayat} lihatTim />
       {areas.map((a) => (
         <AreaJasa key={a} area={a} items={items}>
           {(its) => its.map((it) => (
