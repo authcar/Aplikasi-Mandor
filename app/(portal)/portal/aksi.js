@@ -7,6 +7,8 @@ import { db, hasil } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek, ambilBobotTahap, bacaProgres } from "@/lib/portal/data";
 import { hapusFotoItem } from "@/lib/portal/fotoItem";
+import { BUCKET_PROGRES, hapusFotoProgres } from "@/lib/portal/progresFoto";
+import { catatRiwayat } from "@/lib/portal/riwayat";
 import { BUCKET_DEFECT, hapusFotoDefect, semuaFotoDefect } from "@/lib/portal/defect";
 import { FASE, JENIS, TAHAP, tahapItem, faseMenghalangi } from "@/lib/portal/progresBoq";
 import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
@@ -28,7 +30,7 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, add_portal_progres_persen.sql, add_portal_item_foto.sql, dan add_portal_item_hanya_jasa.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, add_portal_progres_persen.sql, add_portal_item_foto.sql, add_portal_item_hanya_jasa.sql, add_portal_progres_foto.sql, dan add_portal_progres_riwayat.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
 }
@@ -119,6 +121,7 @@ async function hapusSatuProyek(id) {
   const fotoItem = await hasil(db().from("portal_item").select("*").eq("proyek_id", id));
   await hapusFotoItem(fotoItem.flatMap((i) => i.foto || []));
   await hapusFotoDefect(id); // baris defect ikut terhapus (cascade), fotonya tidak
+  await hapusFotoProgres({ proyekId: id });
   await hapus("portal_proyek", id);
 }
 
@@ -164,7 +167,14 @@ export async function setProgres(itemId, tahap, persen) {
     const sesudah = tahapItem(item).filter((x) => FASE.findIndex((f) => f.k === x.fase) > FASE.findIndex((f) => f.k === s.fase) && item.progres[x.k]);
     if (persen < 100 && s.w > 0 && sesudah.length)
       throw new Error(`batalkan dulu tahap ${sesudah.map((x) => x.label).join(", ")} item ini.`);
-    if (!persen) return void (await hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap)));
+    // Riwayat perubahan (untuk laporan mingguan); tidak dicatat kalau persennya tidak berubah.
+    const riwayat = () =>
+      persen !== Number(item.porsi[tahap] ?? 0) &&
+      catatRiwayat({ proyekId: row.proyek_id, itemId, tahap, persen, tgl: hariIni(), oleh: staf.id });
+    if (!persen) {
+      await hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap));
+      return void (await riwayat());
+    }
     // Tanggal selalu hari ini (tanggal terakhir progres tahap ini diubah).
     const baris = { item_id: itemId, tahap, selesai_tgl: hariIni(), dicatat_oleh: staf.id, dicatat_at: new Date().toISOString() };
     try {
@@ -175,6 +185,20 @@ export async function setProgres(itemId, tahap, persen) {
       if (persen < 100 || !/could not find the 'persen' column|column .*persen.* does not exist/i.test(e.message || "")) throw e;
       await hasil(db().from("portal_progres").upsert(baris));
     }
+    await riwayat();
+  }, { admin: false });
+}
+
+/* ---------- Foto progres item ---------- */
+// Hapus satu foto progres (diunggah lewat app/api/portal/progres-foto). Admin
+// dan supervisor; proyek yang sudah terkunci tidak bisa diubah.
+export async function hapusFotoProgresItem(id) {
+  return jalan(async (staf) => {
+    const f = await hasil(db().from("portal_progres_foto").select("*").eq("id", id).maybeSingle());
+    if (!f) throw new Error("Foto tidak ditemukan.");
+    if (!bolehProyek(staf, await cekTerbuka(f.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    await hapus("portal_progres_foto", id);
+    await db().storage.from(BUCKET_PROGRES).remove([f.path]);
   }, { admin: false });
 }
 
@@ -206,6 +230,7 @@ export async function gantiItem(proyekId, rows) {
     cekFoto(baru, proyekId);
     const lama = await hasil(db().from("portal_item").select("*").eq("proyek_id", proyekId));
     await hasil(db().from("portal_item").insert(baru));
+    await hapusFotoProgres({ itemIds: lama.map((i) => i.id) }); // berkasnya; barisnya ikut terhapus bersama itemnya
     for (let n = 0; n < lama.length; n += 100)
       await hasil(db().from("portal_item").delete().in("id", lama.slice(n, n + 100).map((i) => i.id)));
     await hapusFotoItem(lama.flatMap((i) => i.foto || []));
@@ -230,6 +255,7 @@ export async function hapusItem(id) {
   return jalan(async () => {
     await cekTerbuka(await proyekDari("portal_item", "id", id));
     const it = await hasil(db().from("portal_item").select("*").eq("id", id).maybeSingle());
+    await hapusFotoProgres({ itemIds: [id] });
     await hapus("portal_item", id);
     await hapusFotoItem(it?.foto);
   });

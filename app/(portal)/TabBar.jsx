@@ -3,6 +3,7 @@
 // Ikon garis 24x24 (stroke mengikuti warna teks).
 const IKON = {
   progres: <path d="M3 20h18M6 20v-8M12 20V5M18 20v-5" />,
+  mingguan: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M8 15l2.5 2.5L16 13" /></>,
   rincian: <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />,
   bayar: <><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10.5h18M7 15h4" /></>,
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5h.01" /></>,

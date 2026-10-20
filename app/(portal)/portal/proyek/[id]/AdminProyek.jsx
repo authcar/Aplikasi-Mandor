@@ -6,6 +6,8 @@ import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
 import FotoItem from "../../../FotoItem";
+import FotoProgres from "./FotoProgres";
+import Mingguan from "./Mingguan";
 import { unggahFotoItem } from "@/lib/portal/unggahFotoItem";
 import TabBar from "../../../TabBar";
 import {
@@ -22,11 +24,11 @@ import { kompresBanyakGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const tanpaDefect = (tabs) => (DEFECT_AKTIF ? tabs : tabs.filter(([k]) => k !== "defect"));
-const TABS = tanpaDefect([["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]]);
-const TABS_SPV = tanpaDefect([["progres", "Progres"], ["defect", "Defect"]]);
-const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
+const TABS = tanpaDefect([["progres", "Progres"], ["mingguan", "Mingguan"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]]);
+const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Mingguan"], ["defect", "Defect"]]);
+const TABS_TUKANG = [["progres", "Progres"], ["mingguan", "Mingguan"], ["item", "Jasa tukang"]];
 
-export default function AdminProyek({ proyek, items, termin, klien, supervisors, defect = [], mandor = null, staf }) {
+export default function AdminProyek({ proyek, items, termin, klien, supervisors, defect = [], mandor = null, staf, fotoProgres = [], riwayat = [] }) {
   const admin = staf.role === "ADMIN";
   // Tukang (akun MANDOR): hanya melihat item timnya, tanpa bisa mengubah apa pun.
   const tukang = staf.role === "TUKANG";
@@ -81,14 +83,19 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
           dan Defect di luar fieldset: link masih bisa disalin / dikirim, dan keluhan klien
           sering datang setelah serah terima. */}
       {tukang ? (
-        tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} admin={false} lihat /> : <JasaTukangLihat items={items} />
+        tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} admin={false} lihat fotoProgres={fotoProgres} />
+          : tab === "mingguan" ? <Mingguan proyek={proyek} items={items} riwayat={riwayat} upah lihatTim />
+          : <JasaTukangLihat items={items} />
+      ) : tab === "mingguan" ? (
+        // Laporan hanya dibaca, jadi tetap bisa dibuka setelah proyek terkunci.
+        <Mingguan proyek={proyek} items={items} riwayat={riwayat} upah={admin} />
       ) : tab === "klien" ? (
         <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
       ) : tab === "defect" ? (
         <TabDefect items={items} defect={defect} aksi={aksi} admin={admin} mandor={mandor} />
       ) : (
         <fieldset className="kunci" disabled={kunci}>
-          {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} />}
+          {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} fotoProgres={fotoProgres} />}
           {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
           {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} nilai={nilaiT} aksi={aksi} />}
           {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
@@ -121,7 +128,7 @@ function InputRupiah({ nilai, onSimpan }) {
 // Tahap selalu dicatat hari ini (tanggalnya tidak bisa dipilih). Tiap tahap punya
 // persen pengerjaan: centang = 100%, slider/ketik untuk sebagian (mis. Potong 10%).
 // `lihat` = hanya melihat (tukang): bar, tombol, dan slider tahap tidak bisa diubah.
-function TabProgres({ proyek, items, aksi, admin, lihat }) {
+function TabProgres({ proyek, items, aksi, admin, lihat, fotoProgres = [] }) {
   const tanggal = hariIni();
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [buka, setBuka] = useState(null);
@@ -156,6 +163,7 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
   const toggle = (it, s) => catat(it, s, it.progres[s.k] ? 0 : 100);
 
   // Satu kartu item: nama, bar fase berjalan, dan (dibuka) semua tahap.
+  const fotoItem = (it) => fotoProgres.filter((f) => f.item_id === it.id);
   const kartu = (it) => {
     const akhir = tahapTerakhir(it), next = tahapBerikut(it), open = buka === it.id;
     const fase = faseKini(it);
@@ -189,12 +197,13 @@ function TabProgres({ proyek, items, aksi, admin, lihat }) {
           })}
         </div>
         {open ? (
-          <TahapItem it={it} aksi={aksi} admin={admin} kunci={kunci} busy={busy} toggle={toggle} catat={catat} />
+          <TahapItem it={it} aksi={aksi} admin={admin} kunci={kunci} busy={busy} toggle={toggle} catat={catat} foto={fotoItem(it)} lihat={lihat} />
         ) : (
           <div className="acc-q">
             <span className="small">
               {fase && <b style={{ fontWeight: 600 }}>{fase.label} {pct(fase.persen)} · </b>}
               {akhir ? `${akhir.label} ${tahapSelesai(it, akhir) ? "✓" : pct(persenTahap(it, akhir))} ${tgl(akhir.tgl)}` : "Belum mulai"}
+              {fotoItem(it).length > 0 && ` · ${fotoItem(it).length} foto progres`}
             </span>
             {!next && <span className="badge b-ok">Selesai 100%</span>}
           </div>
@@ -284,7 +293,7 @@ const isiTombol = (p) =>
 // 100% / batal) dan slider + kotak ketik untuk persen pengerjaannya (mis. Potong
 // baru 10%). Persen tersimpan saat slider dilepas atau kotak ketik ditinggalkan;
 // 0 = batal. Bobot tahap diatur admin di halaman Bobot tahap.
-function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat }) {
+function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat, foto, lihat }) {
   const tahap = tahapItem(it);
   const awal = Object.fromEntries(tahap.map((s) => [s.k, persenTahap(it, s)]));
   const kunciAwal = JSON.stringify(awal);
@@ -377,6 +386,7 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat }) {
           </button>
         </div>
       )}
+      <FotoProgres item={it} foto={foto} aksi={aksi} lihat={lihat} />
     </div>
   );
 }

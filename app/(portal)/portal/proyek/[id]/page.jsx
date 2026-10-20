@@ -4,6 +4,8 @@ import { ambilItem, ambilProyek, ambilTermin, ambilKlien, ambilSupervisor, timSa
 import { ambilDefect } from "@/lib/portal/defect";
 import { cariProyekMandor, PATH_DEFECT_MANDOR } from "@/lib/portal/mandor";
 import { urlFotoItem } from "@/lib/portal/fotoItem";
+import { ambilFotoProgres } from "@/lib/portal/progresFoto";
+import { ambilRiwayat } from "@/lib/portal/riwayat";
 import AdminProyek from "./AdminProyek";
 
 // portal_item.foto (path storage) -> daftar signed URL untuk ditampilkan.
@@ -24,19 +26,26 @@ export default async function PortalProyekPage({ params }) {
   // satuan tidak dikirim ke browser). Tidak ada item timnya = bukan proyeknya.
   if (tukang) {
     const { nilai_proyek, nilai_perancangan, ...p2 } = proyek;
-    const items = await urlkanFoto((await ambilItem([proyek])).filter((i) => timSaya(staf, i)).map(({ harga_satuan, ...i }) => i));
+    const [semua, fotoSemua, riwayatSemua] = await Promise.all([ambilItem([proyek]), ambilFotoProgres(proyek.id), ambilRiwayat(proyek.id)]);
+    const items = await urlkanFoto(semua.filter((i) => timSaya(staf, i)).map(({ harga_satuan, ...i }) => i));
     if (!items.length) notFound();
-    return <AdminProyek proyek={p2} items={items} termin={[]} klien={[]} supervisors={[]} staf={staf} />;
+    const milik = new Set(items.map((i) => i.id));
+    return (
+      <AdminProyek proyek={p2} items={items} termin={[]} klien={[]} supervisors={[]} staf={staf}
+        fotoProgres={fotoSemua.filter((x) => milik.has(x.item_id))} riwayat={riwayatSemua.filter((x) => milik.has(x.item_id))} />
+    );
   }
 
   const admin = staf.role === "ADMIN";
-  const [items, termin, klien, supervisors, defect, pm] = await Promise.all([
+  const [items, termin, klien, supervisors, defect, pm, fotoProgres, riwayat] = await Promise.all([
     ambilItem([proyek]).then(urlkanFoto),
     admin ? ambilTermin(proyek.id) : [],
     admin ? ambilKlien(proyek.id) : [],
     admin ? ambilSupervisor() : [],
     ambilDefect(proyek.id),
     cariProyekMandor(proyek.nama),
+    ambilFotoProgres(proyek.id),
+    ambilRiwayat(proyek.id),
   ]);
   // Proyek yang tersambung ke Aplikasi Mandor: defect klien dikelola di Defect List Mandor.
   const mandor = pm ? { nama: pm.nama, path: PATH_DEFECT_MANDOR[staf.peran] || null } : null;
@@ -49,7 +58,10 @@ export default async function PortalProyekPage({ params }) {
     // porsi (total 100) supaya hitungan progres tetap sama tanpa membuka nilainya.
     const totalBerat = items.reduce((a, i) => a + (Number(i.berat) || 0), 0) || 1;
     const items2 = items.map(({ harga, harga_satuan, berat, ...i }) => ({ ...i, berat: ((Number(berat) || 0) / totalBerat) * 100 }));
-    return <AdminProyek proyek={p2} items={items2} termin={[]} klien={[]} supervisors={[]} defect={defect} mandor={mandor} staf={staf} />;
+    return <AdminProyek proyek={p2} items={items2} termin={[]} klien={[]} supervisors={[]} defect={defect} mandor={mandor} staf={staf} fotoProgres={fotoProgres} riwayat={riwayat} />;
   }
-  return <AdminProyek proyek={proyek} items={items} termin={termin} klien={klien} supervisors={supervisors} defect={defect} mandor={mandor} staf={staf} />;
+  return (
+    <AdminProyek proyek={proyek} items={items} termin={termin} klien={klien} supervisors={supervisors} defect={defect} mandor={mandor} staf={staf}
+      fotoProgres={fotoProgres} riwayat={riwayat} />
+  );
 }

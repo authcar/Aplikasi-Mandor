@@ -249,3 +249,28 @@ body:has(.tabbar) .toast{bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-b
 .fthumb img{width:100%;height:100%;object-fit:cover;display:block}
 .fcount{position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 4px;border-radius:8px;background:rgba(0,0,0,.65);color:#fff;font-size:.68rem;font-weight:700;line-height:16px;text-align:center}
 div.acc-h{cursor:pointer}
+/* Foto progres per item (tab Progres) */
+.fprog{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:12px;border-top:1px dashed var(--line)}
+.fprog-tambah{min-height:36px;cursor:pointer}.fprog-tambah.mati{opacity:.45;pointer-events:none}
+.fprog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.fprog-sel{position:relative;aspect-ratio:1;min-width:0}
+.fprog-img{position:relative;display:block;width:100%;height:100%;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--sunk);cursor:zoom-in}
+.fprog-img img{width:100%;height:100%;object-fit:cover;display:block}
+.fprog-img span{position:absolute;left:0;bottom:0;padding:1px 6px;border-top-right-radius:6px;background:rgba(0,0,0,.6);color:#fff;font-size:.68rem;font-weight:600}
+.fprog-hapus{position:absolute;top:2px;right:2px;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:1.1rem;line-height:1}
+.fprog-hapus:disabled{opacity:.5}
+/* Laporan mingguan */
+.bar2{display:flex;height:10px;background:var(--sunk);border-radius:2px;overflow:hidden}.bar2 i{display:block;background:var(--wood)}.bar2 b{display:block}
+.donut-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:16px 20px}
+.donut{position:relative;flex:none;width:136px;height:136px;border-radius:50%}
+.donut-isi{position:absolute;inset:26px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.15}
+.donut-isi b{font-family:var(--fd);font-size:1.05rem}.donut-isi span{font-size:.7rem;color:var(--muted)}
+.legenda{flex:1 1 180px;min-width:0;margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.legenda li{display:grid;grid-template-columns:12px minmax(0,1fr) auto auto;align-items:baseline;gap:8px;font-size:.88rem}
+.legenda li i{width:12px;height:12px;border-radius:3px;align-self:center}
+.legenda .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.baris-minggu{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:4px 12px;width:100%;padding:10px 0;border:0;border-bottom:1px dashed var(--line);background:none;text-align:left;color:var(--fg)}
+.baris-minggu:last-child{border-bottom:0}
+.baris-minggu .t{display:flex;flex-direction:column;min-width:0}.baris-minggu .nm{font-weight:600;font-size:.92rem}
+.baris-minggu.aktif .nm{color:var(--wood)}
+.baris-minggu>.num:last-child:not(b){grid-column:1 / -1;text-align:right}
