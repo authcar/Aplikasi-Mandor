@@ -540,7 +540,7 @@ function RingkasJasa({ items }) {
         <h3>Total jasa tukang</h3>
         <b className="num">{total ? rp(total) : "—"}</b>
       </div>
-      {Object.entries(perTim).map(([t, n]) => (
+      {Object.keys(perTim).length > 1 && Object.entries(perTim).map(([t, n]) => (
         <div key={t} className="row small"><span>{t}</span><span className="num">{rp(n)}</span></div>
       ))}
     </div>

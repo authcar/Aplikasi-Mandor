@@ -106,11 +106,11 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
       {upah && (
         <div className="card stack" style={{ gap: 12 }}>
           <div className="row" style={{ alignItems: "center" }}>
-            <h3>{lihatTim ? "Upah jasa tukang" : "Upah jasa tukang per tim"}</h3>
-            <b className="num">{rp(totalUpah)}</b>
+            <h3>Per tim</h3>
+            {h.tim.length > 1 && <b className="num">{rp(totalUpah)}</b>}
           </div>
           <p className="small" style={{ margin: 0 }}>
-            Upah item = kenaikan % progres minggu ini × total jasa tukang item, dijumlahkan per tim dari item yang ditugaskan. Tanpa progres berarti 0%, upahnya Rp 0.
+            Upah = kenaikan % progres minggu ini × jasa tukang tiap item.
           </p>
           {h.tim.length === 0 && <p className="small" style={{ margin: 0 }}>Belum ada item.</p>}
           {h.tim.map((t) => <KartuTim key={t.tim} t={t} />)}
@@ -154,13 +154,13 @@ function KartuTim({ t }) {
             <b className="num">{rp(t.upah)}</b>
           </span>
           <span className="small">
-            {berubah.length ? `${berubah.length} dari ${t.item.length} item ada progres` : `Tidak ada progres · ${t.item.length} item`}
-            {t.total > 0 && ` · terkumpul ${rp(t.kumulatif)} dari ${rp(t.total)}`}
+            {berubah.length ? `${berubah.length === t.item.length ? "Semua" : `${berubah.length} dari ${t.item.length}`} item ada progres` : "Tidak ada progres"}
+            {t.total > 0 && ` · terkumpul ${rp(t.kumulatif)} / ${rp(t.total)}`}
           </span>
         </span>
       </summary>
       <div className="lipat-b">
-        {berubah.length === 0 && <p className="small" style={{ margin: 0 }}>Tidak ada kenaikan progres, jadi upah minggu ini Rp 0.</p>}
+        {berubah.length === 0 && <p className="small" style={{ margin: 0 }}>Belum ada kenaikan progres.</p>}
         {berubah.map((i) => (
           <div key={i.id} className="baris">
             <span className="t">
