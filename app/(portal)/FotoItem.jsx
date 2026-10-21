@@ -9,7 +9,7 @@ import { createPortal } from "react-dom";
 const berhenti = (e) => e.stopPropagation();
 
 // Pop up foto besar. `mulai` = indeks foto yang dibuka, `tutup` dipanggil saat ditutup.
-export function Pratinjau({ nama, foto, mulai = 0, tutup }) {
+export function Pratinjau({ nama, foto, cap, mulai = 0, tutup }) {
   const [n, setN] = useState(mulai);
   const jml = foto.length;
 
@@ -36,6 +36,7 @@ export function Pratinjau({ nama, foto, mulai = 0, tutup }) {
           <button type="button" aria-label="Tutup" onClick={tutup}>×</button>
         </div>
         <img src={foto[n]} alt={`${nama} (${n + 1}/${jml})`} onClick={() => jml > 1 && setN((n + 1) % jml)} />
+        {cap && <div className="fcap">{cap[n]}</div>}
         {jml > 1 && (
           <div className="fnav">
             <button type="button" aria-label="Foto sebelumnya" onClick={() => setN((n + jml - 1) % jml)}>‹</button>

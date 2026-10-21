@@ -250,15 +250,6 @@ body:has(.tabbar) .toast{bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-b
 .fcount{position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 4px;border-radius:8px;background:rgba(0,0,0,.65);color:#fff;font-size:.68rem;font-weight:700;line-height:16px;text-align:center}
 div.acc-h{cursor:pointer}
 /* Foto progres per item (tab Progres) */
-.fprog{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:12px;border-top:1px dashed var(--line)}
-.fprog-tambah{min-height:36px;cursor:pointer}.fprog-tambah.mati{opacity:.45;pointer-events:none}
-.fprog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
-.fprog-sel{position:relative;aspect-ratio:1;min-width:0}
-.fprog-img{position:relative;display:block;width:100%;height:100%;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--sunk);cursor:zoom-in}
-.fprog-img img{width:100%;height:100%;object-fit:cover;display:block}
-.fprog-img span{position:absolute;left:0;bottom:0;padding:1px 6px;border-top-right-radius:6px;background:rgba(0,0,0,.6);color:#fff;font-size:.68rem;font-weight:600}
-.fprog-hapus{position:absolute;top:2px;right:2px;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:1.1rem;line-height:1}
-.fprog-hapus:disabled{opacity:.5}
 /* Laporan mingguan */
 .bar2{display:flex;height:10px;background:var(--sunk);border-radius:2px;overflow:hidden}.bar2 i{display:block;background:var(--wood)}.bar2 b{display:block}
 .donut-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:16px 20px}
@@ -274,18 +265,24 @@ div.acc-h{cursor:pointer}
 .baris-minggu .t{display:flex;flex-direction:column;min-width:0}.baris-minggu .nm{font-weight:600;font-size:.92rem}
 .baris-minggu.aktif .nm{color:var(--wood)}
 .baris-minggu>.num:last-child:not(b){grid-column:1 / -1;text-align:right}
-.fprog-plus{flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1.5px solid var(--wood);border-radius:50%;background:var(--surface);color:var(--wood);cursor:pointer}
-.fprog-plus svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
-.fprog-plus:hover{background:var(--wood);color:var(--on-accent)}.fprog-plus.mati{opacity:.4;pointer-events:none}
-.fprog-plus.ada{border-color:var(--ok);background:var(--ok);color:#fff}
-.fprog-plus.ada:hover{background:var(--ok);filter:brightness(1.1)}
-.geser.mini.foto{grid-template-columns:minmax(0,1fr) 60px 32px}
-.fprog-cam{position:relative;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--muted);cursor:pointer}
-.fprog-cam svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
-.fprog-cam b{position:absolute;right:-5px;top:-6px;min-width:16px;padding:0 4px;border-radius:8px;background:var(--ok);color:#fff;font-size:.66rem;line-height:16px;text-align:center}
-.fprog-cam.ada{border-color:var(--ok);color:var(--ok)}.fprog-cam.mati{opacity:.4;pointer-events:none}
-.fprog-strip{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:thin}
-.fprog-strip .fprog-sel{flex:none;width:68px;height:68px}
-.fprog-img span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-top-right-radius:6px}
-.fprog-tag{position:absolute;left:0;right:0;bottom:0;width:100%;height:22px;padding:0 2px;border:0;border-radius:0 0 6px 6px;background:rgba(0,0,0,.65);color:#fff;font-size:.68rem;-webkit-appearance:none;appearance:none;text-align:center}
-.fprog-tag option{color:#000}
+/* Foto progres item: tombol/gambar mini di baris item + pop up */
+.fprog-pic{position:relative;flex:none;width:44px;height:44px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--wood);border-radius:50%;background:var(--surface);color:var(--wood);cursor:pointer;overflow:visible}
+.fprog-pic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.fprog-pic.ada{border-radius:8px;border-color:var(--ok);padding:0}
+.fprog-pic img{width:100%;height:100%;object-fit:cover;border-radius:6px;display:block}
+.fprog-lagi{position:absolute;right:-6px;top:-6px;width:20px;height:20px;border-radius:50%;background:var(--ok);color:#fff;font-size:1rem;font-weight:800;line-height:19px;text-align:center;box-shadow:0 0 0 2px var(--surface)}
+.fprog-body{display:flex;flex-direction:column;gap:14px;padding:12px 14px 14px;overflow-y:auto}
+.fprog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.fprog-sel{position:relative;aspect-ratio:1;min-width:0}
+.fprog-img{position:relative;display:block;width:100%;height:100%;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--sunk);cursor:zoom-in}
+.fprog-img img{width:100%;height:100%;object-fit:cover;display:block}
+.fprog-img span{position:absolute;left:0;bottom:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:1px 6px;border-top-right-radius:6px;background:rgba(0,0,0,.65);color:#fff;font-size:.68rem;font-weight:600}
+.fprog-hapus{position:absolute;top:2px;right:2px;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:1.05rem;line-height:1}
+.fprog-hapus:disabled{opacity:.5}
+.fprog-form{display:flex;flex-direction:column;gap:10px}
+.fprog-pilih{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
+.fprog-pv{display:flex;flex-wrap:wrap;gap:6px}
+.fprog-pv span{position:relative;width:52px;height:52px}
+.fprog-pv img{width:100%;height:100%;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.fprog-pv button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;padding:0;border:0;border-radius:50%;background:var(--bad);color:#fff;font-size:.85rem;line-height:1}
+.fcap{padding:6px 14px;font-size:.82rem;color:var(--muted);text-align:center}

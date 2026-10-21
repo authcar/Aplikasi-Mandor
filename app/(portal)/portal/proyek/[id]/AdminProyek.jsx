@@ -6,7 +6,7 @@ import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
 import FotoItem from "../../../FotoItem";
-import FotoProgres, { TombolFoto } from "./FotoProgres";
+import FotoProgres from "./FotoProgres";
 import Mingguan from "./Mingguan";
 import { unggahFotoItem } from "@/lib/portal/unggahFotoItem";
 import TabBar from "../../../TabBar";
@@ -180,7 +180,7 @@ function TabProgres({ proyek, items, aksi, admin, lihat, fotoProgres = [] }) {
             <span className="nm">{it.nama}</span>
             <span className="small">{[it.kode, JENIS_LABEL[it.jenis], !tim && it.tim].filter(Boolean).join(" · ")}</span>
           </span>
-          {!lihat && <TombolFoto item={it} jumlah={fotoItem(it).length} aksi={aksi} ikon />}
+          <FotoProgres item={it} foto={fotoItem(it)} aksi={aksi} lihat={lihat} />
           {it.foto?.length > 0 && <FotoItem nama={it.nama} foto={it.foto} />}
           <b className="num">{persenItem(it)}%</b>
           <i className="chev" aria-hidden="true" />
@@ -360,7 +360,7 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat, foto, lihat })
                       <span className="nm">{s.label}</span>
                       {p > 0 && <span className="w">{p < 100 ? pct(p) : tgl(it.progres[s.k])}</span>}
                     </button>
-                    <div className={`geser mini${lihat ? "" : " foto"}`}>
+                    <div className="geser mini">
                       <input type="range" min="0" max="100" step="1" value={v[s.k]} disabled={mati}
                         aria-label={`Progres ${s.label}`} style={{ accentColor: v[s.k] ? warnaPersen(v[s.k]) : WARNA[s.fase] }}
                         onChange={(e) => geser(s.k, Number(e.target.value))} onKeyDown={panah(s.k)}
@@ -371,7 +371,6 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat, foto, lihat })
                           onChange={(e) => ketik(s.k, e.target.value)} onBlur={() => kirim(s)}
                           onKeyDown={(e) => e.key === "Enter" && e.target.blur()} />%
                       </label>
-                      {!lihat && <TombolFoto item={it} jumlah={foto.length} aksi={aksi} tahap={s} n={foto.filter((x) => x.tahap === s.k).length} />}
                     </div>
                   </div>
                 );
@@ -390,7 +389,6 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat, foto, lihat })
           </button>
         </div>
       )}
-      <FotoProgres item={it} foto={foto} aksi={aksi} lihat={lihat} />
     </div>
   );
 }
