@@ -511,8 +511,7 @@ function TabItem({ proyek, items, aksi }) {
         </AreaJasa>
       ))}
 
-      <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />
-      <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
+      <UploadItem proyek={proyek} items={items} areas={areas} urutan={urutan} aksi={aksi} />
     </>
   );
 }
@@ -534,13 +533,19 @@ function RingkasJasa({ items }) {
   const total = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
   const perTim = {};
   for (const i of items) if (Number(i.harga) > 0) perTim[i.tim || "Belum ada tim"] = (perTim[i.tim || "Belum ada tim"] || 0) + Number(i.harga);
+  const tim = Object.keys(perTim);
+  // Pendapatan dari progres = harga tiap item × persen progresnya sekarang.
+  const dapat = items.reduce((a, i) => a + ((Number(i.harga) || 0) * persenItem(i)) / 100, 0);
   return (
     <div className="card stack" style={{ gap: 8 }}>
       <div className="row" style={{ alignItems: "center" }}>
-        <h3>Total jasa tukang</h3>
+        <h3>Total jasa tukang{tim.length === 1 && <span className="small" style={{ fontWeight: 400 }}> ({tim[0]})</span>}</h3>
         <b className="num">{total ? rp(total) : "—"}</b>
       </div>
-      {Object.keys(perTim).length > 1 && Object.entries(perTim).map(([t, n]) => (
+      {total > 0 && (
+        <div className="row small"><span>Total pendapatan dari progres</span><span className="num">{rp(Math.round(dapat))}</span></div>
+      )}
+      {tim.length > 1 && Object.entries(perTim).map(([t, n]) => (
         <div key={t} className="row small"><span>{t}</span><span className="num">{rp(n)}</span></div>
       ))}
     </div>
@@ -583,9 +588,8 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
   const [areaBaru, setAreaBaru] = useState(!areas.length);
 
   return (
-    <details className="lipat">
-      <summary><b>+ Tambah item manual</b></summary>
-      <form className="lipat-b" style={{ gap: 12 }} onSubmit={async (e) => {
+    <>
+      <form className="stack" style={{ gap: 12, paddingTop: 8 }} onSubmit={async (e) => {
         e.preventDefault();
         const nama = f.nama.trim();
         const ok = await aksi.jalankan(() => A.tambahItem(proyek.id, [{
@@ -630,7 +634,7 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
         <label className="lbl">Tim tukang<input className="inp" list="daftar-tim" value={f.tim} onChange={set("tim")} placeholder="mis. Mas Alan" /></label>
         <button className="btn" disabled={aksi.sibuk || !f.nama.trim() || !f.area.trim()}>Tambah item</button>
       </form>
-    </details>
+    </>
   );
 }
 
@@ -708,9 +712,8 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
   }
 
   return (
-    <details className="lipat">
-      <summary><b>Tambah / Ganti Item BOQ sekaligus</b></summary>
-      <div className="lipat-b" style={{ gap: 12 }}>
+    <>
+      <div className="stack" style={{ gap: 12 }}>
       <UnggahBoq key={unggahKe} petunjuk={[proyek.nama, proyek.kode]} onPilih={(f) => { setFile(f); sumberBaru(); aksi.setMsg(""); }} />
       {!file && (
         <details>
@@ -793,6 +796,24 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
       <button type="button" className="btn" disabled={aksi.sibuk || !terpilih.length} onClick={simpan}>
         {ganti ? `Ganti dengan ${terpilih.length} item` : perbarui ? `Perbarui ${diperbarui.length} item${barus.length ? ` + tambah ${barus.length}` : ""}` : `Tambahkan ${terpilih.length || ""} item`}
       </button>
+      </div>
+    </>
+  );
+}
+
+// Satu section untuk memasukkan item: file Excel / tempel BoQ, atau satu item manual.
+function UploadItem({ proyek, items, areas, urutan, aksi }) {
+  return (
+    <details className="lipat">
+      <summary><b>Upload file</b></summary>
+      <div className="lipat-b" style={{ gap: 12 }}>
+        <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
+        <details>
+          <summary className="small" style={{ cursor: "pointer", minHeight: "var(--tap)", display: "flex", alignItems: "center" }}>
+            Atau tambah satu item manual
+          </summary>
+          <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />
+        </details>
       </div>
     </details>
   );
