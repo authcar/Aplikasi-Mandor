@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAksi } from "./useAksi";
 import Pesan from "./Pesan";
 import { hapusBanyakProyek } from "./aksi";
 
 const cocok = (k, q) => !q || [k.nama, k.kode, k.klien, k.lokasi].some((x) => (x || "").toLowerCase().includes(q));
+const ARSIP = "__arsip";
 
 function Kartu({ k, pilih, dipilih, onToggle }) {
   const Pembungkus = pilih
@@ -28,14 +29,18 @@ function Kartu({ k, pilih, dipilih, onToggle }) {
           <span className={`badge ${k.aktif ? k.kelas : "b-n"}`}>{k.aktif ? k.status : "Arsip"}</span>
         </span>
       </div>
-      <h3>{k.nama}</h3>
-      <div className="small" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-        {k.n} item{k.deadline ? ` · Deadline ${k.deadline}` : ""}
-        {k.sisa && <span className={`badge ${k.sisa[1]}`}>{k.sisa[0]}</span>}
+      <div>
+        <h3>{k.nama}</h3>
+        {k.lokasi && <div className="small lok">{k.lokasi}</div>}
       </div>
-      <div className="row" style={{ alignItems: "center" }}>
-        <div className="bar" style={{ flex: 1 }}><i style={{ width: `${k.persen}%` }} /></div>
-        <b className="num">{k.persenTeks}</b>
+      <div className="bar"><i style={{ width: `${k.persen}%` }} /></div>
+      <div className="kpi">
+        <div><b className="num">{k.persenTeks}</b><span>Progres</span></div>
+        <div><b className="num">{k.n}</b><span>Item</span></div>
+        <div>
+          <b className="num">{k.sisa ? k.sisa[0] : "—"}</b>
+          <span>{k.deadline ? `Deadline ${k.deadline}` : "Tanpa deadline"}</span>
+        </div>
       </div>
     </Pembungkus>
   );
@@ -46,27 +51,38 @@ const ikon = (d) => (
 );
 const IKON_CARI = ikon(<><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></>);
 const IKON_HAPUS = ikon(<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />);
-const IKON_ARSIP = ikon(<><rect x="3" y="4" width="18" height="5" rx="1" /><path d="M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9M10 13h4" /></>);
+const IKON_RESET = ikon(<><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></>);
+const IKON_LIST = ikon(<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />);
+const IKON_GRID = ikon(<><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></>);
 
-// Judul halaman, tombol cari & arsip, lalu daftar proyek. `children` (form
-// proyek baru) tampil di antara judul dan daftar. Kolom cari dan proyek arsip
-// tersembunyi sampai tombolnya diketuk.
+// Judul halaman dan tombol bobot / hapus, bar cari + filter status + tampilan
+// daftar / grid, lalu kartu proyek. `children` (form proyek baru) tampil di
+// antara judul dan daftar. Proyek arsip dipilih lewat filter status.
 export default function DaftarProyek({ kartu, kosong, label, tautan, admin, children }) {
   const aksi = useAksi();
   const [hapusMode, setHapusMode] = useState(false);
   const [dipilih, setDipilih] = useState([]); // id proyek
   const [konfirm, setKonfirm] = useState(false);
   const [cari, setCari] = useState("");
-  const [bukaCari, setBukaCari] = useState(false);
-  const [bukaArsip, setBukaArsip] = useState(false);
+  const [status, setStatus] = useState(""); // "" = semua yang aktif
+  const [tampilan, setTampilan] = useState("daftar");
+  useEffect(() => {
+    try { if (localStorage.getItem("portal.tampilan") === "grid") setTampilan("grid"); } catch {}
+  }, []);
+  const ubahTampilan = (t) => {
+    setTampilan(t);
+    try { localStorage.setItem("portal.tampilan", t); } catch {}
+  };
   const q = cari.trim().toLowerCase();
   const tampil = kartu.filter((k) => cocok(k, q));
-  const aktif = tampil.filter((k) => k.aktif);
-  const arsip = tampil.filter((k) => !k.aktif);
   const nArsip = kartu.filter((k) => !k.aktif).length;
-  const daftarId = (bukaArsip ? arsip : aktif).map((k) => k.id);
+  const bukaArsip = status === ARSIP;
+  const statusAda = [...new Set(kartu.filter((k) => k.aktif).map((k) => k.status))];
+  const daftar = bukaArsip ? tampil.filter((k) => !k.aktif) : tampil.filter((k) => k.aktif && (!status || k.status === status));
+  const daftarId = daftar.map((k) => k.id);
   const toggle = (id) => setDipilih((d) => (d.includes(id) ? d.filter((x) => x !== id) : [...d, id]));
   const kartuProps = (k) => ({ k, pilih: hapusMode, dipilih: dipilih.includes(k.id), onToggle: () => toggle(k.id) });
+  const adaFilter = !!q || !!status;
 
   return (
     <>
@@ -76,20 +92,6 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, admin, chil
           <h1>Proyek</h1>
         </div>
         <div className="acts" style={{ flex: "none" }}>
-          {kartu.length > 0 && (
-            <button type="button" className="act" aria-label="Cari proyek" aria-pressed={bukaCari}
-              style={{ width: 48, padding: 0, ...(bukaCari && { background: "var(--accent)", color: "var(--on-accent)", borderColor: "var(--accent)" }) }}
-              onClick={() => { setBukaCari((b) => !b); if (bukaCari) setCari(""); }}>
-              {IKON_CARI}
-            </button>
-          )}
-          {nArsip > 0 && (
-            <button type="button" className="act" aria-label={`Proyek arsip (${nArsip})`} aria-pressed={bukaArsip}
-              style={{ minWidth: 48, padding: "0 10px", gap: 6, ...(bukaArsip && { background: "var(--accent)", color: "var(--on-accent)", borderColor: "var(--accent)" }) }}
-              onClick={() => setBukaArsip((b) => !b)}>
-              {IKON_ARSIP}<span>{nArsip}</span>
-            </button>
-          )}
           {tautan}
           {admin && kartu.length > 0 && (
             <button type="button" className="act" aria-label="Pilih proyek untuk dihapus" aria-pressed={hapusMode}
@@ -102,6 +104,28 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, admin, chil
       </div>
 
       {children}
+
+      {kartu.length > 0 && (
+        <div className="toolbar">
+          <label className="cari">
+            {IKON_CARI}
+            <input className="inp" type="search" value={cari} onChange={(e) => setCari(e.target.value)}
+              placeholder="Cari nama, kode, atau klien" aria-label="Cari proyek" />
+          </label>
+          <select className="inp" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter status">
+            <option value="">Semua status</option>
+            {statusAda.map((s) => <option key={s} value={s}>{s}</option>)}
+            {nArsip > 0 && <option value={ARSIP}>Arsip ({nArsip})</option>}
+          </select>
+          <button type="button" className="act reset" disabled={!adaFilter} onClick={() => { setCari(""); setStatus(""); }}>
+            {IKON_RESET}Reset filter
+          </button>
+          <div className="seg tampilan" role="group" aria-label="Tampilan">
+            <button type="button" aria-label="Tampilan daftar" aria-pressed={tampilan === "daftar"} onClick={() => ubahTampilan("daftar")}>{IKON_LIST}</button>
+            <button type="button" aria-label="Tampilan grid" aria-pressed={tampilan === "grid"} onClick={() => ubahTampilan("grid")}>{IKON_GRID}</button>
+          </div>
+        </div>
+      )}
 
       {hapusMode && (
         <div className="card" style={{ position: "sticky", bottom: 12, zIndex: 5, display: "flex", flexDirection: "column", gap: 10, borderColor: "var(--bad)" }}>
@@ -140,21 +164,15 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, admin, chil
       )}
       <Pesan aksi={aksi} />
 
-      {bukaCari && (
-        <input className="inp" type="search" autoFocus value={cari} onChange={(e) => setCari(e.target.value)}
-          placeholder="Cari nama proyek, kode, atau klien…" aria-label="Cari proyek" />
-      )}
       {!kartu.length && <div className="card small">{kosong}</div>}
-      {!bukaArsip && kartu.length > 0 && !aktif.length && <div className="card small">{q ? `Tidak ada proyek yang cocok dengan “${cari.trim()}”.` : "Tidak ada proyek aktif. Ketuk ikon arsip untuk melihat proyek yang diarsipkan."}</div>}
-      {bukaArsip ? (
-        <>
-          <div className="fl" style={{ margin: "8px 0 0" }}>Proyek arsip ({arsip.length})</div>
-          {!arsip.length && <div className="card small">{q ? "Tidak ada proyek arsip yang cocok." : "Belum ada proyek arsip."}</div>}
-          {arsip.map((k) => <Kartu key={k.id} {...kartuProps(k)} />)}
-        </>
-      ) : (
-        aktif.map((k) => <Kartu key={k.id} {...kartuProps(k)} />)
+      {kartu.length > 0 && !daftar.length && (
+        <div className="card small">
+          {adaFilter ? "Tidak ada proyek yang cocok dengan filter. Ketuk Reset filter untuk melihat semua." : "Tidak ada proyek aktif. Pilih Arsip di filter status untuk melihat proyek yang diarsipkan."}
+        </div>
       )}
+      <div className={`daftar-proyek ${tampilan}`}>
+        {daftar.map((k) => <Kartu key={k.id} {...kartuProps(k)} />)}
+      </div>
     </>
   );
 }
