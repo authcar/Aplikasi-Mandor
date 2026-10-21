@@ -24,11 +24,11 @@ import { kompresBanyakGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const tanpaDefect = (tabs) => (DEFECT_AKTIF ? tabs : tabs.filter(([k]) => k !== "defect"));
-const TABS = tanpaDefect([["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["klien", "Klien"], ["info", "Info"]]);
+const TABS = tanpaDefect([["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["info", "Info"]]);
 const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["defect", "Defect"]]);
 const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
 
-export default function AdminProyek({ proyek, items, termin, klien, supervisors, defect = [], mandor = null, staf, fotoProgres = [], riwayat = [] }) {
+export default function AdminProyek({ proyek, items, termin, addon = [], klien, supervisors, defect = [], mandor = null, staf, fotoProgres = [], riwayat = [] }) {
   const admin = staf.role === "ADMIN";
   // Tukang (akun MANDOR): hanya melihat item timnya, tanpa bisa mengubah apa pun.
   const tukang = staf.role === "TUKANG";
@@ -88,8 +88,6 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
       ) : tab === "mingguan" ? (
         // Laporan hanya dibaca, jadi tetap bisa dibuka setelah proyek terkunci.
         <Mingguan proyek={proyek} items={items} riwayat={riwayat} />
-      ) : tab === "klien" ? (
-        <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />
       ) : tab === "defect" ? (
         <TabDefect items={items} defect={defect} aksi={aksi} admin={admin} mandor={mandor} />
       ) : (
@@ -98,11 +96,13 @@ export default function AdminProyek({ proyek, items, termin, klien, supervisors,
         <fieldset className="kunci" disabled={kunci}>
           {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} fotoProgres={fotoProgres} />}
           {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
-          {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} nilai={nilaiT} aksi={aksi} />}
+          {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} addon={addon} nilai={nilaiT} aksi={aksi} />}
           {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
         </fieldset>
         </>
       )}
+      {/* Link klien di luar fieldset: setelah proyek terkunci, link masih bisa disalin / dikirim. */}
+      {admin && tab === "info" && <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />}
       {/* Di luar fieldset: proyek yang terkunci tetap bisa dihapus. */}
       {admin && tab === "info" && <HapusProyek proyek={proyek} items={items} termin={termin} klien={klien} aksi={aksi} />}
     </main>
@@ -800,9 +800,11 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
 
 /* ---------- Termin ---------- */
 // Termin jasa produksi, dari nilai proyek (terpisah dari nilai jasa tukang). Persennya berjumlah 100%.
-function TabTermin({ proyek, items, termin, nilai, aksi }) {
-  const masuk = totalDibayar(termin, nilai);
-  const total = totalNilai(nilai);
+function TabTermin({ proyek, items, termin, addon, nilai, aksi }) {
+  const totalAddon = addon.reduce((a, x) => a + x.nilai, 0);
+  const masukAddon = addon.reduce((a, x) => a + (x.lunas_tgl ? x.nilai : 0), 0);
+  const masuk = totalDibayar(termin, nilai) + masukAddon;
+  const total = totalNilai(nilai) + totalAddon;
   return (
     <>
       {(total > 0 || masuk > 0) && (
@@ -815,7 +817,63 @@ function TabTermin({ proyek, items, termin, nilai, aksi }) {
         <KelompokTermin key={jenis} jenis={jenis} judul={judul} proyek={proyek} progres={persenProyek(items)}
           termin={termin.filter((t) => jenisTermin(t) === jenis)} nilai={nilai} aksi={aksi} />
       ))}
+      <AddonBiaya proyek={proyek} addon={addon} aksi={aksi} />
     </>
+  );
+}
+
+// Penambahan biaya di luar nilai proyek awal; ditagih terpisah dari termin.
+function AddonBiaya({ proyek, addon, aksi }) {
+  const [nama, setNama] = useState("");
+  const [nilai, setNilai] = useState(null);
+  const [reset, setReset] = useState(0);
+  const ubah = (id, patch, ok) => aksi.jalankan(() => A.ubahAddon(id, patch), ok);
+  const total = addon.reduce((a, x) => a + x.nilai, 0);
+
+  return (
+    <section className="stack">
+      <div className="row" style={{ marginTop: 6 }}>
+        <h2>Addons / penambahan biaya</h2>
+        {total > 0 && <span className="small num">{rp(total)}</span>}
+      </div>
+      {addon.map((x) => (
+        <div key={x.id} className="item">
+          <div className="g2" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}>
+            <Isian label="Nama" nilai={x.nama} onSimpan={(v) => v.trim() && ubah(x.id, { nama: v })} />
+            <label className="lbl">Nilai
+              <InputRupiah nilai={x.nilai} onSimpan={(v) => v != null && ubah(x.id, { nilai: v }, `Nilai ${x.nama} disimpan: ${rp(v)}.`)} />
+            </label>
+          </div>
+          {x.lunas_tgl && <span className="badge b-ok" style={{ alignSelf: "flex-start" }}>Lunas {tgl(x.lunas_tgl)}</span>}
+          <div className="acts">
+            {!x.lunas_tgl ? (
+              <button type="button" className="act" disabled={aksi.sibuk}
+                onClick={() => ubah(x.id, { lunas_tgl: hariIni() }, `${x.nama} lunas ${tgl(hariIni())}.`)}>Lunas hari ini</button>
+            ) : (
+              <button type="button" className="act" disabled={aksi.sibuk}
+                onClick={() => confirm(`Batalkan status lunas ${x.nama}?`) && ubah(x.id, { lunas_tgl: null }, `Status lunas ${x.nama} dibatalkan.`)}>Batalkan lunas</button>
+            )}
+            <button type="button" className="act bahaya" disabled={aksi.sibuk}
+              onClick={() => confirm(`Hapus ${x.nama}?`) && aksi.jalankan(() => A.hapusAddon(x.id), "Addon dihapus.")}>Hapus</button>
+          </div>
+        </div>
+      ))}
+      <details className="lipat">
+        <summary><b>+ Tambah addon</b></summary>
+        <form className="lipat-b" style={{ gap: 12 }} onSubmit={async (e) => {
+          e.preventDefault();
+          if (!nama.trim() || nilai == null) return;
+          const ok = await aksi.jalankan(() => A.tambahAddon(proyek.id, { nama, nilai }), `${nama.trim()} ditambahkan.`);
+          if (ok !== false) { setNama(""); setNilai(null); setReset((n) => n + 1); }
+        }}>
+          <label className="lbl">Nama<input className="inp" required value={nama} onChange={(e) => setNama(e.target.value)} placeholder="mis. Tambah lemari" /></label>
+          <label className="lbl">Nilai
+            <InputRupiah key={reset} nilai={nilai} onSimpan={setNilai} />
+          </label>
+          <button className="btn" disabled={aksi.sibuk || !nama.trim() || nilai == null}>Tambah</button>
+        </form>
+      </details>
+    </section>
   );
 }
 

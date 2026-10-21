@@ -324,6 +324,37 @@ export async function hapusTermin(id) {
   });
 }
 
+/* ---------- Addons / penambahan biaya ---------- */
+const F_ADDON = ["nama", "nilai", "lunas_tgl"];
+
+function cekAddon(r) {
+  if ("nama" in r && !String(r.nama || "").trim()) throw new Error("Nama addon wajib.");
+  if ("nama" in r) r.nama = r.nama.trim();
+  if ("nilai" in r && !(Number(r.nilai) >= 0)) throw new Error("Nilai addon tidak valid.");
+  return r;
+}
+
+export async function tambahAddon(proyekId, f) {
+  return jalan(async () => {
+    await cekTerbuka(proyekId);
+    await hasil(db().from("portal_addon").insert({ ...cekAddon(pilih(f, F_ADDON)), proyek_id: proyekId }));
+  });
+}
+
+export async function ubahAddon(id, patch) {
+  return jalan(async () => {
+    await cekTerbuka(await proyekDari("portal_addon", "id", id));
+    await ubah("portal_addon", id, cekAddon(pilih(patch, F_ADDON)));
+  });
+}
+
+export async function hapusAddon(id) {
+  return jalan(async () => {
+    await cekTerbuka(await proyekDari("portal_addon", "id", id));
+    await hapus("portal_addon", id);
+  });
+}
+
 /* ---------- Bobot tahap khusus satu item ---------- */
 // bobot = { [tahap]: persen } lengkap untuk jenis item itu. Tidak harus
 // berjumlah 100: progres item dihitung dari perbandingannya (lihat persenItem).

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
-import { ambilItem, ambilProyek, ambilTermin, ambilKlien, ambilSupervisor, timSaya } from "@/lib/portal/data";
+import { ambilItem, ambilProyek, ambilTermin, ambilAddon, ambilKlien, ambilSupervisor, timSaya } from "@/lib/portal/data";
 import { ambilDefect } from "@/lib/portal/defect";
 import { cariProyekMandor, PATH_DEFECT_MANDOR } from "@/lib/portal/mandor";
 import { urlFotoItem } from "@/lib/portal/fotoItem";
@@ -37,9 +37,10 @@ export default async function PortalProyekPage({ params }) {
   }
 
   const admin = staf.role === "ADMIN";
-  const [items, termin, klien, supervisors, defect, pm, fotoProgres, riwayat] = await Promise.all([
+  const [items, termin, addon, klien, supervisors, defect, pm, fotoProgres, riwayat] = await Promise.all([
     ambilItem([proyek]).then(urlkanFoto),
     admin ? ambilTermin(proyek.id) : [],
+    admin ? ambilAddon(proyek.id) : [],
     admin ? ambilKlien(proyek.id) : [],
     admin ? ambilSupervisor() : [],
     ambilDefect(proyek.id),
@@ -61,7 +62,7 @@ export default async function PortalProyekPage({ params }) {
     return <AdminProyek proyek={p2} items={items2} termin={[]} klien={[]} supervisors={[]} defect={defect} mandor={mandor} staf={staf} fotoProgres={fotoProgres} riwayat={riwayat} />;
   }
   return (
-    <AdminProyek proyek={proyek} items={items} termin={termin} klien={klien} supervisors={supervisors} defect={defect} mandor={mandor} staf={staf}
+    <AdminProyek proyek={proyek} items={items} termin={termin} addon={addon} klien={klien} supervisors={supervisors} defect={defect} mandor={mandor} staf={staf}
       fotoProgres={fotoProgres} riwayat={riwayat} />
   );
 }
