@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { db, hasil, UUID } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek } from "@/lib/portal/data";
+import { TAHAP } from "@/lib/portal/progresBoq";
 import { BUCKET_PROGRES, MAKS_FOTO_PROGRES } from "@/lib/portal/progresFoto";
 import { lewatDeadline, tglTh } from "@/lib/portal/format";
 
@@ -26,6 +27,7 @@ export async function POST(req) {
     return gagal("data tidak terbaca. Coba kirim ulang dengan foto lebih sedikit.");
   }
   const itemId = String(form.get("item_id") || "");
+  const tahap = String(form.get("tahap") || "") || null; // opsional: foto untuk satu tahap
   const foto = form.getAll("foto").filter((f) => f && typeof f === "object" && f.size > 0);
   if (!UUID.test(itemId)) return gagal("item tidak valid.");
   if (!foto.length) return gagal("pilih fotonya dulu.");
@@ -34,8 +36,9 @@ export async function POST(req) {
   if (foto.some((f) => f.size > MAKS_BYTE_FOTO)) return gagal("ukuran foto terlalu besar.");
 
   try {
-    const item = await hasil(db().from("portal_item").select("id, proyek_id").eq("id", itemId).maybeSingle());
+    const item = await hasil(db().from("portal_item").select("id, proyek_id, jenis").eq("id", itemId).maybeSingle());
     if (!item) return gagal("item tidak ditemukan.", 404);
+    if (tahap && !(TAHAP[item.jenis] || TAHAP.HPL).some((s) => s.k === tahap)) return gagal("tahap tidak valid.");
     const p = await ambilProyek(item.proyek_id);
     if (!bolehProyek(staf, p)) return gagal("tidak punya akses ke proyek ini.", 403);
     if (lewatDeadline(p)) return gagal(`proyek sudah lewat deadline ${tglTh(p.deadline)}, jadi terkunci.`);
@@ -64,10 +67,11 @@ export async function POST(req) {
         paths.push(path);
       }
       await hasil(
-        db().from("portal_progres_foto").insert(paths.map((path) => ({ proyek_id: item.proyek_id, item_id: itemId, path, dicatat_oleh: staf.id })))
+        db().from("portal_progres_foto").insert(paths.map((path) => ({ proyek_id: item.proyek_id, item_id: itemId, path, dicatat_oleh: staf.id, ...(tahap ? { tahap } : {}) })))
       );
     } catch (e) {
       if (paths.length) await db().storage.from(BUCKET_PROGRES).remove(paths);
+      if (/column .*tahap|'tahap' column/i.test(e.message || "")) throw new Error("kolom tahap belum ada. Jalankan supabase/add_portal_progres_foto_tahap.sql di Supabase dulu.");
       throw e;
     }
     return NextResponse.json({ ok: true });

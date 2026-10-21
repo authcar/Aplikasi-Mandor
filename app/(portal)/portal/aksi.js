@@ -30,7 +30,7 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, add_portal_progres_persen.sql, add_portal_item_foto.sql, add_portal_item_hanya_jasa.sql, add_portal_progres_foto.sql, dan add_portal_progres_riwayat.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, add_portal_progres_persen.sql, add_portal_item_foto.sql, add_portal_item_hanya_jasa.sql, add_portal_progres_foto.sql, add_portal_progres_foto_tahap.sql, dan add_portal_progres_riwayat.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
 }
@@ -199,6 +199,17 @@ export async function hapusFotoProgresItem(id) {
     if (!bolehProyek(staf, await cekTerbuka(f.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
     await hapus("portal_progres_foto", id);
     await db().storage.from(BUCKET_PROGRES).remove([f.path]);
+  }, { admin: false });
+}
+
+// Kaitkan foto progres (mis. foto lama tanpa tahap) ke satu tahap item.
+export async function tandaiFotoProgres(id, tahap) {
+  return jalan(async (staf) => {
+    const f = await hasil(db().from("portal_progres_foto").select("*, item:item_id(jenis)").eq("id", id).maybeSingle());
+    if (!f) throw new Error("Foto tidak ditemukan.");
+    if (!bolehProyek(staf, await cekTerbuka(f.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    if (!(TAHAP[f.item?.jenis] || TAHAP.HPL).some((s) => s.k === tahap)) throw new Error("Tahap tidak valid.");
+    await ubah("portal_progres_foto", id, { tahap });
   }, { admin: false });
 }
 

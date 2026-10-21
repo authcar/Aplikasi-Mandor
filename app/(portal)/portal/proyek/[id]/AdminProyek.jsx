@@ -360,7 +360,7 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat, foto, lihat })
                       <span className="nm">{s.label}</span>
                       {p > 0 && <span className="w">{p < 100 ? pct(p) : tgl(it.progres[s.k])}</span>}
                     </button>
-                    <div className="geser mini">
+                    <div className={`geser mini${lihat ? "" : " foto"}`}>
                       <input type="range" min="0" max="100" step="1" value={v[s.k]} disabled={mati}
                         aria-label={`Progres ${s.label}`} style={{ accentColor: v[s.k] ? warnaPersen(v[s.k]) : WARNA[s.fase] }}
                         onChange={(e) => geser(s.k, Number(e.target.value))} onKeyDown={panah(s.k)}
@@ -371,6 +371,7 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat, foto, lihat })
                           onChange={(e) => ketik(s.k, e.target.value)} onBlur={() => kirim(s)}
                           onKeyDown={(e) => e.key === "Enter" && e.target.blur()} />%
                       </label>
+                      {!lihat && <TombolFoto item={it} jumlah={foto.length} aksi={aksi} tahap={s} n={foto.filter((x) => x.tahap === s.k).length} />}
                     </div>
                   </div>
                 );

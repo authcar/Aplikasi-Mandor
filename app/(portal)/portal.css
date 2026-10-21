@@ -279,3 +279,13 @@ div.acc-h{cursor:pointer}
 .fprog-plus:hover{background:var(--wood);color:var(--on-accent)}.fprog-plus.mati{opacity:.4;pointer-events:none}
 .fprog-plus.ada{border-color:var(--ok);background:var(--ok);color:#fff}
 .fprog-plus.ada:hover{background:var(--ok);filter:brightness(1.1)}
+.geser.mini.foto{grid-template-columns:minmax(0,1fr) 60px 32px}
+.fprog-cam{position:relative;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--muted);cursor:pointer}
+.fprog-cam svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.fprog-cam b{position:absolute;right:-5px;top:-6px;min-width:16px;padding:0 4px;border-radius:8px;background:var(--ok);color:#fff;font-size:.66rem;line-height:16px;text-align:center}
+.fprog-cam.ada{border-color:var(--ok);color:var(--ok)}.fprog-cam.mati{opacity:.4;pointer-events:none}
+.fprog-strip{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:thin}
+.fprog-strip .fprog-sel{flex:none;width:68px;height:68px}
+.fprog-img span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-top-right-radius:6px}
+.fprog-tag{position:absolute;left:0;right:0;bottom:0;width:100%;height:22px;padding:0 2px;border:0;border-radius:0 0 6px 6px;background:rgba(0,0,0,.65);color:#fff;font-size:.68rem;-webkit-appearance:none;appearance:none;text-align:center}
+.fprog-tag option{color:#000}
