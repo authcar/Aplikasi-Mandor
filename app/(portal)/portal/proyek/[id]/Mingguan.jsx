@@ -117,27 +117,23 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
         </div>
       )}
 
-      <div className="stack" style={{ gap: 8 }}>
-        <h3 style={{ marginTop: 6 }}>{upah ? "Upah tiap minggu" : "Riwayat mingguan"}</h3>
-        <div className="card" style={{ padding: "4px 14px" }}>
-          {semua.map(({ x, h: r }) => (
-            <button key={x.no} type="button" className={`baris-minggu${x.no === m.no ? " aktif" : ""}`} onClick={() => setNo(x.no)}>
-              <span className="t">
-                <span className="nm">Minggu {x.no}{x.berjalan ? " · berjalan" : ""}</span>
-                <span className="small">{rentang(x)}</span>
-              </span>
-              {upah ? (
-                <b className="num">{rp(r.tim.reduce((a, t) => a + t.upah, 0))}</b>
-              ) : (
-                <>
-                  <span className="num small">{pct(r.sebelum)} → {pct(r.sesudah)}</span>
-                  <b className={`num ${r.naik > 0.005 ? "delta" : ""}`}>{naik(r.naik)}</b>
-                </>
-              )}
-            </button>
-          ))}
+      {!upah && (
+        <div className="stack" style={{ gap: 8 }}>
+          <h3 style={{ marginTop: 6 }}>Riwayat mingguan</h3>
+          <div className="card" style={{ padding: "4px 14px" }}>
+            {semua.map(({ x, h: r }) => (
+              <button key={x.no} type="button" className={`baris-minggu${x.no === m.no ? " aktif" : ""}`} onClick={() => setNo(x.no)}>
+                <span className="t">
+                  <span className="nm">Minggu {x.no}{x.berjalan ? " · berjalan" : ""}</span>
+                  <span className="small">{rentang(x)}</span>
+                </span>
+                <span className="num small">{pct(r.sebelum)} → {pct(r.sesudah)}</span>
+                <b className={`num ${r.naik > 0.005 ? "delta" : ""}`}>{naik(r.naik)}</b>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
