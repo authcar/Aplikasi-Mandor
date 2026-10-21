@@ -589,7 +589,7 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
 
   return (
     <>
-      <form className="stack" style={{ gap: 12, paddingTop: 8 }} onSubmit={async (e) => {
+      <form className="stack" style={{ gap: 12 }} onSubmit={async (e) => {
         e.preventDefault();
         const nama = f.nama.trim();
         const ok = await aksi.jalankan(() => A.tambahItem(proyek.id, [{
@@ -804,18 +804,20 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
 // Satu section untuk memasukkan item: file Excel / tempel BoQ, atau satu item manual.
 function UploadItem({ proyek, items, areas, urutan, aksi }) {
   return (
-    <details className="lipat">
-      <summary><b>Upload file</b></summary>
-      <div className="lipat-b" style={{ gap: 12 }}>
-        <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
-        <details>
-          <summary className="small" style={{ cursor: "pointer", minHeight: "var(--tap)", display: "flex", alignItems: "center" }}>
-            Atau tambah satu item manual
-          </summary>
+    <>
+      <details className="lipat">
+        <summary><b>Upload file Excel</b></summary>
+        <div className="lipat-b" style={{ gap: 12 }}>
+          <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
+        </div>
+      </details>
+      <details className="lipat">
+        <summary><b>Tambah manual</b></summary>
+        <div className="lipat-b" style={{ gap: 12 }}>
           <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />
-        </details>
-      </div>
-    </details>
+        </div>
+      </details>
+    </>
   );
 }
 
