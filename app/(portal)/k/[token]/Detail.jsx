@@ -63,6 +63,7 @@ function useSegarkan() {
 export default function Detail({ P }) {
   useSegarkan();
   const [tab, setTab] = useState("progres");
+  const [bukaArea, setBukaArea] = useState(null); // satu area terbuka sekaligus
   const now = hariIni();
   const lalu = tambahHari(now, -7);
   const items = P.items.filter((i) => !i.hanya_jasa); // baris tanpa nomor hanya untuk Jasa tukang
@@ -117,8 +118,8 @@ export default function Detail({ P }) {
               const its = items.filter((i) => i.area === a);
               const pa = persenKlien(persenProyek(its));
               return (
-                <details key={a} className="lipat">
-                  <summary>
+                <details key={a} className="lipat" open={bukaArea === a}>
+                  <summary onClick={(e) => { e.preventDefault(); setBukaArea(bukaArea === a ? null : a); }}>
                     <span style={{ minWidth: 0, flex: 1 }}>
                       <span className="row">
                         <h2>{a}</h2>

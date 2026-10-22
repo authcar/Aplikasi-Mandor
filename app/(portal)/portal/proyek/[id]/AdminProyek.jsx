@@ -148,6 +148,7 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
   const [busy, setBusy] = useState(null);
   const [tim, setTim] = useState(""); // "" = semua tim
   const [area, setArea] = useState(""); // "" = semua area
+  const [bukaArea, setBukaArea] = useState(null); // dropdown area: satu terbuka, yang lain menutup
   const [perlu, setPerlu] = useState(null); // tahap yang menunggu foto wajib: { it, s, persen }
   // Centang langsung tampil sebelum server membalas ({ "itemId:tahap": persen }); dibuang saat data baru tiba.
   const [lokal, setLokal] = useState({});
@@ -200,7 +201,11 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
     const fase = faseKini(it);
     // Fase yang sudah selesai (terisi penuh) + fase berjalan; kalau semua selesai,
     // semua tahap (penuh). Fase yang masih terkunci tidak tampil/tidak bisa dicatat.
-    const bar = tahapBar(it).filter((s) => (!fase || s.w > 0) && !tahapTerkunci(it, s));
+    // Bar fokus ke fase berjalan: fase yang sudah selesai diringkas jadi satu garis hijau bercentang
+    // di kiri, dan yang dipotong-potong hanya tahap fase berjalan (urut: yang sudah selesai dulu).
+    const iFase = fase ? FASE.findIndex((f) => f.k === fase.k) : FASE.length;
+    const bar = fase ? tahapBar(it).filter((s) => s.w > 0 && s.fase === fase.k) : [];
+    const adaFaseLalu = tahapItem(it).some((s) => s.w > 0 && FASE.findIndex((f) => f.k === s.fase) < iFase);
     return (
       <div key={it.id} className={`item acc${open ? " open" : ""}`}>
         <div role={lihat ? undefined : "button"} tabIndex={lihat ? undefined : 0} className="acc-h" aria-expanded={lihat ? undefined : open}
@@ -212,12 +217,14 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
           </span>
           <FotoProgres item={it} foto={fotoItem(it)} aksi={aksi} lihat={lihat} />
           {it.foto?.length > 0 && <FotoItem nama={it.nama} foto={it.foto} />}
+          {!next && <i className="ceklis" role="img" aria-label="Selesai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></i>}
           <b className="num">{persenItem(it)}%</b>
           {!lihat && <i className="chev" aria-hidden="true" />}
         </div>
         {/* Tiap bagian bar = satu tahap yang sudah terbuka (lebar = bobotnya), terisi
             sebanyak persen tahap itu; boleh dicentang tidak berurutan. */}
         <div className="track tap">
+          {adaFaseLalu && <span className={`trk-done${fase ? "" : " penuh"}`} role="img" aria-label={fase ? "Fase sebelumnya selesai" : "Semua tahap selesai"}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>}
           {bar.map((s) => {
             const p = persenTahap(it, s);
             return (
@@ -229,10 +236,9 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
             );
           })}
         </div>
-        {/* HP: satu bar progres item + deretan tombol tahap kecil (bar bersegmen di atas hanya untuk layar lebar). */}
+        {/* HP: deretan tombol tahap kecil (area ketuk lebar) untuk fase berjalan; bar di atas hanya tampilan. */}
         <div className="bar-hp">
-          <span className="bar" style={{ display: "block" }}><i style={{ width: `${persenItem(it)}%` }} /></span>
-          {!lihat && (
+          {!lihat && bar.length > 0 && (
             <div className="chips-tahap">
               {bar.map((s) => {
                 const p = persenTahap(it, s);
@@ -311,8 +317,8 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
         const pa = persenProyek(its);
         // Satu dropdown per area (Living Room, Powder Room, ...); terbuka otomatis kalau area dipilih lewat saringan.
         return (
-          <details key={a} className="lipat" open={!!area || undefined}>
-            <summary>
+          <details key={a} className="lipat" open={!!area || bukaArea === a}>
+            <summary onClick={(e) => { e.preventDefault(); setBuka(null); setBukaArea(bukaArea === a ? null : a); }}>
               <span style={{ minWidth: 0, flex: 1 }}>
                 <span className="row">
                   <h2>{a}</h2>
@@ -471,12 +477,12 @@ function Isian({ label, nilai, onSimpan, akhiran, ...rest }) {
 }
 
 // Satu dropdown per area di tab Jasa tukang: nama area, jumlah item, dan total jasanya.
-function AreaJasa({ area, items, children }) {
+function AreaJasa({ area, items, children, terbuka, onToggle }) {
   const its = items.filter((i) => i.area === area);
   const total = its.reduce((a, i) => a + (Number(i.harga) || 0), 0);
   return (
-    <details className="lipat">
-      <summary>
+    <details className="lipat" {...(onToggle ? { open: terbuka } : null)}>
+      <summary {...(onToggle ? { onClick: (e) => { e.preventDefault(); onToggle(); } } : null)}>
         <span style={{ minWidth: 0, flex: 1 }}>
           <span className="row">
             <h2>{area}</h2>
@@ -491,6 +497,7 @@ function AreaJasa({ area, items, children }) {
 
 function TabItem({ proyek, items, aksi }) {
   const [buka, setBuka] = useState(null);
+  const [bukaArea, setBukaArea] = useState(null); // satu area terbuka sekaligus
   // `ok` = pesan hijau setelah tersimpan.
   const ubah = (id, patch, ok) => aksi.jalankan(() => A.ubahItem(id, patch), ok);
   const areas = [...new Set(items.map((i) => i.area))];
@@ -504,7 +511,7 @@ function TabItem({ proyek, items, aksi }) {
       <RingkasJasa items={items} />
 
       {areas.map((a) => (
-        <AreaJasa key={a} area={a} items={items}>
+        <AreaJasa key={a} area={a} items={items} terbuka={bukaArea === a} onToggle={() => setBukaArea(bukaArea === a ? null : a)}>
           {(its) => its.map((it) => {
             const open = buka === it.id;
             return (
@@ -609,6 +616,7 @@ function RingkasJasa({ items }) {
 function JasaTukangLihat({ items, proyek, riwayat }) {
   const areas = [...new Set(items.map((i) => i.area))];
   const [buka, setBuka] = useState("mingguan"); // laporan mingguan langsung terbuka
+  const [bukaArea, setBukaArea] = useState(null); // satu area SPKB terbuka sekaligus
   return (
     <>
       <DuaTombol buka={buka} setBuka={setBuka} pilihan={[["mingguan", "Jasa mingguan"], ["spkb", "SPKB"]]} />
@@ -619,7 +627,7 @@ function JasaTukangLihat({ items, proyek, riwayat }) {
       )}
       {/* SPKB: daftar item jasa per area; tiap area dibuka sendiri-sendiri. */}
       {buka === "spkb" && areas.map((a) => (
-        <AreaJasa key={a} area={a} items={items}>
+        <AreaJasa key={a} area={a} items={items} terbuka={bukaArea === a} onToggle={() => setBukaArea(bukaArea === a ? null : a)}>
           {(its) => its.map((it) => (
             <div key={it.id} className="item acc">
               <div className="acc-h">
