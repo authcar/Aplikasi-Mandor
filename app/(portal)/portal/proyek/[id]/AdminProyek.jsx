@@ -806,13 +806,27 @@ function UploadItem({ proyek, items, areas, urutan, aksi }) {
   return (
     <>
       <details className="lipat">
-        <summary><b>Upload file Excel</b></summary>
+        <summary>
+          <span style={{ minWidth: 0, flex: 1 }}>
+            <span className="row">
+              <h2>Upload file Excel</h2>
+              <span className="num small" style={{ margin: 0, whiteSpace: "nowrap" }}>.xlsx / tempel BoQ</span>
+            </span>
+          </span>
+        </summary>
         <div className="lipat-b" style={{ gap: 12 }}>
           <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
         </div>
       </details>
       <details className="lipat">
-        <summary><b>Tambah manual</b></summary>
+        <summary>
+          <span style={{ minWidth: 0, flex: 1 }}>
+            <span className="row">
+              <h2>Tambah manual</h2>
+              <span className="num small" style={{ margin: 0, whiteSpace: "nowrap" }}>1 item</span>
+            </span>
+          </span>
+        </summary>
         <div className="lipat-b" style={{ gap: 12 }}>
           <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />
         </div>
