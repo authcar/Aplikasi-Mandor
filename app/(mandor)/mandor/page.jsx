@@ -91,7 +91,7 @@ export default async function DashboardMandor({ searchParams }) {
     { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
     // Project Tracker: hanya melihat item & jasa tukang timnya (lihat lib/portal/server.js).
-    { href: "/portal", label: "Progres BOQ", icon: "share", tile: "bg-amber-100 text-amber-700" },
+    { href: "/portal", label: "Project Tracker", icon: "share", tile: "bg-amber-100 text-amber-700" },
   ];
 
   return (
@@ -111,7 +111,7 @@ export default async function DashboardMandor({ searchParams }) {
       </header>
 
       {!proyek ? (
-        // Belum ada proyek aktif: langsung tampilkan ikon Progres BOQ saja.
+        // Belum ada proyek aktif: langsung tampilkan ikon Project Tracker saja.
         <div className="grid grid-cols-4 gap-y-4">
           {actions
             .filter((a) => a.href === "/portal")

@@ -249,7 +249,7 @@ export default async function DashboardSupervisor() {
               <Icon name="share" />
             </span>
             <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
-              Progres BOQ
+              Project Tracker
             </p>
           </Link>
         </div>
