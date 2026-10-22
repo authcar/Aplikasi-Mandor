@@ -117,12 +117,9 @@ function PopupFoto({ item, foto, aksi, lihat, tutup }) {
   const namaTahap = (f) => tahap.find((s) => s.k === f.tahap)?.label;
   const [besar, setBesar] = useState(null); // indeks foto yang dibesarkan
   const tutupBesar = useCallback(() => setBesar(null), []);
-  const [files, setFiles] = useState([]);
-  const [pilih, setPilih] = useState(tahapTerakhir(item)?.k || ""); // "" = umum (tanpa tahap)
+  const pilih = tahapTerakhir(item)?.k || ""; // tahap foto = tahap terakhir item; "" = umum (tanpa tahap)
   const input = useRef(null);
   const sisa = MAKS_FOTO - foto.length;
-  const pratinjau = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
-  useEffect(() => () => pratinjau.forEach((u) => URL.revokeObjectURL(u)), [pratinjau]);
 
   useEffect(() => {
     const tombol = (e) => e.key === "Escape" && besar == null && tutup();
@@ -135,17 +132,15 @@ function PopupFoto({ item, foto, aksi, lihat, tutup }) {
     };
   }, [besar, tutup]);
 
-  const pilihFile = (e) => {
-    const baru = Array.from(e.target.files || []);
+  // Foto langsung diunggah begitu dipilih, tanpa tombol unggah.
+  async function pilihFile(e) {
+    const files = Array.from(e.target.files || []).slice(0, Math.min(MAKS_PER_UNGGAH, sisa));
     e.target.value = "";
-    setFiles((lama) => [...lama, ...baru].slice(0, Math.min(MAKS_PER_UNGGAH, sisa)));
-  };
-
-  async function unggah() {
-    const ok = await aksi.jalankan(async () => {
-      return kirimFoto(item.id, pilih, files);
-    }, `${files.length} foto ${pilih ? tahap.find((s) => s.k === pilih).label.toLowerCase() : "progres"} diunggah · ${item.nama}`);
-    if (ok) setFiles([]);
+    if (!files.length) return;
+    await aksi.jalankan(
+      () => kirimFoto(item.id, pilih, files),
+      `${files.length} foto ${pilih ? tahap.find((s) => s.k === pilih).label.toLowerCase() : "progres"} diunggah · ${item.nama}`
+    );
   }
 
   return createPortal(
@@ -178,29 +173,10 @@ function PopupFoto({ item, foto, aksi, lihat, tutup }) {
           {!lihat && (
             <div className="fprog-form">
               <div className="fl" style={{ margin: 0 }}>Tambah foto</div>
-              <div className="fprog-pilih">
-                <button type="button" className="act" disabled={aksi.sibuk || sisa <= files.length} onClick={() => input.current?.click()}>
-                  + Pilih foto
-                </button>
-                <input ref={input} type="file" accept="image/*" multiple hidden onChange={pilihFile} />
-                <select className="inp" value={pilih} onChange={(e) => setPilih(e.target.value)} aria-label="Tahap pekerjaan foto ini">
-                  <option value="">Umum (tanpa tahap)</option>
-                  {tahap.map((s) => <option key={s.k} value={s.k}>{s.label}</option>)}
-                </select>
-              </div>
-              {files.length > 0 && (
-                <div className="fprog-pv">
-                  {pratinjau.map((u, n) => (
-                    <span key={u}>
-                      <img src={u} alt="" />
-                      <button type="button" aria-label="Buang foto ini" onClick={() => setFiles(files.filter((_, k) => k !== n))}>×</button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <button type="button" className="btn" disabled={aksi.sibuk || !files.length} onClick={unggah}>
-                {files.length ? `Unggah ${files.length} foto` : "Unggah"}
+              <button type="button" className="btn" disabled={aksi.sibuk || sisa <= 0} onClick={() => input.current?.click()}>
+                {aksi.sibuk ? "Mengunggah…" : "+ Pilih foto"}
               </button>
+              <input ref={input} type="file" accept="image/*" multiple hidden onChange={pilihFile} />
               <p className="small" style={{ margin: 0 }}>Maks. {MAKS_PER_UNGGAH} foto sekali unggah, {MAKS_FOTO} per item (sudah {foto.length}).</p>
             </div>
           )}

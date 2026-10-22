@@ -73,9 +73,14 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
       )}
 
       {!upah && (
-        <div className="stack" style={{ gap: 8 }}>
-          <h3 style={{ marginTop: 6 }}>Riwayat mingguan</h3>
-          <div className="card" style={{ padding: "4px 14px" }}>
+        <details className="lipat">
+          <summary>
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <b className="nm">Riwayat mingguan</b>
+              <span className="small" style={{ display: "block" }}>{semua.length} minggu · ketuk untuk melihat</span>
+            </span>
+          </summary>
+          <div className="lipat-b" style={{ padding: "4px 14px" }}>
             {semua.map(({ x, h: r }) => (
               <button key={x.no} type="button" className={`baris-minggu${x.no === m.no ? " aktif" : ""}`} onClick={() => setNo(x.no)}>
                 <span className="t">
@@ -87,7 +92,7 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
               </button>
             ))}
           </div>
-        </div>
+        </details>
       )}
     </>
   );
