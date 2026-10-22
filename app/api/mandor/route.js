@@ -37,7 +37,7 @@ function normalizeEmail(raw) {
 }
 
 // POST /api/mandor — buat akun Mandor baru
-// body: { name, emailOrUsername, phone }
+// body: { name, emailOrUsername?, phone }
 export async function POST(req) {
   const { profile } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -47,9 +47,6 @@ export async function POST(req) {
   const { name, emailOrUsername, phone } = await req.json();
   const cleanName = (name || "").trim();
   if (!cleanName) return NextResponse.json({ error: "Nama wajib diisi." }, { status: 400 });
-  if (!emailOrUsername || !emailOrUsername.trim())
-    return NextResponse.json({ error: "Email/username wajib diisi." }, { status: 400 });
-
   const digits = normalizePhone(phone);
   if (digits.length < 9)
     return NextResponse.json({ error: "Nomor HP wajib diisi (dipakai untuk login)." }, { status: 400 });
@@ -62,7 +59,10 @@ export async function POST(req) {
   if (dupRows && dupRows.length > 0)
     return NextResponse.json({ error: "Nomor HP sudah terdaftar." }, { status: 409 });
 
-  const email = normalizeEmail(emailOrUsername);
+  // Email opsional: kalau kosong, pakai email sintetis dari nomor HP.
+  const email = (emailOrUsername || "").trim()
+    ? normalizeEmail(emailOrUsername)
+    : `mandor.${digits}@mandor.app`;
   const password = randomPassword();
   const pin = randomPin();
 

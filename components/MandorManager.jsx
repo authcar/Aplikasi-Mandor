@@ -126,17 +126,16 @@ export default function MandorManager({ initialMandors }) {
             />
           </div>
           <div>
-            <label className="label">Email atau Username</label>
+            <label className="label">Email atau Username (opsional)</label>
             <input
               value={emailOrUsername}
               onChange={(e) => setEmailOrUsername(e.target.value)}
               placeholder="nama@gmail.com atau budi123"
               className="input text-lg"
-              required
             />
             <p className="mt-1 text-xs text-gray-400">
-              Ini yang dipakai buat login. Kalau bukan email asli, otomatis jadi
-              "…@mandor.app".
+              Hanya untuk login email lama. Boleh dikosongkan, login tetap lewat
+              nomor HP + PIN.
             </p>
           </div>
           <div>
