@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Ikon garis 24x24 (stroke mengikuti warna teks).
 const IKON = {
@@ -17,7 +18,22 @@ const IKON = {
 // di layar lebar jadi deretan tab biasa. `tabs` = [[kunci, label, angka?], ...];
 // angka > 0 tampil sebagai lencana kecil (mis. jumlah defect baru).
 export default function TabBar({ tabs, value, onChange }) {
+  const nav = useRef(null);
+  const [pil, setPil] = useState(null); // posisi & lebar kapsul penanda tab aktif
+  const ukur = () => {
+    const b = nav.current?.querySelector('button[aria-pressed="true"]');
+    if (b) setPil({ x: b.offsetLeft, y: b.offsetTop, w: b.offsetWidth, h: b.offsetHeight });
+  };
+  useLayoutEffect(ukur, [value, tabs.length]);
+  useEffect(() => {
+    window.addEventListener("resize", ukur);
+    return () => window.removeEventListener("resize", ukur);
+  }, []);
+
   function pilih(k) {
+    // Arah geser isi tab: ke kanan kalau tab tujuan ada di sebelah kanan.
+    const dir = tabs.findIndex(([x]) => x === k) - tabs.findIndex(([x]) => x === value);
+    document.documentElement.style.setProperty("--geser", `${dir >= 0 ? 36 : -36}px`);
     onChange(k);
     // Kalau sudah menggulir jauh, bawa awal isi tab ke bawah header.
     requestAnimationFrame(() => {
@@ -29,7 +45,8 @@ export default function TabBar({ tabs, value, onChange }) {
   return (
     <>
       <div id="isi-tab" className="anchor" />
-      <nav className="tabbar" aria-label="Bagian halaman">
+      <nav className="tabbar" aria-label="Bagian halaman" ref={nav}>
+        {pil && <span className="tab-pil" aria-hidden="true" style={{ width: pil.w, height: pil.h, transform: `translate(${pil.x}px, ${pil.y}px)` }} />}
         {tabs.map(([k, label, n]) => (
           <button key={k} type="button" aria-pressed={value === k} onClick={() => pilih(k)}>
             <svg viewBox="0 0 24 24" aria-hidden="true">{IKON[k]}</svg>

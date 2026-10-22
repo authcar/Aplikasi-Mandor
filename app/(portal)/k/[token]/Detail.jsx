@@ -106,6 +106,7 @@ export default function Detail({ P }) {
         onChange={setTab}
       />
 
+      <div key={tab} className="tab-isi">
       {tab === "progres" && (
         !items.length ? (
           <div className="card small">Rincian pekerjaan sedang disiapkan tim kami.</div>
@@ -220,6 +221,7 @@ export default function Detail({ P }) {
           </dl>
         </section>
       )}
+      </div>
     </main>
   );
 }

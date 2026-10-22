@@ -85,6 +85,7 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
         value={tab} onChange={(k) => { setTab(k); aksi.setMsg(""); }} />
       <Pesan aksi={aksi} />
 
+      <div key={tab} className="tab-isi">
       {/* Lewat deadline: semua isian & tombol dimatikan sekaligus lewat fieldset. Tab Klien
           dan Defect di luar fieldset: link masih bisa disalin / dikirim, dan keluhan klien
           sering datang setelah serah terima. */}
@@ -111,6 +112,7 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
       {admin && tab === "info" && <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />}
       {/* Di luar fieldset: proyek yang terkunci tetap bisa dihapus. */}
       {admin && tab === "info" && <HapusProyek proyek={proyek} items={items} termin={termin} klien={klien} aksi={aksi} />}
+      </div>
     </main>
   );
 }
