@@ -392,3 +392,18 @@ div.acc-h{cursor:pointer}
 .fprog-pv img{width:100%;height:100%;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
 .fprog-pv button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;padding:0;border:0;border-radius:50%;background:var(--bad);color:#fff;font-size:.85rem;line-height:1}
 .fcap{padding:6px 14px;font-size:.82rem;color:var(--muted);text-align:center}
+
+/* ---- hiasan: huruf Ø logo di pojok kiri latar, siluet kota bercahaya di kartu Progres ---- */
+body::before{content:"";position:fixed;left:-90px;bottom:-70px;width:min(520px,70vw);aspect-ratio:170/172;background:#1F1D1D;opacity:.06;-webkit-mask:url(/logo-o.png) center/contain no-repeat;mask:url(/logo-o.png) center/contain no-repeat;pointer-events:none;z-index:-1}
+.stat.lead{position:relative;overflow:hidden;isolation:isolate}
+.stat.lead>*:not(.kota){position:relative;z-index:1}
+.kota{position:absolute;right:0;bottom:0;width:100%;height:100%;z-index:0;pointer-events:none;-webkit-mask-image:linear-gradient(90deg,transparent 8%,#000 55%);mask-image:linear-gradient(90deg,transparent 8%,#000 55%)}
+.kota path{fill:none;stroke:#E9DCC6;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+.kota-garis{opacity:.5;filter:drop-shadow(0 0 3px rgb(233 220 198/.65));animation:kota-napas 6s ease-in-out 3s infinite}
+.kota-garis path{stroke-dasharray:700;stroke-dashoffset:700;animation:kota-gambar 2.2s cubic-bezier(.4,0,.2,1) forwards;animation-delay:calc(var(--i)*.12s)}
+.kota-jendela{filter:drop-shadow(0 0 2px rgb(233 220 198/.8))}
+.kota-jendela path{stroke-width:1.8;opacity:0;animation:kota-kedip 5s ease-in-out infinite;animation-delay:calc(2s + var(--d))}
+@keyframes kota-gambar{to{stroke-dashoffset:0}}
+@keyframes kota-napas{50%{opacity:.75}}
+@keyframes kota-kedip{0%,100%{opacity:0}35%,65%{opacity:.85}}
+@media (prefers-reduced-motion:reduce){.kota-garis,.kota-garis path,.kota-jendela path{animation:none}.kota-garis path{stroke-dashoffset:0}.kota-jendela path{opacity:.5}}

@@ -1,4 +1,5 @@
 "use client";
+import KotaGlow from "./KotaGlow";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -61,6 +62,7 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
       {/* Nilai kontrak hanya untuk master; supervisor cukup melihat progres. */}
       <div className="grid2" style={{ gridTemplateColumns: admin ? "minmax(0,5fr) minmax(0,7fr)" : "1fr" }}>
         <div className="stat lead">
+          <KotaGlow />
           <div className="eb">Progres</div>
           <div className="v num">{pct(persenProyek(items))}</div>
           <div className="s">{items.length} item</div>
