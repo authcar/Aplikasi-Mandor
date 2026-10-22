@@ -60,5 +60,5 @@ export function useAksi() {
     return true;
   };
 
-  return { jalankan, sibuk: sibuk || muatLama, msg, setMsg };
+  return { jalankan, sibuk: sibuk || muatLama, memuat: muatLama, msg, setMsg };
 }

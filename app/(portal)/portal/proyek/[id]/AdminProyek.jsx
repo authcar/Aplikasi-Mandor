@@ -7,7 +7,7 @@ import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
 import FotoItem from "../../../FotoItem";
-import FotoProgres from "./FotoProgres";
+import FotoProgres, { FotoWajib } from "./FotoProgres";
 import Mingguan from "./Mingguan";
 import { unggahFotoItem } from "@/lib/portal/unggahFotoItem";
 import TabBar from "../../../TabBar";
@@ -16,7 +16,7 @@ import {
   tahapTerakhir, tahapBerikut, tahapBar, itemProgres, faseKini, faseTerkunci, tahapTerkunci, persenTahap, tahapSelesai,
 } from "@/lib/portal/progresBoq";
 import {
-  hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline,
+  hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin, STATUS_DEFECT, DEFECT_AKTIF,
 } from "@/lib/portal/format";
 import { bacaBoq, bacaItemSheet, formatLama } from "@/lib/portal/imporBoq";
@@ -39,6 +39,7 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
   const nilaiT = nilaiTermin({ ...proyek, items });
   const kunci = lewatDeadline(proyek);
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
+  const [status, kelasStatus] = statusProyek({ ...proyek, items });
 
   return (
     <main className="wrap">
@@ -47,12 +48,15 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
         <div className="eb">{[proyek.kode, proyek.klien_nama].filter(Boolean).join(" · ")}</div>
         <h1>{proyek.nama}</h1>
         {proyek.lokasi && <div className="small lok">{proyek.lokasi}</div>}
-        {proyek.deadline && (
-          <div className="row" style={{ justifyContent: "flex-start", alignItems: "center", marginTop: 8 }}>
-            <span className="small">Deadline {tglTh(proyek.deadline)}</span>
-            <span className={`badge ${kelasSisa}`}>{sisa}</span>
-          </div>
-        )}
+        <div className="row" style={{ justifyContent: "flex-start", alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+          <span className={`badge ${kelasStatus}`}>{status}</span>
+          {proyek.deadline && (
+            <>
+              <span className="small">Deadline {tglTh(proyek.deadline)}</span>
+              <span className={`badge ${kelasSisa}`}>{sisa}</span>
+            </>
+          )}
+        </div>
       </div>
       {kunci && !tukang && (
         <p className="note b-bad">
@@ -132,14 +136,27 @@ function InputRupiah({ nilai, onSimpan }) {
 // Tahap selalu dicatat hari ini (tanggalnya tidak bisa dipilih). Tiap tahap punya
 // persen pengerjaan: centang = 100%, slider/ketik untuk sebagian (mis. Potong 10%).
 // `lihat` = hanya melihat (tukang): bar, tombol, dan slider tahap tidak bisa diubah.
-function TabProgres({ proyek, items, aksi, admin, lihat, fotoProgres = [] }) {
+function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres = [] }) {
   const tanggal = hariIni();
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [buka, setBuka] = useState(null);
   const [busy, setBusy] = useState(null);
   const [tim, setTim] = useState(""); // "" = semua tim
   const [area, setArea] = useState(""); // "" = semua area
-  items = items.filter(itemProgres);
+  const [perlu, setPerlu] = useState(null); // tahap yang menunggu foto wajib: { it, s, persen }
+  // Centang langsung tampil sebelum server membalas ({ "itemId:tahap": persen }); dibuang saat data baru tiba.
+  const [lokal, setLokal] = useState({});
+  useEffect(() => setLokal({}), [itemsAsli]);
+  const items = useMemo(() => itemsAsli.filter(itemProgres).map((it) => {
+    let o = null;
+    for (const [key, p] of Object.entries(lokal)) {
+      const [id, k] = key.split(":");
+      if (id !== it.id) continue;
+      o ||= { progres: { ...it.progres }, porsi: { ...it.porsi } };
+      if (p > 0) { o.progres[k] = tanggal; o.porsi[k] = p; } else { delete o.progres[k]; delete o.porsi[k]; }
+    }
+    return o ? { ...it, ...o } : it;
+  }), [itemsAsli, lokal, tanggal]);
   const kunci = !!busy || aksi.sibuk || !!lihat;
   // Saring lewat dua dropdown (Tim, Area) supaya daftar item langsung terlihat
   // tanpa buka-tutup bertingkat. Item dikelompokkan per area dengan judul biasa.
@@ -154,13 +171,18 @@ function TabProgres({ proyek, items, aksi, admin, lihat, fotoProgres = [] }) {
 
   // persen 0 = batal, 100 = selesai, di antaranya = baru sebagian.
   async function catat(it, s, persen) {
-    setBusy(`${it.id}:${s.k}`);
-    await aksi.jalankan(
+    // Foto wajib: tahap baru dicatat setelah minimal 1 foto untuk tahap itu ada.
+    if (persen > 0 && s.w > 0 && !fotoProgres.some((f) => f.item_id === it.id && f.tahap === s.k)) return setPerlu({ it, s, persen });
+    const key = `${it.id}:${s.k}`;
+    setBusy(key);
+    setLokal((l) => ({ ...l, [key]: persen }));
+    const ok = await aksi.jalankan(
       () => A.setProgres(it.id, s.k, persen),
       !persen ? `${s.label} dibatalkan · ${it.nama}`
         : persen >= 100 ? `${s.label} ✓ ${tgl(tanggal)} · ${it.nama}`
         : `${s.label} ${pct(persen)} · ${it.nama}`
     );
+    if (!ok) setLokal((l) => { const n = { ...l }; delete n[key]; return n; });
     setBusy(null);
   }
   // Ketuk tombol/bar: tahap tercatat -> batal, belum -> selesai 100%.
@@ -218,6 +240,10 @@ function TabProgres({ proyek, items, aksi, admin, lihat, fotoProgres = [] }) {
   };
   return (
     <>
+      {perlu && (
+        <FotoWajib item={perlu.it} s={perlu.s} persen={perlu.persen} aksi={aksi} tutup={() => setPerlu(null)}
+          sisa={Math.max(0, 20 - fotoItem(perlu.it).length)} />
+      )}
       {/* Pengingat deadline (hanya label, tidak bisa diubah). */}
       <div className="card tglrow" style={{ padding: "12px 14px" }}>
         <span>Deadline</span>

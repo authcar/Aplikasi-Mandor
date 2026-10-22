@@ -50,7 +50,7 @@ export function Pratinjau({ nama, foto, cap, mulai = 0, tutup }) {
   );
 }
 
-export default function FotoItem({ nama, foto }) {
+export default function FotoItem({ nama, foto, cap }) {
   const [buka, setBuka] = useState(false);
   const jml = foto.length;
   const tutup = useCallback(() => setBuka(false), []);
@@ -62,7 +62,7 @@ export default function FotoItem({ nama, foto }) {
         <img src={foto[0]} alt="" loading="lazy" />
         {jml > 1 && <span className="fcount">{jml}</span>}
       </button>
-      {buka && <Pratinjau nama={nama} foto={foto} tutup={tutup} />}
+      {buka && <Pratinjau nama={nama} foto={foto} cap={cap} tutup={tutup} />}
     </>
   );
 }

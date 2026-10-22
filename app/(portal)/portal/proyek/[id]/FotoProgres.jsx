@@ -11,6 +11,72 @@ const MAKS_FOTO = 20; // sama dengan MAKS_FOTO_PROGRES di lib/portal/progresFoto
 const tglJkt = (ts) => new Date(ts).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short" });
 const berhenti = (e) => e.stopPropagation();
 
+// Unggah foto progres satu item (opsional per tahap) lewat route; dipakai form galeri dan FotoWajib.
+export async function kirimFoto(itemId, tahap, files) {
+  const fd = new FormData();
+  fd.set("item_id", itemId);
+  if (tahap) fd.set("tahap", tahap);
+  for (const f of await kompresBanyakGambar(files)) fd.append("foto", f);
+  const r = await fetch("/api/portal/progres-foto", { method: "POST", body: fd });
+  return r.ok ? {} : { error: (await r.json().catch(() => ({}))).error || "foto gagal diunggah." };
+}
+
+// Pop up foto WAJIB: tahap baru boleh dicatat setelah minimal 1 foto diunggah (boleh banyak).
+// Foto diunggah dulu, lalu tahapnya dicatat dalam satu aksi.
+export function FotoWajib({ item, s, persen, sisa, aksi, tutup }) {
+  const [files, setFiles] = useState([]);
+  const input = useRef(null);
+  const pratinjau = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
+  useEffect(() => () => pratinjau.forEach((u) => URL.revokeObjectURL(u)), [pratinjau]);
+  const pilihFile = (e) => {
+    const baru = Array.from(e.target.files || []);
+    e.target.value = "";
+    setFiles((lama) => [...lama, ...baru].slice(0, Math.min(MAKS_PER_UNGGAH, sisa)));
+  };
+  async function simpan() {
+    const ok = await aksi.jalankan(async () => {
+      const r = await kirimFoto(item.id, s.k, files);
+      return r.error ? r : A.setProgres(item.id, s.k, persen);
+    }, `${s.label} ${persen >= 100 ? "✓" : `${persen}%`} · ${item.nama} · ${files.length} foto`);
+    if (ok) tutup();
+  }
+  return createPortal(
+    <div className="fmodal" role="dialog" aria-modal="true" aria-label={`Foto wajib ${s.label}`} onClick={tutup}>
+      <div className="fbox" onClick={berhenti}>
+        <div className="fhead">
+          <b>Foto {s.label} · {item.nama}</b>
+          <button type="button" aria-label="Tutup" onClick={tutup}>×</button>
+        </div>
+        <div className="fprog-body">
+          <div className="fprog-form">
+            <p className="small" style={{ margin: 0 }}>
+              Unggah minimal <b>1 foto</b> untuk mencatat tahap <b>{s.label}</b>. Boleh lebih dari satu (maks. {Math.min(MAKS_PER_UNGGAH, sisa)}).
+            </p>
+            <button type="button" className="act" disabled={aksi.sibuk || sisa <= files.length} onClick={() => input.current?.click()}>
+              📷 {files.length ? "Tambah foto lagi" : "Pilih foto"}
+            </button>
+            <input ref={input} type="file" accept="image/*" multiple hidden onChange={pilihFile} />
+            {files.length > 0 && (
+              <div className="fprog-pv">
+                {pratinjau.map((u, n) => (
+                  <span key={u}>
+                    <img src={u} alt="" />
+                    <button type="button" aria-label="Buang foto ini" onClick={() => setFiles(files.filter((_, k) => k !== n))}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <button type="button" className="btn" disabled={aksi.sibuk || !files.length} onClick={simpan}>
+              {files.length ? `Unggah ${files.length} foto & catat ${s.label}` : "Pilih foto dulu"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // Foto progres di baris item. Belum ada foto: tombol "+" bulat. Sudah ada: foto
 // terbaru sebagai gambar mini (dengan lambang "+" kalau lebih dari satu). Keduanya
 // membuka pop up: galeri foto item (berlabel tahap) dan, untuk staf, form unggah
@@ -77,12 +143,7 @@ function PopupFoto({ item, foto, aksi, lihat, tutup }) {
 
   async function unggah() {
     const ok = await aksi.jalankan(async () => {
-      const fd = new FormData();
-      fd.set("item_id", item.id);
-      if (pilih) fd.set("tahap", pilih);
-      for (const f of await kompresBanyakGambar(files)) fd.append("foto", f);
-      const r = await fetch("/api/portal/progres-foto", { method: "POST", body: fd });
-      return r.ok ? {} : { error: (await r.json().catch(() => ({}))).error || "foto gagal diunggah." };
+      return kirimFoto(item.id, pilih, files);
     }, `${files.length} foto ${pilih ? tahap.find((s) => s.k === pilih).label.toLowerCase() : "progres"} diunggah · ${item.nama}`);
     if (ok) setFiles([]);
   }

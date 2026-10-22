@@ -9,7 +9,22 @@ import {
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
 import Defect from "./Defect";
-import FotoItem from "../../FotoItem";
+import FotoItem, { Pratinjau } from "../../FotoItem";
+
+// Foto progres dari supervisor untuk satu item (terlama ke terbaru); ketuk untuk melihat besar dan menggeser.
+function FotoProgresKlien({ nama, foto }) {
+  const [buka, setBuka] = useState(false);
+  if (!foto.length) return null;
+  const tgl = (at) => new Date(at).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short", year: "numeric" });
+  return (
+    <>
+      <button type="button" className="act" style={{ alignSelf: "flex-start", minHeight: 34, fontSize: ".78rem" }} onClick={() => setBuka(true)}>
+        📷 {foto.length} foto progres
+      </button>
+      {buka && <Pratinjau nama={nama} foto={foto.map((f) => f.url)} cap={foto.map((f) => `Foto progres · ${tgl(f.at)}`)} mulai={foto.length - 1} tutup={() => setBuka(false)} />}
+    </>
+  );
+}
 
 function Ring({ p }) {
   const r = 34, c = 2 * Math.PI * r;
@@ -129,6 +144,7 @@ export default function Detail({ P }) {
                         <span className="bar" style={{ display: "block" }}>
                           <i style={{ width: `${v}%`, background: v >= 100 ? "var(--ok)" : undefined }} />
                         </span>
+                        <FotoProgresKlien nama={it.nama} foto={it.foto_progres || []} />
                       </div>
                     );
                   })}

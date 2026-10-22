@@ -407,3 +407,23 @@ body::before{content:"";position:fixed;left:-90px;bottom:-70px;width:min(520px,7
 @keyframes kota-napas{50%{opacity:.75}}
 @keyframes kota-kedip{0%,100%{opacity:0}35%,65%{opacity:.85}}
 @media (prefers-reduced-motion:reduce){.kota-garis,.kota-garis path,.kota-jendela path{animation:none}.kota-garis path{stroke-dashoffset:0}.kota-jendela path{opacity:.5}}
+
+/* ---- loading interaktif: kota garis tergambar, keterangan berganti, bilah berjalan ---- */
+.memuat{cursor:pointer}
+.memuat-k.memuat-kota{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:16px 20px 14px;min-width:min(280px,86vw);background:#1F1D1D;color:#F5F5F5;border-color:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;animation:kartu-naik .35s cubic-bezier(.2,.8,.2,1) both}
+.memuat-gbr{position:relative;height:64px}
+.memuat-gbr .kota{-webkit-mask-image:none;mask-image:none;width:100%;height:100%}
+.memuat-gbr .kota-garis{opacity:.85;animation:none}
+.memuat-gbr .kota-garis path{animation:kota-gambar 1.6s cubic-bezier(.4,0,.2,1) infinite alternate;animation-delay:calc(var(--i)*.09s)}
+.memuat-t{display:flex;flex-direction:column;gap:8px}
+.memuat-ket{font-weight:600;font-size:.92rem;animation:ket-masuk .4s ease both}
+.titik{display:inline-block;width:1.2em;text-align:left}
+.titik::after{content:"";animation:titik 1.2s steps(4,end) infinite}
+.memuat-bar{display:block;height:3px;border-radius:3px;background:rgb(245 245 245/.14);overflow:hidden}
+.memuat-bar i{display:block;height:100%;width:40%;border-radius:3px;background:#E9DCC6;box-shadow:0 0 8px rgb(233 220 198/.7);animation:bar-jalan 1.3s ease-in-out infinite}
+.memuat-tip{font-size:.68rem;opacity:.5}
+@keyframes titik{0%{content:""}25%{content:"."}50%{content:".."}75%,100%{content:"..."}}
+@keyframes bar-jalan{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
+@keyframes ket-masuk{from{opacity:0;transform:translateY(4px)}}
+@keyframes kartu-naik{from{opacity:0;transform:translateY(10px) scale(.97)}}
+@media (prefers-reduced-motion:reduce){.memuat-k.memuat-kota,.memuat-ket,.titik::after,.memuat-bar i{animation:none}.memuat-gbr .kota-garis path{animation:none;stroke-dashoffset:0}}

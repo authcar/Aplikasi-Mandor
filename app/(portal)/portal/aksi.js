@@ -146,10 +146,23 @@ export async function hapusBanyakProyek(ids) {
 /* ---------- Progres (admin & supervisor proyek) ---------- */
 // persen = seberapa jauh tahap dikerjakan: 1–100 dicatat (tanggal = hari ini),
 // 0 = batal (baris dihapus).
+// Jumlah foto progres satu item untuk satu tahap. null = tidak bisa dicek (tabel/kolom foto belum dibuat),
+// supaya pencatatan progres tetap jalan sebelum SQL foto dijalankan.
+async function jumlahFotoTahap(itemId, tahap) {
+  try {
+    const { count, error } = await db().from("portal_progres_foto").select("id", { count: "exact", head: true }).eq("item_id", itemId).eq("tahap", tahap);
+    return error ? null : count ?? 0;
+  } catch {
+    return null;
+  }
+}
+
 export async function setProgres(itemId, tahap, persen) {
   return jalan(async (staf) => {
     persen = Math.round(Number(persen) * 100) / 100;
     if (!(persen >= 0 && persen <= 100)) throw new Error("persen tahap harus 0–100.");
+    // Foto tahap ini dicek bersamaan dengan pengambilan item (hanya dipakai kalau persen > 0).
+    const fotoTahap = persen > 0 ? jumlahFotoTahap(itemId, tahap) : Promise.resolve(null);
     const row = await hasil(db().from("portal_item").select("*, portal_progres(*)").eq("id", itemId).maybeSingle());
     if (!row) throw new Error("Item tidak ditemukan.");
     // Proyek dan bobot bawaan diambil bersamaan (bobot hanya perlu kalau item tidak punya bobot sendiri).
@@ -163,6 +176,8 @@ export async function setProgres(itemId, tahap, persen) {
     // Fase berurutan: tahap baru boleh dicatat setelah fase-fase sebelumnya
     // selesai 100%, dan tahap tidak bisa dibatalkan atau diturunkan di bawah
     // 100% selama fase sesudahnya masih punya tahap tercatat (supaya urutan tidak bolong).
+    // Foto wajib: tahap hanya boleh dicatat kalau sudah ada minimal 1 foto progres untuk tahap itu.
+    if (persen > 0 && s.w > 0 && (await fotoTahap) === 0) throw new Error(`unggah minimal 1 foto untuk tahap ${s.label} dulu.`);
     const penghalang = faseMenghalangi(item, s.fase);
     if (persen > 0 && penghalang) throw new Error(`selesaikan semua tahap ${penghalang.label.toLowerCase()} dulu.`);
     const sesudah = tahapItem(item).filter((x) => FASE.findIndex((f) => f.k === x.fase) > FASE.findIndex((f) => f.k === s.fase) && item.progres[x.k]);
