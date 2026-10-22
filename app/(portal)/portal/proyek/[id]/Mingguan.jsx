@@ -9,7 +9,7 @@ const MAKS_IRISAN = 7; // sisanya digabung jadi "Lainnya"
 
 const naik = (n) => `${n > 0 ? "+" : ""}${pct(n)}`;
 const rentang = (m) => `${tgl(m.mulai)} – ${tglTh(m.akhir)}`;
-const labelMinggu = (m) => `Minggu ${m.no} · ${rentang(m)}${m.berjalan ? " (berjalan)" : ""}`;
+const labelMinggu = (m) => `Minggu ${m.no} · ${rentang(m)}`;
 
 // Irisan donut: tahap terbesar dulu, yang kecil digabung.
 function irisan(tahap) {
@@ -103,7 +103,11 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
         </>
       )}
 
-      {upah && (
+      {/* Tukang (lihatTim): hanya satu kartu "Pendapatan saat ini", tanpa judul dan lapisan kartu tambahan. */}
+      {upah && lihatTim && h.tim.map((t) => <KartuTim key={t.tim} t={t} judul="Pendapatan saat ini" />)}
+      {upah && lihatTim && h.tim.length === 0 && <p className="small" style={{ margin: 0 }}>Belum ada item.</p>}
+
+      {upah && !lihatTim && (
         <div className="card stack" style={{ gap: 12 }}>
           <div className="row" style={{ alignItems: "center" }}>
             <h3>Per tim</h3>
@@ -139,14 +143,14 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
 }
 
 // Upah satu tim di minggu terpilih; ketuk untuk melihat per item yang berubah.
-function KartuTim({ t }) {
+function KartuTim({ t, judul }) {
   const berubah = t.item.filter((i) => Math.abs(i.naik) > 0.005);
   return (
     <details className="lipat">
       <summary>
         <span style={{ minWidth: 0, flex: 1 }}>
           <span className="row">
-            <b className="nm">{t.tim}</b>
+            <b className="nm">{judul || t.tim}</b>
             <b className="num">{rp(t.upah)}</b>
           </span>
           <span className="small">

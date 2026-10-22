@@ -449,6 +449,6 @@ body::before{content:"";position:fixed;left:-90px;bottom:-70px;width:min(520px,7
 @media (prefers-reduced-motion:reduce){.tab-pil{transition:none}.tab-isi{animation:none}}
 
 /* tombol mata (sembunyikan nominal) */
-.mata{flex:none;width:32px;height:32px;margin:-6px -6px -6px 0;padding:0;border:0;border-radius:50%;background:none;color:var(--muted);display:grid;place-items:center}
+.mata{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:36px;height:36px;padding:0;border:0;border-radius:50%;background:none;color:var(--muted);display:grid;place-items:center}
 .mata svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 @media (hover:hover){.mata:hover{background:rgb(31 29 29/.07)}}

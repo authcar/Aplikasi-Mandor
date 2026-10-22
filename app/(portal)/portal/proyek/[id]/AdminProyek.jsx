@@ -587,14 +587,14 @@ function RingkasJasa({ items }) {
 // dari server), tanpa isian apa pun.
 function JasaTukangLihat({ items, proyek, riwayat }) {
   const areas = [...new Set(items.map((i) => i.area))];
-  const [buka, setBuka] = useState(null);
+  const [buka, setBuka] = useState("mingguan"); // laporan mingguan langsung terbuka
   return (
     <>
       <DuaTombol buka={buka} setBuka={setBuka} pilihan={[["mingguan", "Jasa mingguan"], ["spkb", "SPKB"]]} />
       {buka === "mingguan" && (
-        <div className="lipat"><div className="lipat-b" style={{ gap: 12, paddingTop: 14 }}>
+        <div className="stack" style={{ gap: 12 }}>
           <Mingguan proyek={proyek} items={items} riwayat={riwayat} tampil="upah" lihatTim />
-        </div></div>
+        </div>
       )}
       {/* SPKB: daftar item jasa per area; tiap area dibuka sendiri-sendiri. */}
       {buka === "spkb" && areas.map((a) => (
@@ -648,9 +648,9 @@ function KartuJasaSaya({ items }) {
   };
   const tampil = (n) => (sembunyi ? "Rp ••••••" : n);
   return (
-    <div className="stat">
-      <div className="row" style={{ alignItems: "center" }}>
-        <div className="eb">Total jasa</div>
+    <div className="stat" style={{ position: "relative", paddingRight: 52 }}>
+      <div className="eb">Total jasa</div>
+      <div>
         <button type="button" className="mata" aria-label={sembunyi ? "Tampilkan nominal" : "Sembunyikan nominal"} aria-pressed={sembunyi} onClick={ubah}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />
