@@ -105,7 +105,7 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
           {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} fotoProgres={fotoProgres} />}
           {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
           {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} addon={addon} nilai={nilaiT} aksi={aksi} />}
-          {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} aksi={aksi} />}
+          {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} klien={klien} kunci={kunci} aksi={aksi} />}
         </fieldset>
         </>
       )}
@@ -1266,7 +1266,6 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
 
 /* ---------- Link klien ---------- */
 function TabKlien({ proyek, klien, aksi, kunci }) {
-  const [nama, setNama] = useState(proyek.klien_nama || "");
   const [disalin, setDisalin] = useState(null);
   const url = (token) => `${location.origin}/k/${token}`;
   const pesan = (k) =>
@@ -1290,7 +1289,7 @@ function TabKlien({ proyek, klien, aksi, kunci }) {
             <div className="small">Dibuat {tgl(k.created_at.slice(0, 10))}</div>
           </div>
           <div className="acts">
-            <button type="button" className="act" onClick={() => salin(k)}>{disalin === k.id ? "Tersalin ✓" : "Salin link"}</button>
+            <button type="button" className="act" onClick={() => salin(k)}>{disalin === k.id ? "Tersalin ✓" : "Copy link untuk klien"}</button>
             <a className="act" href={`https://wa.me/?text=${encodeURIComponent(pesan(k))}`} target="_blank" rel="noreferrer">Kirim WA</a>
             {!kunci && (
               <button type="button" className="act bahaya" disabled={aksi.sibuk}
@@ -1301,21 +1300,12 @@ function TabKlien({ proyek, klien, aksi, kunci }) {
           </div>
         </div>
       ))}
-      {!klien.length && !kunci && (
-        <div className="card stack">
-          <label className="lbl">Nama klien<input className="inp" value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Bpk. Alfeus" /></label>
-          <button type="button" className="btn" disabled={aksi.sibuk}
-            onClick={() => aksi.jalankan(() => A.buatLink(proyek.id, nama), "Link dibuat. Salin atau kirim lewat WA.")}>
-            Buat link klien
-          </button>
-        </div>
-      )}
     </>
   );
 }
 
 /* ---------- Info proyek ---------- */
-function TabInfo({ proyek, supervisors, aksi }) {
+function TabInfo({ proyek, supervisors, klien = [], kunci, aksi }) {
   const [f, setF] = useState({
     nama: proyek.nama, kode: proyek.kode || "", klien_nama: proyek.klien_nama || "", lokasi: proyek.lokasi || "",
     mulai: proyek.mulai, deadline: proyek.deadline || "", supervisor_id: proyek.supervisor_id || "", aktif: proyek.aktif,
@@ -1331,7 +1321,16 @@ function TabInfo({ proyek, supervisors, aksi }) {
         ...(proyek.deadline ? {} : { deadline: f.deadline || null }),
       }), "Info proyek disimpan.");
     }}>
-      <label className="lbl">Nama proyek<input className="inp" required value={f.nama} onChange={set("nama")} /></label>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+        <label className="lbl" style={{ flex: "1 1 220px", minWidth: 0 }}>Nama proyek<input className="inp" required value={f.nama} onChange={set("nama")} /></label>
+        {/* Link klien dibuat dari sini (satu per proyek); memakai Nama klien di bawah. */}
+        {!klien.length && !kunci && (
+          <button type="button" className="btn" disabled={aksi.sibuk} style={{ width: "auto", flex: "none", padding: "0 20px", whiteSpace: "nowrap" }}
+            onClick={() => aksi.jalankan(() => A.buatLink(proyek.id, f.klien_nama.trim()), "Link dibuat. Salin atau kirim lewat WA.")}>
+            Buat link klien
+          </button>
+        )}
+      </div>
       <div className="g2">
         <label className="lbl">Kode<input className="inp" value={f.kode} onChange={set("kode")} /></label>
         <label className="lbl">Nama klien<input className="inp" value={f.klien_nama} onChange={set("klien_nama")} /></label>

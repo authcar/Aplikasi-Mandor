@@ -122,8 +122,8 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, admin, chil
             {IKON_RESET}Reset filter
           </button>
           <div className="seg tampilan" role="group" aria-label="Tampilan">
-            <button type="button" aria-label="Tampilan daftar" aria-pressed={tampilan === "daftar"} onClick={() => ubahTampilan("daftar")}>{IKON_LIST}</button>
             <button type="button" aria-label="Tampilan grid" aria-pressed={tampilan === "grid"} onClick={() => ubahTampilan("grid")}>{IKON_GRID}</button>
+            <button type="button" aria-label="Tampilan daftar" aria-pressed={tampilan === "daftar"} onClick={() => ubahTampilan("daftar")}>{IKON_LIST}</button>
           </div>
         </div>
       )}
