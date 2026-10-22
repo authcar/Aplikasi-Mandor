@@ -111,12 +111,20 @@ export default async function DashboardMandor({ searchParams }) {
       </header>
 
       {!proyek ? (
-        <div className="card flex items-start gap-3 border-amber-200 bg-amber-50 p-4 text-amber-800">
-          <Icon name="alert-triangle" className="mt-0.5 h-5 w-5 shrink-0" />
-          <p className="text-sm font-medium">
-            Belum ada proyek aktif. Hubungi Supervisor Anda.{" "}
-            <Link href="/portal" className="underline">Buka Progres BOQ</Link>
-          </p>
+        // Belum ada proyek aktif: langsung tampilkan ikon Progres BOQ saja.
+        <div className="grid grid-cols-4 gap-y-4">
+          {actions
+            .filter((a) => a.href === "/portal")
+            .map((a) => (
+              <Link key={a.href} href={a.href} className="relative flex flex-col items-center gap-1.5 active:opacity-70">
+                <span className={`icon-tile !rounded-full ${a.tile}`}>
+                  <Icon name={a.icon} />
+                </span>
+                <span className="text-[11px] font-semibold text-gray-600 text-center leading-tight">
+                  {a.label}
+                </span>
+              </Link>
+            ))}
         </div>
       ) : (
         <>

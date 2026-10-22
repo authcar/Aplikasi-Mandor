@@ -97,9 +97,6 @@ export default function TukangLoginPage() {
             placeholder="••••"
             className="input w-full text-center text-3xl font-bold tracking-[0.3em] focus:border-amber-500"
           />
-          <p className="mt-2 text-center text-xs text-gray-400">
-            PIN diberikan oleh supervisor / mandor kamu
-          </p>
         </div>
 
         {err && (
@@ -114,13 +111,6 @@ export default function TukangLoginPage() {
         >
           {loading ? "Memproses..." : "MASUK"}
         </button>
-
-        <a
-          href="/login"
-          className="block text-center text-sm text-gray-400 hover:text-gray-600"
-        >
-          Login Supervisor / Master / Finance (email)
-        </a>
       </form>
     </div>
   );
