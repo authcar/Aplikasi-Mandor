@@ -63,7 +63,7 @@ export default function LoginPage() {
           href="/login-mandor-tukang"
           className="block text-center text-sm text-amber-600 hover:text-amber-800 font-medium pt-1"
         >
-          Login Mandor / Tukang Harian (nomor HP + PIN) →
+          Login Staff (nomor HP + PIN) →
         </a>
       </form>
     </div>

@@ -34,13 +34,13 @@ function Kartu({ k, pilih, dipilih, onToggle }) {
         {k.lokasi && <div className="small lok">{k.lokasi}</div>}
       </div>
       <div className="bar"><i style={{ width: `${k.persen}%` }} /></div>
-      {k.aktif && k.n > 0 && k.persen < 99.995 && !k.adaProgres && <div className="small" style={{ marginTop: -2 }}>Tidak ada progress minggu ini</div>}
+      {k.aktif && k.n > 0 && k.persen < 99.995 && !k.adaProgres && <div className="small" style={{ marginTop: -2, color: "var(--bad)", fontWeight: 700 }}>Tidak ada progress minggu ini</div>}
       <div className="kpi">
         <div><b className="num">{k.persenTeks}</b><span>Progres</span></div>
         <div><b className="num">{k.n}</b><span>Item</span></div>
         <div>
           <b className="num" style={k.sisa || !k.aktif ? undefined : { color: "var(--bad)" }}>{k.sisa ? k.sisa[0] : "—"}</b>
-          <span style={k.deadline ? undefined : { color: "var(--bad)", fontWeight: 700 }}>{k.deadline ? `Deadline ${k.deadline}` : "Tanpa deadline"}</span>
+          <span style={k.deadline ? undefined : { color: "var(--bad)", fontWeight: 700 }}>{k.deadline ? `Deadline ${k.deadline}` : "Perlu input deadline"}</span>
         </div>
       </div>
     </Pembungkus>

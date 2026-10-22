@@ -54,7 +54,7 @@ export default function TukangLoginPage() {
       <div className="mb-8">
         <img src="/logo.png" alt="Taraco Interior" className="mb-4 h-12 w-auto" />
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Login Mandor / Tukang Harian
+          Login Staff
         </h1>
         <p className="mt-1 text-gray-500">
           Masukkan 4 digit terakhir nomor HP dan PIN kamu

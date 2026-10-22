@@ -56,7 +56,7 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
               <span className={`badge ${kelasSisa}`}>{sisa}</span>
             </>
           ) : (
-            <span className="badge b-bad">Tanpa deadline</span>
+            <span className="badge b-bad">Perlu input deadline</span>
           )}
         </div>
       </div>
