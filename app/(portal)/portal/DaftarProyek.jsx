@@ -39,8 +39,8 @@ function Kartu({ k, pilih, dipilih, onToggle }) {
         <div><b className="num">{k.persenTeks}</b><span>Progres</span></div>
         <div><b className="num">{k.n}</b><span>Item</span></div>
         <div>
-          <b className="num">{k.sisa ? k.sisa[0] : "—"}</b>
-          <span>{k.deadline ? `Deadline ${k.deadline}` : "Tanpa deadline"}</span>
+          <b className="num" style={k.sisa || !k.aktif ? undefined : { color: "var(--bad)" }}>{k.sisa ? k.sisa[0] : "—"}</b>
+          <span style={k.deadline ? undefined : { color: "var(--bad)", fontWeight: 700 }}>{k.deadline ? `Deadline ${k.deadline}` : "Tanpa deadline"}</span>
         </div>
       </div>
     </Pembungkus>

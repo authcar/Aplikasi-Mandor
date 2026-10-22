@@ -50,11 +50,13 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
         {proyek.lokasi && <div className="small lok">{proyek.lokasi}</div>}
         <div className="row" style={{ justifyContent: "flex-start", alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
           <span className={`badge ${kelasStatus}`}>{status}</span>
-          {proyek.deadline && (
+          {proyek.deadline ? (
             <>
               <span className="small">Deadline {tglTh(proyek.deadline)}</span>
               <span className={`badge ${kelasSisa}`}>{sisa}</span>
             </>
+          ) : (
+            <span className="badge b-bad">Tanpa deadline</span>
           )}
         </div>
       </div>
@@ -194,15 +196,16 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
   // Satu kartu item: nama, bar fase berjalan, dan (dibuka) semua tahap.
   const fotoItem = (it) => fotoProgres.filter((f) => f.item_id === it.id);
   const kartu = (it) => {
-    const akhir = tahapTerakhir(it), next = tahapBerikut(it), open = buka === it.id;
+    const akhir = tahapTerakhir(it), next = tahapBerikut(it), open = !lihat && buka === it.id; // tukang (lihat): tanpa dropdown tahap
     const fase = faseKini(it);
     // Fase yang sudah selesai (terisi penuh) + fase berjalan; kalau semua selesai,
     // semua tahap (penuh). Fase yang masih terkunci tidak tampil/tidak bisa dicatat.
     const bar = tahapBar(it).filter((s) => (!fase || s.w > 0) && !tahapTerkunci(it, s));
     return (
       <div key={it.id} className={`item acc${open ? " open" : ""}`}>
-        <div role="button" tabIndex={0} className="acc-h" aria-expanded={open} onClick={() => setBuka(open ? null : it.id)}
-          onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setBuka(open ? null : it.id); } }}>
+        <div role={lihat ? undefined : "button"} tabIndex={lihat ? undefined : 0} className="acc-h" aria-expanded={lihat ? undefined : open}
+          style={lihat ? { cursor: "default" } : undefined} onClick={lihat ? undefined : () => setBuka(open ? null : it.id)}
+          onKeyDown={lihat ? undefined : (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setBuka(open ? null : it.id); } }}>
           <span className="t">
             <span className="nm">{it.nama}</span>
             <span className="small">{[it.kode, JENIS_LABEL[it.jenis], !tim && it.tim].filter(Boolean).join(" · ")}</span>
@@ -210,7 +213,7 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
           <FotoProgres item={it} foto={fotoItem(it)} aksi={aksi} lihat={lihat} />
           {it.foto?.length > 0 && <FotoItem nama={it.nama} foto={it.foto} />}
           <b className="num">{persenItem(it)}%</b>
-          <i className="chev" aria-hidden="true" />
+          {!lihat && <i className="chev" aria-hidden="true" />}
         </div>
         {/* Tiap bagian bar = satu tahap yang sudah terbuka (lebar = bobotnya), terisi
             sebanyak persen tahap itu; boleh dicentang tidak berurutan. */}
@@ -256,11 +259,11 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
             <span className={`badge ${kelasSisa}`}>{sisa}</span>
           </span>
         ) : (
-          <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>Belum ditetapkan</span>
+          <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 700, color: "var(--bad)" }}>Belum ditetapkan</span>
         )}
       </div>
       {lihat && (
-        <p className="small" style={{ margin: 0 }}>Progres dicatat oleh supervisor. Ketuk nama item untuk melihat semua tahap.</p>
+        <p className="small" style={{ margin: 0 }}>Progres dicatat oleh supervisor.</p>
       )}
       <div className="card" style={{ padding: "10px 14px" }}>
         <div className="g2" style={adaTim ? null : { gridTemplateColumns: "1fr" }}>
