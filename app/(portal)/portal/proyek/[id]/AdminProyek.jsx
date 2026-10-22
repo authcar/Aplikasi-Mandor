@@ -89,8 +89,8 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
       <Pesan aksi={aksi} />
 
       <div key={tab} className="tab-isi">
-      {/* Lewat deadline: semua isian & tombol dimatikan sekaligus lewat fieldset. Tab Klien
-          dan Defect di luar fieldset: link masih bisa disalin / dikirim, dan keluhan klien
+      {/* Lewat deadline: semua isian & tombol dimatikan sekaligus lewat fieldset. Tab Defect
+          di luar fieldset (juga tombol link klien di tab Info, berupa <a>): link masih bisa disalin / dikirim, dan keluhan klien
           sering datang setelah serah terima. */}
       {tukang ? (
         tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} admin={false} lihat fotoProgres={fotoProgres} />
@@ -111,8 +111,6 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
         </fieldset>
         </>
       )}
-      {/* Link klien di luar fieldset: setelah proyek terkunci, link masih bisa disalin / dikirim. */}
-      {admin && tab === "info" && <TabKlien proyek={proyek} klien={klien} aksi={aksi} kunci={kunci} />}
       {/* Di luar fieldset: proyek yang terkunci tetap bisa dihapus. */}
       {admin && tab === "info" && <HapusProyek proyek={proyek} items={items} termin={termin} klien={klien} aksi={aksi} />}
       </div>
@@ -1276,46 +1274,6 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
   );
 }
 
-/* ---------- Link klien ---------- */
-function TabKlien({ proyek, klien, aksi, kunci }) {
-  const [disalin, setDisalin] = useState(null);
-  const url = (token) => `${location.origin}/k/${token}`;
-  const pesan = (k) =>
-    `Halo${k.nama ? ` ${k.nama}` : ""}, progres proyek ${proyek.nama} dari Taraco bisa dipantau di link berikut:\n${url(k.id)}`;
-
-  async function salin(k) {
-    await navigator.clipboard.writeText(url(k.id));
-    setDisalin(k.id);
-    setTimeout(() => setDisalin(null), 2000);
-  }
-
-  return (
-    <>
-      {klien.length > 1 && (
-        <p className="note b-warn">Proyek ini punya {klien.length} link. Cukup satu, hapus yang tidak dipakai.</p>
-      )}
-      {klien.map((k) => (
-        <div key={k.id} className="item">
-          <div style={{ minWidth: 0 }}>
-            <b>{k.nama || "Tanpa nama"}</b>
-            <div className="small">Dibuat {tgl(k.created_at.slice(0, 10))}</div>
-          </div>
-          <div className="acts">
-            <button type="button" className="act" onClick={() => salin(k)}>{disalin === k.id ? "Tersalin ✓" : "Copy link untuk klien"}</button>
-            <a className="act" href={`https://wa.me/?text=${encodeURIComponent(pesan(k))}`} target="_blank" rel="noreferrer">Kirim WA</a>
-            {!kunci && (
-              <button type="button" className="act bahaya" disabled={aksi.sibuk}
-                onClick={() => confirm(`Hapus link ${k.nama || ""}? Link ini tidak bisa dibuka lagi.`) && aksi.jalankan(() => A.cabutLink(k.id), "Link dihapus.")}>
-                Hapus
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
-    </>
-  );
-}
-
 /* ---------- Info proyek ---------- */
 function TabInfo({ proyek, supervisors, klien = [], kunci, aksi }) {
   const [f, setF] = useState({
@@ -1323,6 +1281,19 @@ function TabInfo({ proyek, supervisors, klien = [], kunci, aksi }) {
     mulai: proyek.mulai, deadline: proyek.deadline || "", supervisor_id: proyek.supervisor_id || "", aktif: proyek.aktif,
   });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const [disalin, setDisalin] = useState(false);
+  const link = klien[0];
+  const url = link ? `${location.origin}/k/${link.id}` : "";
+  const pesan = link
+    ? `Halo${link.nama ? ` ${link.nama}` : ""}, progres proyek ${proyek.nama} dari Taraco bisa dipantau di link berikut:
+${url}`
+    : "";
+
+  async function salin() {
+    await navigator.clipboard.writeText(url);
+    setDisalin(true);
+    setTimeout(() => setDisalin(false), 2000);
+  }
 
   return (
     <form className="card stack" onSubmit={(e) => {
@@ -1333,6 +1304,9 @@ function TabInfo({ proyek, supervisors, klien = [], kunci, aksi }) {
         ...(proyek.deadline ? {} : { deadline: f.deadline || null }),
       }), "Info proyek disimpan.");
     }}>
+      {klien.length > 1 && (
+        <p className="note b-warn">Proyek ini punya {klien.length} link. Cukup satu; hapus link di sini lalu cek lagi.</p>
+      )}
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
         <label className="lbl" style={{ flex: "1 1 220px", minWidth: 0 }}>Nama proyek<input className="inp" required value={f.nama} onChange={set("nama")} /></label>
         {/* Link klien dibuat dari sini (satu per proyek); memakai Nama klien di bawah. */}
@@ -1341,6 +1315,19 @@ function TabInfo({ proyek, supervisors, klien = [], kunci, aksi }) {
             onClick={() => aksi.jalankan(() => A.buatLink(proyek.id, f.klien_nama.trim()), "Link dibuat. Salin atau kirim lewat WA.")}>
             Buat link klien
           </button>
+        )}
+        {/* Tombol berupa <a> supaya tetap bisa dipakai saat proyek terkunci (fieldset disabled). */}
+        {link && (
+          <div className="acts" style={{ flex: "none" }}>
+            <a className="act" href={url} onClick={(e) => { e.preventDefault(); salin(); }}>{disalin ? "Tersalin ✓" : "Copy link untuk klien"}</a>
+            <a className="act" href={`https://wa.me/?text=${encodeURIComponent(pesan)}`} target="_blank" rel="noreferrer">Kirim WA</a>
+            {!kunci && (
+              <button type="button" className="act bahaya" disabled={aksi.sibuk}
+                onClick={() => confirm("Hapus link klien? Link ini tidak bisa dibuka lagi.") && aksi.jalankan(() => A.cabutLink(link.id), "Link dihapus.")}>
+                Hapus
+              </button>
+            )}
+          </div>
         )}
       </div>
       <div className="g2">
