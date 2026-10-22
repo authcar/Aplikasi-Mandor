@@ -6,6 +6,7 @@ import { cariProyekMandor, PATH_DEFECT_MANDOR } from "@/lib/portal/mandor";
 import { urlFotoItem } from "@/lib/portal/fotoItem";
 import { ambilFotoProgres } from "@/lib/portal/progresFoto";
 import { ambilRiwayat } from "@/lib/portal/riwayat";
+import { DEFECT_AKTIF } from "@/lib/portal/format";
 import AdminProyek from "./AdminProyek";
 
 // portal_item.foto (path storage) -> daftar signed URL untuk ditampilkan.
@@ -15,8 +16,8 @@ async function urlkanFoto(items) {
 }
 
 export default async function PortalProyekPage({ params }) {
-  const { staf } = await ambilStaf();
-  const p = await ambilProyek(params.id);
+  // Staf dan proyek diambil bersamaan (saling tidak bergantung).
+  const [{ staf }, p] = await Promise.all([ambilStaf(), ambilProyek(params.id)]);
   const tukang = staf?.role === "TUKANG";
   if (!tukang && !bolehProyek(staf, p)) notFound();
   if (tukang && !p) notFound();
@@ -43,8 +44,9 @@ export default async function PortalProyekPage({ params }) {
     admin ? ambilAddon(proyek.id) : [],
     admin ? ambilKlien(proyek.id) : [],
     admin ? ambilSupervisor() : [],
-    ambilDefect(proyek.id),
-    cariProyekMandor(proyek.nama),
+    // Defect (dan sambungan ke Defect List Mandor) hanya dibaca kalau fiturnya aktif.
+    DEFECT_AKTIF ? ambilDefect(proyek.id) : [],
+    DEFECT_AKTIF ? cariProyekMandor(proyek.nama) : null,
     ambilFotoProgres(proyek.id),
     ambilRiwayat(proyek.id),
   ]);
