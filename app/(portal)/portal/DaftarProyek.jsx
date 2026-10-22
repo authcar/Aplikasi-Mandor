@@ -66,9 +66,9 @@ export default function DaftarProyek({ kartu, kosong, label, tautan, admin, chil
   const [konfirm, setKonfirm] = useState(false);
   const [cari, setCari] = useState("");
   const [status, setStatus] = useState(""); // "" = semua yang aktif
-  const [tampilan, setTampilan] = useState("daftar");
+  const [tampilan, setTampilan] = useState("grid"); // bawaan: kartu
   useEffect(() => {
-    try { if (localStorage.getItem("portal.tampilan") === "grid") setTampilan("grid"); } catch {}
+    try { if (localStorage.getItem("portal.tampilan") === "daftar") setTampilan("daftar"); } catch {}
   }, []);
   const ubahTampilan = (t) => {
     setTampilan(t);
