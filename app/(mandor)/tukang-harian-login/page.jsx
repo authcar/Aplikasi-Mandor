@@ -54,7 +54,7 @@ export default function TukangLoginPage() {
       <div className="mb-8">
         <img src="/logo.png" alt="Taraco Interior" className="mb-4 h-12 w-auto" />
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Login Tukang Harian
+          Login Mandor / Tukang Harian
         </h1>
         <p className="mt-1 text-gray-500">
           Masukkan 4 digit terakhir nomor HP dan PIN kamu
@@ -98,7 +98,7 @@ export default function TukangLoginPage() {
             className="input w-full text-center text-3xl font-bold tracking-[0.3em] focus:border-amber-500"
           />
           <p className="mt-2 text-center text-xs text-gray-400">
-            PIN diberikan oleh mandor/supervisor kamu
+            PIN diberikan oleh supervisor / mandor kamu
           </p>
         </div>
 
@@ -119,7 +119,7 @@ export default function TukangLoginPage() {
           href="/login"
           className="block text-center text-sm text-gray-400 hover:text-gray-600"
         >
-          Login sebagai Mandor / Supervisor
+          Login Supervisor / Master / Finance (email)
         </a>
       </form>
     </div>

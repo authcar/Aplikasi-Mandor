@@ -63,7 +63,7 @@ export default function LoginPage() {
           href="/tukang-harian-login"
           className="block text-center text-sm text-amber-600 hover:text-amber-800 font-medium pt-1"
         >
-          Login sebagai Tukang Harian →
+          Login Mandor / Tukang Harian (nomor HP + PIN) →
         </a>
       </form>
     </div>

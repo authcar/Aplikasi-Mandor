@@ -10,11 +10,11 @@ export default async function KelolaAkunFinancePage() {
   const { supabase } = await getSessionProfile();
 
   const [{ data: mandorRows }, { data: proyekList }] = await Promise.all([
-    supabase.from("profiles").select("id, name, phone, email").eq("role", "MANDOR").order("name"),
+    supabase.from("profiles").select("id, name, phone, email, pin").eq("role", "MANDOR").order("name"),
     supabase.from("proyek").select("id, nama").eq("is_active", true).order("nama"),
   ]);
 
-  const mandors = (mandorRows || []).map((r) => ({ id: r.id, name: r.name, phone: r.phone, email: r.email }));
+  const mandors = (mandorRows || []).map((r) => ({ id: r.id, name: r.name, phone: r.phone, email: r.email, pin: r.pin }));
 
   const proyekIds = (proyekList || []).map((p) => p.id);
   const { data: workers } = proyekIds.length

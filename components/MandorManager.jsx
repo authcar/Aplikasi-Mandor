@@ -11,7 +11,7 @@ export default function MandorManager({ initialMandors }) {
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [justCreated, setJustCreated] = useState(null); // { name, email, password }
+  const [justCreated, setJustCreated] = useState(null); // { name, phone, pin }
   const [revealed, setRevealed] = useState(() => new Set());
   const [salinId, setSalinId] = useState(null);
 
@@ -46,26 +46,32 @@ export default function MandorManager({ initialMandors }) {
 
     if (!res.ok) return setErr(json.error || "Gagal menyimpan.");
 
-    const newMandor = { id: json.id, name: json.name, email: json.email, phone: json.phone, password: json.password };
+    const newMandor = { id: json.id, name: json.name, email: json.email, phone: json.phone, pin: json.pin };
     setMandors((m) => [...m, newMandor]);
     setRevealed((prev) => new Set(prev).add(json.id));
-    setJustCreated({ name: json.name, email: json.email, password: json.password });
+    setJustCreated({ name: json.name, phone: json.phone, pin: json.pin });
     setShowForm(false);
     setName("");
     setEmailOrUsername("");
     setPhone("");
   };
 
-  const resetPassword = async (mandor) => {
-    if (!confirm(`Reset password untuk ${mandor.name}? Password lama tidak akan berlaku lagi.`)) return;
+  const resetPin = async (mandor) => {
+    let phone;
+    if (!mandor.phone) {
+      phone = prompt(`Nomor HP ${mandor.name} belum ada. Isi nomor HP (dipakai untuk login):`);
+      if (!phone) return;
+    } else if (!confirm(`Reset PIN untuk ${mandor.name}? PIN lama tidak akan berlaku lagi.`)) {
+      return;
+    }
     const res = await fetch("/api/mandor", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: mandor.id }),
+      body: JSON.stringify({ id: mandor.id, phone }),
     });
     const json = await res.json();
-    if (!res.ok) return alert(json.error || "Gagal reset password.");
-    setMandors((m) => m.map((x) => (x.id === mandor.id ? { ...x, password: json.password } : x)));
+    if (!res.ok) return alert(json.error || "Gagal reset PIN.");
+    setMandors((m) => m.map((x) => (x.id === mandor.id ? { ...x, phone: json.phone, pin: json.pin } : x)));
     setRevealed((prev) => new Set(prev).add(mandor.id));
   };
 
@@ -76,20 +82,22 @@ export default function MandorManager({ initialMandors }) {
           <p className="mb-1 text-sm font-bold text-brand-800">
             Akun {justCreated.name} berhasil dibuat
           </p>
-          <p className="mb-1 text-center text-sm text-brand-700">{justCreated.email}</p>
+          <p className="mb-1 text-center text-sm text-brand-700">
+            4 digit terakhir HP: {justCreated.phone.slice(-4)}
+          </p>
           <p className="mb-2 text-center text-3xl font-bold tracking-[0.15em] text-brand-800">
-            {justCreated.password}
+            {justCreated.pin}
           </p>
           <button
-            onClick={() => salinSandi("baru", justCreated.password)}
+            onClick={() => salinSandi("baru", justCreated.pin)}
             className="mx-auto mb-3 flex w-fit items-center gap-1.5 rounded-full border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 active:bg-brand-100"
           >
             <Icon name="copy" className="h-3.5 w-3.5" />
-            {salinId === "baru" ? "Tersalin ✓" : "Salin Sandi"}
+            {salinId === "baru" ? "Tersalin ✓" : "Salin PIN"}
           </button>
           <p className="mb-3 text-center text-xs text-brand-700">
-            Sampaikan email &amp; password ini ke {justCreated.name}. Bisa dilihat lagi kapan pun
-            lewat daftar di bawah (ikon mata).
+            Sampaikan PIN ini ke {justCreated.name}. Login pakai 4 digit terakhir nomor HP + PIN.
+            Bisa dilihat lagi kapan pun lewat daftar di bawah (ikon mata).
           </p>
           <button onClick={() => setJustCreated(null)} className="btn-primary w-full">
             Tutup
@@ -132,14 +140,18 @@ export default function MandorManager({ initialMandors }) {
             </p>
           </div>
           <div>
-            <label className="label">Nomor HP (opsional)</label>
+            <label className="label">Nomor HP</label>
             <input
               inputMode="numeric"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="08123456789"
               className="input text-lg"
+              required
             />
+            <p className="mt-1 text-xs text-gray-400">
+              Login mandor: 4 digit terakhir nomor ini + PIN yang dibuat otomatis.
+            </p>
           </div>
           {err && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{err}</p>
@@ -174,27 +186,27 @@ export default function MandorManager({ initialMandors }) {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{m.name}</p>
-                <p className="truncate text-xs text-gray-500">{m.email || m.phone || "—"}</p>
+                <p className="truncate text-xs text-gray-500">{m.phone || m.email || "—"}</p>
               </div>
               <button
                 onClick={() => toggleReveal(m.id)}
-                title={!m.password ? "Sandi lama tidak tersimpan — klik Reset untuk sandi baru" : ""}
+                title={!m.pin ? "Belum ada PIN — klik Reset untuk membuat PIN" : ""}
                 className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 active:bg-gray-100"
               >
                 <Icon name={isRevealed ? "eye-off" : "eye"} className="h-3.5 w-3.5" />
-                {isRevealed ? (m.password || "Reset dulu") : "Sandi"}
+                {isRevealed ? (m.pin || "Reset dulu") : "PIN"}
               </button>
-              {isRevealed && m.password && (
+              {isRevealed && m.pin && (
                 <button
-                  onClick={() => salinSandi(m.id, m.password)}
+                  onClick={() => salinSandi(m.id, m.pin)}
                   className="shrink-0 rounded-full border border-gray-200 bg-white p-1.5 text-gray-600 active:bg-gray-100"
-                  title="Salin sandi"
+                  title="Salin PIN"
                 >
                   <Icon name={salinId === m.id ? "check" : "copy"} className="h-3.5 w-3.5" />
                 </button>
               )}
               <button
-                onClick={() => resetPassword(m)}
+                onClick={() => resetPin(m)}
                 className="shrink-0 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 active:bg-gray-100"
               >
                 Reset

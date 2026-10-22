@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(
 
 const GENERIC_AUTH_ERROR = "Nomor HP atau PIN salah. Hubungi mandor.";
 
-// Cari tukang harian berdasarkan 4 digit terakhir nomor HP, lalu wajib
+// Cari tukang harian / mandor berdasarkan 4 digit terakhir nomor HP, lalu wajib
 // cocok dengan PIN rahasia sebelum sesi login dibuat.
 export async function POST(req) {
   const { digits, pin } = await req.json();
@@ -32,7 +32,7 @@ export async function POST(req) {
   const { data: rows, error } = await supabaseAdmin
     .from("profiles")
     .select("id, name, phone, pin")
-    .eq("role", "TUKANG_HARIAN");
+    .in("role", ["TUKANG_HARIAN", "MANDOR"]);
 
   if (error) {
     return NextResponse.json({ error: "Gagal mengakses data." }, { status: 500 });
@@ -48,7 +48,7 @@ export async function POST(req) {
 
   if (matches.length > 1) {
     return NextResponse.json(
-      { error: "Nomor ambigu, ada lebih dari satu tukang dengan akhiran ini. Hubungi mandor." },
+      { error: "Nomor ambigu, ada lebih dari satu akun dengan akhiran ini. Hubungi mandor." },
       { status: 409 }
     );
   }
