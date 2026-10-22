@@ -64,13 +64,14 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
         </p>
       )}
       {/* Nilai kontrak hanya untuk master; supervisor cukup melihat progres. */}
-      <div className="grid2" style={{ gridTemplateColumns: admin ? "minmax(0,5fr) minmax(0,7fr)" : "1fr" }}>
+      <div className="grid2" style={{ gridTemplateColumns: admin || tukang ? "minmax(0,5fr) minmax(0,7fr)" : "1fr" }}>
         <div className="stat lead">
           <KotaGlow />
           <div className="eb">Progres</div>
           <div className="v num">{pct(persenProyek(items))}</div>
           <div className="s">{items.length} item</div>
         </div>
+        {tukang && <KartuJasaSaya items={items} />}
         {admin && <div className="stat">
           <div className="eb">Nilai proyek</div>
           <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{totalNilai(nilaiT) ? rp(totalNilai(nilaiT)) : "—"}</div>
@@ -586,11 +587,17 @@ function RingkasJasa({ items }) {
 // dari server), tanpa isian apa pun.
 function JasaTukangLihat({ items, proyek, riwayat }) {
   const areas = [...new Set(items.map((i) => i.area))];
+  const [buka, setBuka] = useState(null);
   return (
     <>
-      <RingkasJasa items={items} />
-      <UpahMingguan proyek={proyek} items={items} riwayat={riwayat} lihatTim />
-      {areas.map((a) => (
+      <DuaTombol buka={buka} setBuka={setBuka} pilihan={[["mingguan", "Jasa mingguan"], ["spkb", "SPKB"]]} />
+      {buka === "mingguan" && (
+        <div className="lipat"><div className="lipat-b" style={{ gap: 12, paddingTop: 14 }}>
+          <Mingguan proyek={proyek} items={items} riwayat={riwayat} tampil="upah" lihatTim />
+        </div></div>
+      )}
+      {/* SPKB: daftar item jasa per area; tiap area dibuka sendiri-sendiri. */}
+      {buka === "spkb" && areas.map((a) => (
         <AreaJasa key={a} area={a} items={items}>
           {(its) => its.map((it) => (
             <div key={it.id} className="item acc">
@@ -606,6 +613,54 @@ function JasaTukangLihat({ items, proyek, riwayat }) {
         </AreaJasa>
       ))}
     </>
+  );
+}
+
+// Dua tombol sebaris (hemat tempat); yang dipilih membuka isinya selebar penuh di bawahnya,
+// ketuk lagi untuk menutup. `pilihan` = [[kunci, label], ...].
+function DuaTombol({ pilihan, buka, setBuka }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      {pilihan.map(([k, judul]) => (
+        <button key={k} type="button" className="lipat" aria-expanded={buka === k} onClick={() => setBuka(buka === k ? null : k)}
+          style={{ minHeight: 56, padding: "10px 14px", font: "inherit", fontWeight: 700, color: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", ...(buka === k ? { borderColor: "var(--muted)" } : null) }}>
+          {judul}
+          <i className="chev" aria-hidden="true" style={buka === k ? { transform: "rotate(-135deg)", marginTop: 4 } : undefined} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Total jasa tukang di kartu atas (tampilan tukang), dengan tombol mata untuk menyembunyikan
+// nominal seperti saldo di aplikasi bank. Pilihannya diingat di browser.
+function KartuJasaSaya({ items }) {
+  const total = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
+  const dapat = items.reduce((a, i) => a + ((Number(i.harga) || 0) * persenItem(i)) / 100, 0);
+  const [sembunyi, setSembunyi] = useState(false);
+  useEffect(() => {
+    try { setSembunyi(localStorage.getItem("portal-sembunyi-jasa") === "1"); } catch {}
+  }, []);
+  const ubah = () => {
+    const v = !sembunyi;
+    setSembunyi(v);
+    try { localStorage.setItem("portal-sembunyi-jasa", v ? "1" : "0"); } catch {}
+  };
+  const tampil = (n) => (sembunyi ? "Rp ••••••" : n);
+  return (
+    <div className="stat">
+      <div className="row" style={{ alignItems: "center" }}>
+        <div className="eb">Total jasa</div>
+        <button type="button" className="mata" aria-label={sembunyi ? "Tampilkan nominal" : "Sembunyikan nominal"} aria-pressed={sembunyi} onClick={ubah}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />
+            {sembunyi && <path d="M4 4l16 16" />}
+          </svg>
+        </button>
+      </div>
+      <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)" }}>{total ? tampil(rp(total)) : "—"}</div>
+      <div className="s">{total > 0 ? `Pendapatan dari progres ${tampil(rp(Math.round(dapat)))}` : "belum ada nilai jasa"}</div>
+    </div>
   );
 }
 
