@@ -477,9 +477,16 @@ body::before{content:"";position:fixed;left:-90px;bottom:-70px;width:min(520px,7
 @keyframes sk-geser{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.sk{animation:none}}
 
-/* ---- HP: bar tahap lebih tipis dan rapi; potongan kecil tidak jadi bulatan, area ketuk tetap lebar ---- */
+/* ---- HP: satu bar progres per item + tombol tahap kecil; bar bersegmen hanya di layar lebar ---- */
+.bar-hp{display:none}
 @media (max-width:719px){
-  .track.tap{height:12px;gap:2px;margin-top:6px;margin-bottom:2px}
-  .track.tap button{position:relative;min-width:14px;border-radius:4px}
-  .track.tap button::after{content:"";position:absolute;inset:-12px -1px}
+  .track.tap{display:none}
+  .bar-hp{display:flex;flex-direction:column;gap:10px;padding:2px 14px 4px}
+  .bar-hp .bar{height:8px}
+  .chips-tahap{display:flex;flex-wrap:wrap;gap:6px}
+  .chip-t{min-height:34px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);font-size:.76rem;font-weight:600;white-space:nowrap;transition:background .2s,color .2s}
+  .chip-t.on{background:var(--dark);color:var(--on-accent);border-color:transparent}
+  .chip-t.sebagian{border-color:var(--wood);background:rgb(31 29 29/.08)}
+  .chip-t.busy{opacity:.5}
+  .chip-t:disabled{opacity:.55}
 }

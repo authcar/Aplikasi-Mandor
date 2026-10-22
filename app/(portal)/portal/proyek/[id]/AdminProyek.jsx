@@ -229,6 +229,24 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
             );
           })}
         </div>
+        {/* HP: satu bar progres item + deretan tombol tahap kecil (bar bersegmen di atas hanya untuk layar lebar). */}
+        <div className="bar-hp">
+          <span className="bar" style={{ display: "block" }}><i style={{ width: `${persenItem(it)}%` }} /></span>
+          {!lihat && (
+            <div className="chips-tahap">
+              {bar.map((s) => {
+                const p = persenTahap(it, s);
+                return (
+                  <button key={s.k} type="button" disabled={kunci} aria-pressed={!!p}
+                    className={`chip-t${p >= 100 ? " on" : p ? " sebagian" : ""}${busy === `${it.id}:${s.k}` ? " busy" : ""}`}
+                    aria-label={p ? `Batalkan ${s.label}` : `Catat ${s.label}`} onClick={() => toggle(it, s)}>
+                    {p >= 100 ? "✓ " : ""}{s.label}{p > 0 && p < 100 ? ` ${pct(p)}` : ""}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
         {open ? (
           <TahapItem it={it} aksi={aksi} admin={admin} kunci={kunci} busy={busy} toggle={toggle} catat={catat} foto={fotoItem(it)} lihat={lihat} />
         ) : (
