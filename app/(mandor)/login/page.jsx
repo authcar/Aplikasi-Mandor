@@ -60,7 +60,7 @@ export default function LoginPage() {
         </button>
 
         <a
-          href="/login-mandor-tukang"
+          href="/login-staff"
           className="block text-center text-sm text-amber-600 hover:text-amber-800 font-medium pt-1"
         >
           Login Staff (nomor HP + PIN) →
