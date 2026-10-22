@@ -4,7 +4,7 @@ import { ambilStaf } from "@/lib/portal/server";
 import { ambilItem, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
 import { hitungDefectBaru } from "@/lib/portal/defect";
 import { persenProyek } from "@/lib/portal/progresBoq";
-import { tglTh, pct, statusProyek, labelDeadline, lewatDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
+import { hariIni, tambahHari, tglTh, pct, statusProyek, labelDeadline, lewatDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
 import ProyekBaru from "./ProyekBaru";
 
 export default async function PortalBeranda() {
@@ -23,11 +23,13 @@ export default async function PortalBeranda() {
     const its = items.filter((i) => i.proyek_id === p.id);
     const v = persenProyek(its);
     const [status, kelas] = statusProyek({ ...p, items: its });
+    // Ada kenaikan progres dalam 7 hari terakhir? (sama dengan hitungan di link klien)
+    const adaProgres = v - persenProyek(its, tambahHari(hariIni(), -7)) > 0.005;
     return {
       id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
       n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null,
       sisa: p.deadline && p.aktif ? [lewatDeadline(p) ? "Terkunci" : labelDeadline(p.deadline)[0], labelDeadline(p.deadline)[1]] : null,
-      status, kelas, persen: v, persenTeks: pct(v), defect: defectBaru[p.id] || 0,
+      status, kelas, persen: v, adaProgres, persenTeks: pct(v), defect: defectBaru[p.id] || 0,
     };
   });
 
