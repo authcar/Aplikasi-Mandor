@@ -801,36 +801,32 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
   );
 }
 
-// Satu section untuk memasukkan item: file Excel / tempel BoQ, atau satu item manual.
+// Dua tombol sebaris (hemat tempat): upload file Excel / tempel BoQ, atau tambah satu item manual.
+// Isi tombol yang dipilih terbuka selebar penuh di bawahnya.
 function UploadItem({ proyek, items, areas, urutan, aksi }) {
+  const [buka, setBuka] = useState(null);
+  const tombol = (k, judul) => (
+    <button type="button" className="lipat" aria-expanded={buka === k} onClick={() => setBuka(buka === k ? null : k)}
+      style={{ minHeight: 56, padding: "10px 14px", font: "inherit", fontWeight: 700, color: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", ...(buka === k ? { borderColor: "var(--muted)" } : null) }}>
+      {judul}
+      <i className="chev" aria-hidden="true" style={buka === k ? { transform: "rotate(-135deg)", marginTop: 4 } : undefined} />
+    </button>
+  );
   return (
     <>
-      <details className="lipat">
-        <summary>
-          <span style={{ minWidth: 0, flex: 1 }}>
-            <span className="row">
-              <h2>Upload file Excel</h2>
-              <span className="num small" style={{ margin: 0, whiteSpace: "nowrap" }}>.xlsx / tempel BoQ</span>
-            </span>
-          </span>
-        </summary>
-        <div className="lipat-b" style={{ gap: 12 }}>
-          <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {tombol("excel", "Upload file Excel")}
+        {tombol("manual", "Tambah manual")}
+      </div>
+      {buka && (
+        <div className="lipat">
+          <div className="lipat-b" style={{ gap: 12, paddingTop: 14 }}>
+            {buka === "excel"
+              ? <ImporBoq proyek={proyek} items={items} urutan={urutan} aksi={aksi} />
+              : <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />}
+          </div>
         </div>
-      </details>
-      <details className="lipat">
-        <summary>
-          <span style={{ minWidth: 0, flex: 1 }}>
-            <span className="row">
-              <h2>Tambah manual</h2>
-              <span className="num small" style={{ margin: 0, whiteSpace: "nowrap" }}>1 item</span>
-            </span>
-          </span>
-        </summary>
-        <div className="lipat-b" style={{ gap: 12 }}>
-          <TambahItem proyek={proyek} areas={areas} urutan={urutan} aksi={aksi} />
-        </div>
-      </details>
+      )}
     </>
   );
 }
