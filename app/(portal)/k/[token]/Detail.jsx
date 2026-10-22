@@ -18,8 +18,8 @@ function FotoProgresKlien({ nama, foto }) {
   const tgl = (at) => new Date(at).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short", year: "numeric" });
   return (
     <>
-      <button type="button" className="act" style={{ alignSelf: "flex-start", minHeight: 34, fontSize: ".78rem" }} onClick={() => setBuka(true)}>
-        📷 {foto.length} foto progres
+      <button type="button" className="act" style={{ minHeight: 32, padding: "0 12px", fontSize: ".75rem", whiteSpace: "nowrap" }} aria-label={`${foto.length} foto progres ${nama}`} onClick={() => setBuka(true)}>
+        📷 {foto.length} foto
       </button>
       {buka && <Pratinjau nama={nama} foto={foto.map((f) => f.url)} cap={foto.map((f) => `Foto progres · ${tgl(f.at)}`)} mulai={foto.length - 1} tutup={() => setBuka(false)} />}
     </>
@@ -137,6 +137,7 @@ export default function Detail({ P }) {
                             <h3>{it.nama}</h3>
                           </div>
                           <span style={{ display: "flex", alignItems: "center", gap: 10, flex: "none" }}>
+                            <FotoProgresKlien nama={it.nama} foto={it.foto_progres || []} />
                             <FotoItem nama={it.nama} foto={it.foto || []} />
                             <b className="num">{v}%</b>
                           </span>
@@ -144,7 +145,6 @@ export default function Detail({ P }) {
                         <span className="bar" style={{ display: "block" }}>
                           <i style={{ width: `${v}%`, background: v >= 100 ? "var(--ok)" : undefined }} />
                         </span>
-                        <FotoProgresKlien nama={it.nama} foto={it.foto_progres || []} />
                       </div>
                     );
                   })}

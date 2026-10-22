@@ -427,3 +427,14 @@ body::before{content:"";position:fixed;left:-90px;bottom:-70px;width:min(520px,7
 @keyframes ket-masuk{from{opacity:0;transform:translateY(4px)}}
 @keyframes kartu-naik{from{opacity:0;transform:translateY(10px) scale(.97)}}
 @media (prefers-reduced-motion:reduce){.memuat-k.memuat-kota,.memuat-ket,.titik::after,.memuat-bar i{animation:none}.memuat-gbr .kota-garis path{animation:none;stroke-dashoffset:0}}
+
+/* ---- pratinjau foto: geser jari / panah besar di tengah; baris item klien lebih rapat ---- */
+.item.mini .row{align-items:center}
+.fgeser{position:relative;background:var(--sunk)}
+.flajur{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none}
+.flajur::-webkit-scrollbar{display:none}
+.flajur img{flex:none;width:100%;scroll-snap-align:center;scroll-snap-stop:always}
+.fpanah{position:absolute;top:50%;transform:translateY(-50%);width:52px;height:52px;border:0;border-radius:50%;background:rgb(31 29 29/.55);color:#fff;font-size:2.4rem;line-height:1;padding:0 0 6px;display:grid;place-items:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.fpanah.kiri{left:10px}.fpanah.kanan{right:10px}
+@media (hover:hover){.fpanah:hover{background:rgb(31 29 29/.8)}}
+@media (max-width:560px){.fpanah{width:44px;height:44px;font-size:2rem}}
