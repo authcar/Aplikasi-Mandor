@@ -476,3 +476,10 @@ body::before{content:"";position:fixed;left:-90px;bottom:-70px;width:min(520px,7
 .sk-kartu{height:84px}.sk-kartu.pendek{height:56px;width:80%}
 @keyframes sk-geser{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.sk{animation:none}}
+
+/* ---- HP: bar tahap lebih tipis dan rapi; potongan kecil tidak jadi bulatan, area ketuk tetap lebar ---- */
+@media (max-width:719px){
+  .track.tap{height:12px;gap:2px;margin-top:6px;margin-bottom:2px}
+  .track.tap button{position:relative;min-width:14px;border-radius:4px}
+  .track.tap button::after{content:"";position:absolute;inset:-12px -1px}
+}
