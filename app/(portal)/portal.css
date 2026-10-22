@@ -483,18 +483,10 @@ body::before{content:"";position:fixed;left:-90px;bottom:-70px;width:min(520px,7
 .trk-done svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .ceklis{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--p4);color:#fff}
 .ceklis svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
-.bar-hp{display:none}
 @media (max-width:719px){
-  .track.tap{height:10px;gap:3px;margin-top:6px;margin-bottom:2px}
-  .track.tap button{pointer-events:none;min-width:14px;border-radius:4px}
+  .track.tap{height:12px;gap:3px;margin-top:6px;margin-bottom:2px}
+  .track.tap button{position:relative;min-width:14px;border-radius:4px}
+  .track.tap button::after{content:"";position:absolute;inset:-12px -1px}
   .trk-done{flex-basis:30px;border-radius:4px}
   .trk-done svg{width:10px;height:10px}
-  .bar-hp{display:flex;flex-direction:column;gap:10px;padding:2px 14px 4px}
-  .bar-hp:empty{display:none}
-  .chips-tahap{display:flex;flex-wrap:wrap;gap:6px}
-  .chip-t{min-height:36px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);font-size:.78rem;font-weight:600;white-space:nowrap;transition:background .2s,color .2s}
-  .chip-t.on{background:var(--dark);color:var(--on-accent);border-color:transparent}
-  .chip-t.sebagian{border-color:var(--wood);background:rgb(31 29 29/.08)}
-  .chip-t.busy{opacity:.5}
-  .chip-t:disabled{opacity:.55}
 }
