@@ -19,12 +19,14 @@ export default async function PortalBeranda() {
   // Tukang: jumlah item dan progres dihitung dari item timnya saja.
   const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));
 
+  const hari = hariIni();
+  const sebelumSenin = tambahHari(hari, -((new Date(`${hari}T00:00:00Z`).getUTCDay() + 6) % 7) - 1); // hari Minggu lalu
   const kartu = proyek.map((p) => {
     const its = items.filter((i) => i.proyek_id === p.id);
     const v = persenProyek(its);
     const [status, kelas] = statusProyek({ ...p, items: its });
-    // Ada kenaikan progres dalam 7 hari terakhir? (sama dengan hitungan di link klien)
-    const adaProgres = v - persenProyek(its, tambahHari(hariIni(), -7)) > 0.005;
+    // Ada kenaikan progres sejak Senin minggu kalender ini?
+    const adaProgres = v - persenProyek(its, sebelumSenin) > 0.005;
     return {
       id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
       n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null,
