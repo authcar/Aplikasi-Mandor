@@ -152,11 +152,12 @@ export async function setProgres(itemId, tahap, persen) {
     if (!(persen >= 0 && persen <= 100)) throw new Error("persen tahap harus 0–100.");
     const row = await hasil(db().from("portal_item").select("*, portal_progres(*)").eq("id", itemId).maybeSingle());
     if (!row) throw new Error("Item tidak ditemukan.");
-    const p = await ambilProyek(row.proyek_id);
+    // Proyek dan bobot bawaan diambil bersamaan (bobot hanya perlu kalau item tidak punya bobot sendiri).
+    const [p, bobotBawaan] = await Promise.all([ambilProyek(row.proyek_id), row.bobot_tahap ? null : ambilBobotTahap()]);
     if (!bolehProyek(staf, p)) throw new Error("Tidak punya akses ke proyek ini.");
     if (lewatDeadline(p)) throw new Error(`proyek sudah lewat deadline ${tglTh(p.deadline)}, jadi terkunci.`);
     const { portal_progres, ...i } = row;
-    const item = { ...i, bobot_tahap: i.bobot_tahap || (await ambilBobotTahap())[i.jenis] || null, ...bacaProgres(portal_progres) };
+    const item = { ...i, bobot_tahap: i.bobot_tahap || bobotBawaan?.[i.jenis] || null, ...bacaProgres(portal_progres) };
     const s = tahapItem(item).find((x) => x.k === tahap);
     if (!s) throw new Error("Tahap tidak valid.");
     // Fase berurutan: tahap baru boleh dicatat setelah fase-fase sebelumnya
@@ -171,21 +172,24 @@ export async function setProgres(itemId, tahap, persen) {
     const riwayat = () =>
       persen !== Number(item.porsi[tahap] ?? 0) &&
       catatRiwayat({ proyekId: row.proyek_id, itemId, tahap, persen, tgl: hariIni(), oleh: staf.id });
+    // Simpan progres dan catat riwayat bersamaan (saling tidak bergantung).
     if (!persen) {
-      await hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap));
-      return void (await riwayat());
+      await Promise.all([hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap)), riwayat()]);
+      return;
     }
     // Tanggal selalu hari ini (tanggal terakhir progres tahap ini diubah).
     const baris = { item_id: itemId, tahap, selesai_tgl: hariIni(), dicatat_oleh: staf.id, dicatat_at: new Date().toISOString() };
-    try {
-      await hasil(db().from("portal_progres").upsert({ ...baris, persen }));
-    } catch (e) {
-      // Kolom persen belum ada (supabase/add_portal_progres_persen.sql): 100% tetap
-      // bisa dicatat seperti dulu; progres sebagian butuh kolomnya.
-      if (persen < 100 || !/could not find the 'persen' column|column .*persen.* does not exist/i.test(e.message || "")) throw e;
-      await hasil(db().from("portal_progres").upsert(baris));
-    }
-    await riwayat();
+    const simpan = async () => {
+      try {
+        await hasil(db().from("portal_progres").upsert({ ...baris, persen }));
+      } catch (e) {
+        // Kolom persen belum ada (supabase/add_portal_progres_persen.sql): 100% tetap
+        // bisa dicatat seperti dulu; progres sebagian butuh kolomnya.
+        if (persen < 100 || !/could not find the 'persen' column|column .*persen.* does not exist/i.test(e.message || "")) throw e;
+        await hasil(db().from("portal_progres").upsert(baris));
+      }
+    };
+    await Promise.all([simpan(), riwayat()]);
   }, { admin: false });
 }
 
