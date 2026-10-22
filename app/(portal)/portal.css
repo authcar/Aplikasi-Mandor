@@ -490,3 +490,5 @@ body::before{content:"";position:fixed;left:-90px;bottom:-70px;width:min(520px,7
   .trk-done{flex-basis:30px;border-radius:4px}
   .trk-done svg{width:10px;height:10px}
 }
+.logout.ikon-home{align-items:center;justify-content:center;width:40px;min-height:40px;padding:0}@media (max-width:1023px){.logout.ikon-home{display:inline-flex}}
+.acts.link-klien{flex:none;flex-wrap:wrap}@media (max-width:560px){.acts.link-klien{flex:1 1 100%}.acts.link-klien>.act:first-child{flex:1 1 100%}}

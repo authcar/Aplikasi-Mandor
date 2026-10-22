@@ -1318,7 +1318,7 @@ ${url}`
         )}
         {/* Tombol berupa <a> supaya tetap bisa dipakai saat proyek terkunci (fieldset disabled). */}
         {link && (
-          <div className="acts" style={{ flex: "none" }}>
+          <div className="acts link-klien">
             <a className="act" href={url} onClick={(e) => { e.preventDefault(); salin(); }}>{disalin ? "Tersalin ✓" : "Copy link untuk klien"}</a>
             <a className="act" href={`https://wa.me/?text=${encodeURIComponent(pesan)}`} target="_blank" rel="noreferrer">Kirim WA</a>
             {!kunci && (
