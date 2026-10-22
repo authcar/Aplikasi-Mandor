@@ -633,19 +633,12 @@ function DuaTombol({ pilihan, buka, setBuka }) {
 }
 
 // Total jasa tukang di kartu atas (tampilan tukang), dengan tombol mata untuk menyembunyikan
-// nominal seperti saldo di aplikasi bank. Pilihannya diingat di browser.
+// nominal seperti saldo di aplikasi bank. Awalnya tersembunyi.
 function KartuJasaSaya({ items }) {
   const total = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
   const dapat = items.reduce((a, i) => a + ((Number(i.harga) || 0) * persenItem(i)) / 100, 0);
-  const [sembunyi, setSembunyi] = useState(false);
-  useEffect(() => {
-    try { setSembunyi(localStorage.getItem("portal-sembunyi-jasa") === "1"); } catch {}
-  }, []);
-  const ubah = () => {
-    const v = !sembunyi;
-    setSembunyi(v);
-    try { localStorage.setItem("portal-sembunyi-jasa", v ? "1" : "0"); } catch {}
-  };
+  const [sembunyi, setSembunyi] = useState(true); // setiap dibuka, nominal tersembunyi dulu
+  const ubah = () => setSembunyi(!sembunyi);
   const tampil = (n) => (sembunyi ? "Rp ••••••" : n);
   return (
     <div className="stat" style={{ position: "relative", paddingRight: 52 }}>
@@ -659,7 +652,7 @@ function KartuJasaSaya({ items }) {
         </button>
       </div>
       <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)" }}>{total ? tampil(rp(total)) : "—"}</div>
-      <div className="s">{total > 0 ? `Pendapatan dari progres ${tampil(rp(Math.round(dapat)))}` : "belum ada nilai jasa"}</div>
+      <div className="s">{total > 0 ? `Pendapatan saat ini ${tampil(rp(Math.round(dapat)))}` : "belum ada nilai jasa"}</div>
     </div>
   );
 }
