@@ -3,7 +3,7 @@ import { db, hasil, UUID } from "@/lib/portal/db";
 import { BUCKET_DEFECT, MAKS_FOTO_DEFECT, MAKS_KETERANGAN_DEFECT } from "@/lib/portal/defect";
 import { hariIni, DEFECT_AKTIF } from "@/lib/portal/format";
 import { sendPushToRoles } from "@/lib/push";
-import { cariProyekMandor, buatChecklistKlien, PATH_DEFECT_MANDOR } from "@/lib/portal/mandor";
+import { pastikanProyekMandor, buatChecklistKlien, PATH_DEFECT_MANDOR } from "@/lib/portal/mandor";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +39,7 @@ export async function POST(req) {
   try {
     const link = await hasil(db().from("portal_link").select("proyek_id, nama").eq("token", token).maybeSingle());
     if (!link) return gagal("link tidak berlaku.", 404);
-    const proyek = await hasil(db().from("portal_proyek").select("id, nama, supervisor_id").eq("id", link.proyek_id).maybeSingle());
+    const proyek = await hasil(db().from("portal_proyek").select("id, nama, lokasi, supervisor_id").eq("id", link.proyek_id).maybeSingle());
     if (!proyek) return gagal("link tidak berlaku.", 404);
 
     let itemNama = null;
@@ -57,9 +57,9 @@ export async function POST(req) {
       .gte("created_at", `${hariIni()}T00:00:00+07:00`);
     if (count >= MAKS_PER_HARI) return gagal("sudah banyak laporan hari ini. Silakan hubungi tim Taraco langsung.", 429);
 
-    // Proyek yang namanya sama dengan proyek Mandor aktif, atau yang supervisornya
-    // sama dengan supervisor proyek Mandor aktif: laporan masuk Defect List Mandor (fotonya di sana); portal_defect hanya menyimpan catatan klien.
-    const pm = await cariProyekMandor(proyek);
+    // Laporan masuk Defect List Mandor milik supervisor proyek ini; proyek Mandor-nya
+    // dibuat otomatis kalau belum ada (fotonya di sana); portal_defect hanya menyimpan catatan klien.
+    const pm = await pastikanProyekMandor(proyek);
     if (pm) {
       const cl = await buatChecklistKlien(pm, { keterangan, pelapor: link.nama, itemNama, foto });
       try {
