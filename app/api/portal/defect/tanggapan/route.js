@@ -15,7 +15,7 @@ const gagal = (error, status = 400) => NextResponse.json({ error }, { status });
 // Tidak ikut kunci deadline, sama seperti defect-nya.
 export async function POST(req) {
   const { staf } = await ambilStaf();
-  if (!staf || staf.role === "TUKANG") return gagal("tidak punya akses.", 403);
+  if (!staf || staf.role === "TUKANG" || staf.role === "ADMIN") return gagal("tidak punya akses.", 403);
 
   let form;
   try {

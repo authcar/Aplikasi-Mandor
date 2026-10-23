@@ -14,7 +14,7 @@ export default async function PortalBeranda() {
   const [proyek, supervisors, defectBaru] = await Promise.all([
     ambilProyekStaf(staf),
     admin ? ambilSupervisor() : [],
-    tukang || !DEFECT_AKTIF ? {} : hitungDefectBaru(),
+    tukang || admin || !DEFECT_AKTIF ? {} : hitungDefectBaru(),
   ]);
   // Tukang: jumlah item dan progres dihitung dari item timnya saja.
   const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));

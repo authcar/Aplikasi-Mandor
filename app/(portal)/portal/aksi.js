@@ -431,11 +431,15 @@ export async function resetBobotTahap(jenis) {
 // Defect yang tersambung ke Defect List Aplikasi Mandor (checklist_id) dikelola di sana.
 const DI_MANDOR = "defect ini dikelola di Defect List Aplikasi Mandor.";
 
-// Admin & supervisor: ubah status (BARU/DIPROSES/SELESAI) dan tanggapan yang
+// Defect hanya untuk supervisor; admin tidak melihat maupun mengubahnya.
+const hanyaSpv = (staf) => { if (staf.role === "ADMIN") throw new Error("Defect hanya dikelola supervisor."); };
+
+// Supervisor: ubah status (BARU/DIPROSES/SELESAI) dan tanggapan yang
 // tampil di halaman klien. Tidak ikut kunci deadline (keluhan sering datang
 // setelah serah terima).
 export async function ubahDefect(id, patch) {
   return jalan(async (staf) => {
+    hanyaSpv(staf);
     const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
     if (!d) throw new Error("Defect tidak ditemukan.");
     if (!bolehProyek(staf, await ambilProyek(d.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
@@ -457,6 +461,7 @@ export async function ubahDefect(id, patch) {
 // Hapus satu foto tanggapan (diunggah lewat app/api/portal/defect/tanggapan).
 export async function hapusFotoTanggapan(id, path) {
   return jalan(async (staf) => {
+    hanyaSpv(staf);
     const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
     if (!d) throw new Error("Defect tidak ditemukan.");
     if (!bolehProyek(staf, await ambilProyek(d.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
@@ -469,16 +474,18 @@ export async function hapusFotoTanggapan(id, path) {
   }, { admin: false });
 }
 
-// Hapus defect (mis. laporan dobel/iseng), hanya admin. Semua fotonya ikut dihapus.
+// Hapus defect (mis. laporan dobel/iseng), hanya supervisor proyeknya. Semua fotonya ikut dihapus.
 export async function hapusDefect(id) {
-  return jalan(async () => {
+  return jalan(async (staf) => {
+    hanyaSpv(staf);
     const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
     if (!d) throw new Error("Defect tidak ditemukan.");
+    if (!bolehProyek(staf, await ambilProyek(d.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
     if (d.checklist_id) throw new Error(`${DI_MANDOR} Batalkan itemnya di sana.`);
     await hapus("portal_defect", id);
     const foto = semuaFotoDefect(d);
     if (foto.length) await db().storage.from(BUCKET_DEFECT).remove(foto);
-  });
+  }, { admin: false });
 }
 
 /* ---------- Link klien ---------- */

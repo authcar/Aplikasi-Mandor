@@ -13,7 +13,7 @@ const PERAN = { ADMIN: "Admin", TUKANG: "Tukang" };
 // Pemberitahuan di lonceng: deadline yang tinggal 7 hari atau sudah lewat, dan
 // defect baru dari klien (kalau fiturnya aktif). Hanya proyek yang masih aktif.
 async function ambilNotif(staf, proyek) {
-  const defect = staf.role === "TUKANG" || !DEFECT_AKTIF ? {} : await hitungDefectBaru();
+  const defect = staf.role === "TUKANG" || staf.role === "ADMIN" || !DEFECT_AKTIF ? {} : await hitungDefectBaru();
   const notif = [];
   for (const p of proyek.filter((x) => x.aktif)) {
     const href = `/portal/proyek/${p.id}`;

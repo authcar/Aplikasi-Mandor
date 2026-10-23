@@ -25,7 +25,7 @@ import { kompresBanyakGambar, kompresGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const tanpaDefect = (tabs) => (DEFECT_AKTIF ? tabs : tabs.filter(([k]) => k !== "defect"));
-const TABS = tanpaDefect([["progres", "Progres"], ["defect", "Defect"], ["item", "Jasa tukang"], ["termin", "Termin"], ["info", "Info"]]);
+const TABS = tanpaDefect([["progres", "Progres"], ["item", "Jasa tukang"], ["termin", "Termin"], ["info", "Info"]]);
 const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["defect", "Defect"]]);
 const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
 
@@ -1280,7 +1280,7 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
         </div>
       </div>
       {d.diubah_at && <span className="small">Terakhir diubah {d.diubah_nama ? `oleh ${d.diubah_nama} ` : ""}{tgl(tglJkt(d.diubah_at))}</span>}
-      {(berubah || admin) && (
+      {(berubah || !admin) && (
         <div className="acts">
           {berubah && (
             <button type="button" className="act" disabled={aksi.sibuk}
@@ -1288,7 +1288,7 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
               Simpan tanggapan
             </button>
           )}
-          {admin && (
+          {!admin && (
             <button type="button" className="act bahaya" disabled={aksi.sibuk}
               onClick={() => confirm("Hapus laporan defect ini beserta fotonya?") && aksi.jalankan(() => A.hapusDefect(d.id), "Defect dihapus.")}>
               Hapus
