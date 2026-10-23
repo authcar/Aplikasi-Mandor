@@ -76,9 +76,9 @@ export default function Detail({ P }) {
   const areas = [...new Set(items.map((i) => i.area))];
   const nilaiT = nilaiTermin(P);
   const addon = P.addon || [];
-  // Total & sisa di tab Pembayaran sudah termasuk addon (penambahan biaya di luar nilai proyek).
+  // Nilai proyek tidak termasuk addon; hanya Sisa yang menghitung addon (sama seperti tampilan admin).
+  const total = totalNilai(nilaiT);
   const totalAddon = addon.reduce((a, x) => a + x.nilai, 0);
-  const total = totalNilai(nilaiT) + totalAddon;
   const dibayar = totalDibayar(P.termin, nilaiT) + addon.reduce((a, x) => a + (x.lunas_tgl ? x.nilai : 0), 0);
 
   return (
@@ -170,7 +170,7 @@ export default function Detail({ P }) {
               <div className="grid3">
                 <div className="stat"><div className="eb">Total nilai proyek</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)" }}>{total > 0 ? rp(total) : "—"}</div></div>
                 <div className="stat"><div className="eb">Sudah dibayar</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--ok)" }}>{rp(dibayar)}</div></div>
-                <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{total > 0 ? rp(Math.max(0, total - dibayar)) : "—"}</div></div>
+                <div className="stat"><div className="eb">Sisa</div><div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.1rem)", color: "var(--bad)" }}>{total > 0 ? rp(Math.max(0, total + totalAddon - dibayar)) : "—"}</div></div>
               </div>
             )}
             {/* Tanpa judul jenis termin ("Jasa produksi"): nilainya sudah tampil di Total nilai proyek. */}
