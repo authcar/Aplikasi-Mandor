@@ -9,7 +9,7 @@ import { ambilProyek, ambilBobotTahap, bacaProgres } from "@/lib/portal/data";
 import { hapusFotoItem } from "@/lib/portal/fotoItem";
 import { BUCKET_PROGRES, hapusFotoProgres } from "@/lib/portal/progresFoto";
 import { catatRiwayat } from "@/lib/portal/riwayat";
-import { BUCKET_DEFECT, hapusFotoDefect, semuaFotoDefect } from "@/lib/portal/defect";
+import { BUCKET_DEFECT, hapusFotoDefect } from "@/lib/portal/defect";
 import { FASE, JENIS, TAHAP, tahapItem, faseMenghalangi } from "@/lib/portal/progresBoq";
 import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
 
@@ -471,20 +471,6 @@ export async function hapusFotoTanggapan(id, path) {
       foto_tanggapan: d.foto_tanggapan.filter((p) => p !== path), diubah_oleh: staf.id, diubah_at: new Date().toISOString(),
     });
     await db().storage.from(BUCKET_DEFECT).remove([path]);
-  }, { admin: false });
-}
-
-// Hapus defect (mis. laporan dobel/iseng), hanya supervisor proyeknya. Semua fotonya ikut dihapus.
-export async function hapusDefect(id) {
-  return jalan(async (staf) => {
-    hanyaSpv(staf);
-    const d = await hasil(db().from("portal_defect").select("*").eq("id", id).maybeSingle());
-    if (!d) throw new Error("Defect tidak ditemukan.");
-    if (!bolehProyek(staf, await ambilProyek(d.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
-    if (d.checklist_id) throw new Error(`${DI_MANDOR} Batalkan itemnya di sana.`);
-    await hapus("portal_defect", id);
-    const foto = semuaFotoDefect(d);
-    if (foto.length) await db().storage.from(BUCKET_DEFECT).remove(foto);
   }, { admin: false });
 }
 

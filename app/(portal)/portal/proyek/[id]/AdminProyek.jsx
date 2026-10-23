@@ -1280,18 +1280,12 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
         </div>
       </div>
       {d.diubah_at && <span className="small">Terakhir diubah {d.diubah_nama ? `oleh ${d.diubah_nama} ` : ""}{tgl(tglJkt(d.diubah_at))}</span>}
-      {(berubah || !admin) && (
+      {berubah && (
         <div className="acts">
           {berubah && (
             <button type="button" className="act" disabled={aksi.sibuk}
               onClick={() => aksi.jalankan(() => A.ubahDefect(d.id, { tanggapan }), "Tanggapan disimpan.")}>
               Simpan tanggapan
-            </button>
-          )}
-          {!admin && (
-            <button type="button" className="act bahaya" disabled={aksi.sibuk}
-              onClick={() => confirm("Hapus laporan defect ini beserta fotonya?") && aksi.jalankan(() => A.hapusDefect(d.id), "Defect dihapus.")}>
-              Hapus
             </button>
           )}
         </div>
