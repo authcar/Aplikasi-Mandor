@@ -203,7 +203,7 @@ export default function Detail({ P }) {
             })}
             {addon.length > 0 && (
               <section className="card">
-                <h3 style={{ marginBottom: 8 }}>Addons / penambahan biaya</h3>
+                <h3 style={{ marginBottom: 8 }}>Addons</h3>
                 <ul className="tl">
                   {addon.map((x, n) => (
                     <li key={n}>

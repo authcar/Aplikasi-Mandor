@@ -954,7 +954,7 @@ function AddonBiaya({ proyek, addon, aksi }) {
   return (
     <section className="stack">
       <div className="row" style={{ marginTop: 6 }}>
-        <h2>Addons / penambahan biaya</h2>
+        <h2>Addons</h2>
         {total > 0 && <span className="small num">{rp(total)}</span>}
       </div>
       {addon.map((x) => (
