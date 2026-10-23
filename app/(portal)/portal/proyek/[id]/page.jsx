@@ -46,7 +46,7 @@ export default async function PortalProyekPage({ params }) {
     admin ? ambilSupervisor() : [],
     // Defect (dan sambungan ke Defect List Mandor) hanya dibaca kalau fiturnya aktif.
     DEFECT_AKTIF && !admin ? ambilDefect(proyek.id) : [], // defect hanya untuk supervisor
-    DEFECT_AKTIF && !admin ? cariProyekMandor(proyek.nama) : null,
+    DEFECT_AKTIF && !admin ? cariProyekMandor(proyek) : null,
     ambilFotoProgres(proyek.id),
     ambilRiwayat(proyek.id),
   ]);

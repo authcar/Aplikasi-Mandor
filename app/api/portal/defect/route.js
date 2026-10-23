@@ -39,7 +39,7 @@ export async function POST(req) {
   try {
     const link = await hasil(db().from("portal_link").select("proyek_id, nama").eq("token", token).maybeSingle());
     if (!link) return gagal("link tidak berlaku.", 404);
-    const proyek = await hasil(db().from("portal_proyek").select("id, nama").eq("id", link.proyek_id).maybeSingle());
+    const proyek = await hasil(db().from("portal_proyek").select("id, nama, supervisor_id").eq("id", link.proyek_id).maybeSingle());
     if (!proyek) return gagal("link tidak berlaku.", 404);
 
     let itemNama = null;
@@ -57,9 +57,9 @@ export async function POST(req) {
       .gte("created_at", `${hariIni()}T00:00:00+07:00`);
     if (count >= MAKS_PER_HARI) return gagal("sudah banyak laporan hari ini. Silakan hubungi tim Taraco langsung.", 429);
 
-    // Proyek yang namanya sama dengan proyek Mandor aktif: laporan masuk Defect
-    // List Mandor (fotonya di sana); portal_defect hanya menyimpan catatan klien.
-    const pm = await cariProyekMandor(proyek.nama);
+    // Proyek yang namanya sama dengan proyek Mandor aktif, atau yang supervisornya
+    // sama dengan supervisor proyek Mandor aktif: laporan masuk Defect List Mandor (fotonya di sana); portal_defect hanya menyimpan catatan klien.
+    const pm = await cariProyekMandor(proyek);
     if (pm) {
       const cl = await buatChecklistKlien(pm, { keterangan, pelapor: link.nama, itemNama, foto });
       try {
