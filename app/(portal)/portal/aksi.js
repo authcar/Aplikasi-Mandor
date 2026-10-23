@@ -17,7 +17,7 @@ const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k)
 
 const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "supervisor_id", "aktif", "timbang_harga", "nilai_proyek"];
 const F_ITEM = ["area", "kode", "nama", "jenis", "qty", "satuan", "dimensi", "harga", "harga_satuan", "tim", "bobot", "urutan", "foto", "hanya_jasa"];
-const F_TERMIN = ["urutan", "jenis", "label", "persen", "jatuh_tempo", "lunas_tgl", "dibayar"];
+const F_TERMIN = ["urutan", "jenis", "label", "persen", "jatuh_tempo", "lunas_tgl", "dibayar", "bukti"];
 
 async function jalan(fn, { admin = true } = {}) {
   try {
@@ -120,6 +120,7 @@ export async function ubahProyek(id, patch) {
 async function hapusSatuProyek(id) {
   const fotoItem = await hasil(db().from("portal_item").select("*").eq("proyek_id", id));
   await hapusFotoItem(fotoItem.flatMap((i) => i.foto || []));
+  await hapusFotoItem((await hasil(db().from("portal_termin").select("*").eq("proyek_id", id))).map((t) => t.bukti));
   await hapusFotoDefect(id); // baris defect ikut terhapus (cascade), fotonya tidak
   await hapusFotoProgres({ proyekId: id });
   await hapus("portal_proyek", id);
@@ -332,14 +333,22 @@ export async function ubahTermin(id, patch) {
     if (!t) throw new Error("Termin tidak ditemukan.");
     await cekTerbuka(t.proyek_id);
     if ("persen" in p) await cekTotalTermin(t.proyek_id, t.jenis || "produksi", Number(p.persen), id);
+    // Lunas hanya sah dengan foto bukti pembayaran.
+    if (p.lunas_tgl && !(("bukti" in p ? p.bukti : t.bukti) || "")) throw new Error("Unggah foto bukti pembayaran dulu.");
+    if (p.bukti && !String(p.bukti).startsWith(`${t.proyek_id}/`)) throw new Error("Foto bukti tidak valid.");
+    if ("bukti" in p && !p.bukti && t.lunas_tgl && !("lunas_tgl" in p)) throw new Error("Batalkan status lunas dulu.");
     await ubah("portal_termin", id, p);
+    // Bukti yang diganti atau dicabut dihapus dari storage.
+    if ("bukti" in p && t.bukti && t.bukti !== p.bukti) await hapusFotoItem([t.bukti]);
   });
 }
 
 export async function hapusTermin(id) {
   return jalan(async () => {
     await cekTerbuka(await proyekDari("portal_termin", "id", id));
+    const t = await hasil(db().from("portal_termin").select("*").eq("id", id).maybeSingle());
     await hapus("portal_termin", id);
+    await hapusFotoItem([t?.bukti]);
   });
 }
 

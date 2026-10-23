@@ -64,13 +64,10 @@ export default function Detail({ P }) {
   useSegarkan();
   const [tab, setTab] = useState("progres");
   const [bukaArea, setBukaArea] = useState(null); // satu area terbuka sekaligus
-  const now = hariIni();
-  const lalu = tambahHari(now, -7);
   const items = P.items.filter((i) => !i.hanya_jasa); // baris tanpa nomor hanya untuk Jasa tukang
   // Semua angka progres di halaman ini sudah termasuk persiapan & material
   // (persenKlien, lihat lib/portal/format.js); keterangannya tampil di bawah lingkaran.
   const p = persenKlien(persenProyek(items));
-  const naik = p - persenKlien(persenProyek(items, lalu));
   const [st, cls] = statusProyek(P);
   const [sisa, kelasSisa] = P.deadline ? labelDeadline(P.deadline) : [];
   const areas = [...new Set(items.map((i) => i.area))];
@@ -93,9 +90,6 @@ export default function Detail({ P }) {
         <Ring p={p} />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
           <span className={`badge ${cls}`} style={{ alignSelf: "flex-start" }}>{st}</span>
-          <div className="small">
-            {naik > 0 ? <><span className="delta">+{pct(naik)}</span> progress dalam 7 hari terakhir</> : "Tidak ada perubahan 7 hari terakhir"}
-          </div>
           {P.deadline && (
             <div className="small" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
               Deadline {tglTh(P.deadline)} <span className={`badge ${kelasSisa}`}>{sisa}</span>

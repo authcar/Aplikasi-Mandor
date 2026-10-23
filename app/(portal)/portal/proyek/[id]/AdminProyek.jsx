@@ -21,7 +21,7 @@ import {
 } from "@/lib/portal/format";
 import { bacaBoq, bacaItemSheet, formatLama } from "@/lib/portal/imporBoq";
 import * as A from "../../aksi";
-import { kompresBanyakGambar } from "@/lib/gambar";
+import { kompresBanyakGambar, kompresGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const tanpaDefect = (tabs) => (DEFECT_AKTIF ? tabs : tabs.filter(([k]) => k !== "defect"));
@@ -1009,6 +1009,21 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
   // Menandai lunas mengunci nominalnya, supaya tidak ikut berubah kalau harga diubah belakangan.
   const kunci = (t) => (n ? { dibayar: tagihanTermin(t, nilai) } : {});
   const lunas = (t, nama, tanggal) => ubah(t.id, { lunas_tgl: tanggal, ...kunci(t) }, `${nama} lunas ${tgl(tanggal)}.`);
+  // Foto bukti pembayaran: dikecilkan di browser, diunggah lewat route (bukan server action, batas 1 MB), lalu path-nya disimpan di termin.
+  const unggahBukti = (t, nama) => async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await aksi.jalankan(async () => {
+      const fd = new FormData();
+      fd.append("proyek_id", proyek.id);
+      fd.append("foto", await kompresGambar(file, { sisiMaks: 1280, kualitas: 0.75 }));
+      const r = await fetch("/api/portal/item-foto", { method: "POST", body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.path) return { error: j.error || "foto gagal diunggah." };
+      return A.ubahTermin(t.id, { bukti: j.path });
+    }, `Bukti pembayaran ${nama} diunggah.`);
+  };
   const standar = polaPersen(terminStandar().map(([, p]) => p));
   const sesuai = polaPersen(termin.map((t) => t.persen)) === standar;
   const adaBayar = termin.some((t) => t.lunas_tgl || Number(t.dibayar) > 0);
@@ -1077,12 +1092,23 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
                     Nominal lunas belum dikunci, jadi masih mengikuti nilai proyek.{n ? " Ketuk “Kunci nominal” untuk menguncinya." : ""}
                   </p>
                 )}
+                {/* Foto bukti pembayaran wajib sebelum termin bisa ditandai lunas. */}
+                <div className="row" style={{ alignItems: "center", gap: 10 }}>
+                  {t.bukti_url && <FotoItem nama={`Bukti ${nama}`} foto={[t.bukti_url]} />}
+                  {!t.lunas_tgl && (
+                    <label className="act" style={{ cursor: "pointer" }}>
+                      {t.bukti ? "Ganti foto bukti" : "Unggah foto bukti"}
+                      <input type="file" accept="image/*" hidden disabled={aksi.sibuk} onChange={unggahBukti(t, nama)} />
+                    </label>
+                  )}
+                  {!t.bukti && <span className="small">Wajib sebelum ditandai lunas.</span>}
+                </div>
                 <div className="acts">
                   {!t.lunas_tgl ? (
-                    <button type="button" className="act" disabled={aksi.sibuk} onClick={() => lunas(t, nama, hariIni())}>Lunas hari ini</button>
+                    <button type="button" className="act" disabled={aksi.sibuk || !t.bukti} onClick={() => lunas(t, nama, hariIni())}>Lunas hari ini</button>
                   ) : (
                     <button type="button" className="act" disabled={aksi.sibuk}
-                      onClick={() => confirm(`Batalkan status lunas ${nama}?`) && ubah(t.id, { lunas_tgl: null, dibayar: null }, `Status lunas ${nama} dibatalkan.`)}>
+                      onClick={() => confirm(`Batalkan status lunas ${nama}? Foto bukti pembayarannya ikut dihapus.`) && ubah(t.id, { lunas_tgl: null, dibayar: null, bukti: null }, `Status lunas ${nama} dibatalkan.`)}>
                       Batalkan lunas
                     </button>
                   )}
