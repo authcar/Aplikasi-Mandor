@@ -20,13 +20,19 @@ export default async function PortalBeranda() {
   const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));
 
   const hari = hariIni();
-  const sebelumSenin = tambahHari(hari, -((new Date(`${hari}T00:00:00Z`).getUTCDay() + 6) % 7) - 1); // hari Minggu lalu
+  const seninDari = (d) => tambahHari(d, -((new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7));
+  const seninIni = seninDari(hari);
+  const sebelumSenin = tambahHari(seninIni, -1); // hari Minggu lalu
   const kartu = proyek.map((p) => {
     const its = items.filter((i) => i.proyek_id === p.id);
     const v = persenProyek(its);
     const [status, kelas] = statusProyek({ ...p, items: its });
+    // Minggu kalender (Senin-Minggu) tempat proyek dibuat adalah minggu 1 dan
+    // belum dinilai; peringatan baru berlaku mulai minggu ke-2.
+    const masuk = p.created_at ? new Date(p.created_at).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) : null;
+    const mingguPertama = !!masuk && seninDari(masuk) >= seninIni;
     // Ada kenaikan progres sejak Senin minggu kalender ini?
-    const adaProgres = v - persenProyek(its, sebelumSenin) > 0.005;
+    const adaProgres = mingguPertama || v - persenProyek(its, sebelumSenin) > 0.005;
     return {
       id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
       n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null,
