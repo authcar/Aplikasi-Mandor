@@ -37,6 +37,8 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
   const aksi = useAksi();
   const nilai = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
   const nilaiT = nilaiTermin({ ...proyek, items });
+  const totalAddon = addon.reduce((a, x) => a + x.nilai, 0);
+  const nilaiProyek = totalNilai(nilaiT) + totalAddon; // nilai proyek + addon
   const kunci = lewatDeadline(proyek);
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [status, kelasStatus] = statusProyek({ ...proyek, items });
@@ -76,9 +78,9 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
         {tukang && <KartuJasaSaya items={items} />}
         {admin && <div className="stat">
           <div className="eb">Nilai proyek</div>
-          <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{totalNilai(nilaiT) ? rp(totalNilai(nilaiT)) : "—"}</div>
+          <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{nilaiProyek ? rp(nilaiProyek) : "—"}</div>
           <div className="s">
-            {totalNilai(nilaiT) ? (nilai ? `jasa tukang ${rp(nilai)}` : "diisi di tab Termin") : "isi di tab Termin"}
+            {nilaiProyek ? (totalAddon ? `termasuk addon ${rp(totalAddon)}` : nilai ? `jasa tukang ${rp(nilai)}` : "diisi di tab Termin") : "isi di tab Termin"}
           </div>
         </div>}
       </div>
