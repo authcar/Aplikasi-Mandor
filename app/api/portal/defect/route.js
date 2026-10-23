@@ -14,8 +14,20 @@ const MAKS_BYTE_FOTO = 8 * 1024 * 1024; // foto sudah dikompres di HP (lib/gamba
 const gagal = (error, status = 400) => NextResponse.json({ error }, { status });
 
 // POST /api/portal/defect — klien mengirim defect dari link /k/[token] (tanpa
-// login). multipart: token, keterangan, item_id (opsional), foto (0..5 file).
+// login). multipart: token, keterangan, area (opsional), foto (0..5 file).
 // Tidak ikut kunci deadline: keluhan justru sering datang setelah serah terima.
+// Simpan baris portal_defect. Kolom `area` belum ada (add_portal_defect_area.sql
+// belum dijalankan) -> area dimasukkan ke awal keterangan supaya tidak hilang.
+async function simpanDefect(row) {
+  try {
+    await hasil(db().from("portal_defect").insert(row));
+  } catch (e) {
+    if (!row.area || !/area/i.test(e.message || "")) throw e;
+    const { area, ...tanpa } = row;
+    await hasil(db().from("portal_defect").insert({ ...tanpa, keterangan: `[${area}] ${row.keterangan}` }));
+  }
+}
+
 export async function POST(req) {
   if (!DEFECT_AKTIF) return gagal("fitur defect sedang dinonaktifkan.", 403);
   let form;
@@ -26,7 +38,7 @@ export async function POST(req) {
   }
   const token = String(form.get("token") || "");
   const keterangan = String(form.get("keterangan") || "").trim();
-  const itemId = String(form.get("item_id") || "") || null;
+  const area = String(form.get("area") || "").trim().slice(0, 100) || null;
   const foto = form.getAll("foto").filter((f) => f && typeof f === "object" && f.size > 0);
 
   if (!/^[\w-]{20,}$/.test(token)) return gagal("link tidak berlaku.", 404);
@@ -42,12 +54,10 @@ export async function POST(req) {
     const proyek = await hasil(db().from("portal_proyek").select("id, nama, lokasi, supervisor_id").eq("id", link.proyek_id).maybeSingle());
     if (!proyek) return gagal("link tidak berlaku.", 404);
 
-    let itemNama = null;
-    if (itemId) {
-      if (!UUID.test(itemId)) return gagal("item tidak valid.");
-      const it = await hasil(db().from("portal_item").select("proyek_id, nama").eq("id", itemId).maybeSingle());
-      if (it?.proyek_id !== proyek.id) return gagal("item tidak valid.");
-      itemNama = it.nama;
+    // Area harus salah satu area BOQ proyek ini.
+    if (area) {
+      const ada = await hasil(db().from("portal_item").select("id").eq("proyek_id", proyek.id).eq("area", area).limit(1));
+      if (!ada.length) return gagal("area tidak valid.");
     }
 
     const { count } = await db()
@@ -61,12 +71,9 @@ export async function POST(req) {
     // dibuat otomatis kalau belum ada (fotonya di sana); portal_defect hanya menyimpan catatan klien.
     const pm = await pastikanProyekMandor(proyek);
     if (pm) {
-      const cl = await buatChecklistKlien(pm, { keterangan, pelapor: link.nama, itemNama, foto });
+      const cl = await buatChecklistKlien(pm, { keterangan, pelapor: link.nama, area, foto });
       try {
-        await hasil(
-          db().from("portal_defect")
-            .insert({ proyek_id: proyek.id, item_id: itemId, keterangan, pelapor: link.nama || null, checklist_id: cl.id })
-        );
+        await simpanDefect({ proyek_id: proyek.id, area, keterangan, pelapor: link.nama || null, checklist_id: cl.id });
       } catch (e) {
         await cl.hapus();
         throw e;
@@ -89,9 +96,7 @@ export async function POST(req) {
         if (error) throw new Error(`foto gagal diunggah (${error.message}).`);
         paths.push(path);
       }
-      await hasil(
-        db().from("portal_defect").insert({ proyek_id: proyek.id, item_id: itemId, keterangan, pelapor: link.nama || null, foto: paths })
-      );
+      await simpanDefect({ proyek_id: proyek.id, area, keterangan, pelapor: link.nama || null, foto: paths });
     } catch (e) {
       if (paths.length) await db().storage.from(BUCKET_DEFECT).remove(paths);
       throw e;

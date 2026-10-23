@@ -10,11 +10,11 @@ const MAKS_FOTO = 5; // sama dengan MAKS_FOTO_DEFECT di lib/portal/defect.js
 const tglJkt = (ts) => new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
 // Tab Defect di halaman klien: form keluhan (bisa beberapa item sekaligus;
-// tiap baris = item opsional, keterangan, foto) dan daftar keluhan yang sudah
+// tiap baris = area opsional, keterangan, foto) dan daftar keluhan yang sudah
 // dikirim beserta status & tanggapan tim. Tiap baris dikirim terpisah ke
 // app/api/portal/defect (multipart), jadi tiap keluhan punya status sendiri.
 let nomor = 0;
-const barisBaru = () => ({ id: ++nomor, itemId: "", ket: "", foto: [] }); // foto: [{ file, url }]
+const barisBaru = () => ({ id: ++nomor, area: "", ket: "", foto: [] }); // foto: [{ file, url }]
 const lepas = (foto) => foto.forEach((f) => URL.revokeObjectURL(f.url));
 
 export default function Defect({ items, defect }) {
@@ -44,7 +44,7 @@ export default function Defect({ items, defect }) {
     e.target.value = "";
     if (!files.length) return;
     const sisa = MAKS_FOTO - (baris.find((b) => b.id === id)?.foto.length || 0);
-    if (files.length > sisa) setPesan([`Maksimal ${MAKS_FOTO} foto per item. ${files.length - sisa} foto tidak ditambahkan.`, "b-warn"]);
+    if (files.length > sisa) setPesan([`Maksimal ${MAKS_FOTO} foto per laporan. ${files.length - sisa} foto tidak ditambahkan.`, "b-warn"]);
     // Dikompres di HP dulu (1600px) supaya cepat terkirim lewat sinyal lemah.
     setBusy("Menyiapkan foto…");
     const siap = await kompresBanyakGambar(files.slice(0, Math.max(0, sisa)));
@@ -64,10 +64,10 @@ export default function Defect({ items, defect }) {
 
   async function kirim(e) {
     e.preventDefault();
-    const isi = baris.filter((b) => b.ket.trim() || b.foto.length || b.itemId);
+    const isi = baris.filter((b) => b.ket.trim() || b.foto.length || b.area);
     if (!isi.length) return setPesan(["Tuliskan keterangan keluhannya dulu.", "b-warn"]);
     const kosong = isi.findIndex((b) => !b.ket.trim());
-    if (kosong >= 0) return setPesan([`Keterangan item ${baris.indexOf(isi[kosong]) + 1} belum diisi.`, "b-warn"]);
+    if (kosong >= 0) return setPesan([`Keterangan laporan ${baris.indexOf(isi[kosong]) + 1} belum diisi.`, "b-warn"]);
     setPesan(null);
     // Dikirim satu per satu; yang berhasil keluar dari form, yang gagal tetap
     // di form supaya bisa dikirim ulang tanpa mengetik lagi.
@@ -78,7 +78,7 @@ export default function Defect({ items, defect }) {
       const fd = new FormData();
       fd.set("token", token);
       fd.set("keterangan", b.ket.trim());
-      if (b.itemId) fd.set("item_id", b.itemId);
+      if (b.area) fd.set("area", b.area);
       b.foto.forEach((f) => fd.append("foto", f.file));
       try {
         const r = await fetch("/api/portal/defect", { method: "POST", body: fd });
@@ -115,25 +115,21 @@ export default function Defect({ items, defect }) {
           <h3>Laporkan defect</h3>
           <p className="small" style={{ margin: "4px 0 0" }}>
             Ada bagian yang kurang rapi atau rusak? Ceritakan dan lampirkan foto, tim kami akan menindaklanjuti.
-            Bisa beberapa item sekaligus.
+            Bisa beberapa laporan sekaligus.
           </p>
         </div>
         {baris.map((b, n) => (
           <fieldset key={b.id} className="defect-baris" disabled={!!busy}>
             {baris.length > 1 && (
               <div className="row" style={{ alignItems: "center" }}>
-                <b className="small" style={{ fontWeight: 700 }}>Item {n + 1}</b>
+                <b className="small" style={{ fontWeight: 700 }}>Laporan {n + 1}</b>
                 <button type="button" className="act" onClick={() => hapusBaris(b.id)}>Hapus</button>
               </div>
             )}
-            <label className="lbl">Item (opsional)
-              <select className="inp" value={b.itemId} onChange={(e) => ubah(b.id, { itemId: e.target.value })}>
+            <label className="lbl">Area (opsional)
+              <select className="inp" value={b.area} onChange={(e) => ubah(b.id, { area: e.target.value })}>
                 <option value="">Umum / tidak spesifik</option>
-                {areas.map((a) => (
-                  <optgroup key={a} label={a}>
-                    {items.filter((i) => i.area === a).map((i) => <option key={i.id} value={i.id}>{i.nama}</option>)}
-                  </optgroup>
-                ))}
+                {areas.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
             </label>
             <label className="lbl">Keterangan
@@ -160,7 +156,7 @@ export default function Defect({ items, defect }) {
           </fieldset>
         ))}
         <button type="button" className="act tambah-baris" disabled={!!busy} onClick={() => setBaris((bs) => [...bs, barisBaru()])}>
-          + Tambah item lain
+          + Tambah laporan lain
         </button>
         {pesan && <p className={`note ${pesan[1]}`}>{pesan[0]}</p>}
         <button className="btn" disabled={!!busy}>
@@ -186,7 +182,7 @@ export default function Defect({ items, defect }) {
             return (
               <div key={d.id} className="defect-baris" style={{ gap: 8 }}>
                 <div className="row" style={{ alignItems: "center" }}>
-                  <span className="small">{tglTh(tglJkt(d.created_at))}{d.item_id && namaItem[d.item_id] ? ` · ${namaItem[d.item_id]}` : ""}</span>
+                  <span className="small">{tglTh(tglJkt(d.created_at))}{d.area ? ` · ${d.area}` : d.item_id && namaItem[d.item_id] ? ` · ${namaItem[d.item_id]}` : ""}</span>
                   <span className={`badge ${cls}`}>{lab}</span>
                 </div>
                 <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{d.keterangan}</p>

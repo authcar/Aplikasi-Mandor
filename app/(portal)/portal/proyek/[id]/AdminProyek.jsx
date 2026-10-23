@@ -1219,7 +1219,7 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
         <span style={{ minWidth: 0, flex: 1 }}>
           <span className="nm">{d.keterangan}</span>
           <span className="small">
-            {[tglTh(tglJkt(d.created_at)), d.pelapor, d.item_id && namaItem[d.item_id]].filter(Boolean).join(" · ")}
+            {[tglTh(tglJkt(d.created_at)), d.pelapor, d.area || (d.item_id && namaItem[d.item_id])].filter(Boolean).join(" · ")}
           </span>
         </span>
         <span className={`badge ${cls}`}>{lab}</span>
