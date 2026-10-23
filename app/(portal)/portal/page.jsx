@@ -27,9 +27,11 @@ export default async function PortalBeranda() {
     const its = items.filter((i) => i.proyek_id === p.id);
     const v = persenProyek(its);
     const [status, kelas] = statusProyek({ ...p, items: its });
-    // Minggu kalender (Senin-Minggu) tempat proyek dibuat adalah minggu 1 dan
-    // belum dinilai; peringatan baru berlaku mulai minggu ke-2.
-    const masuk = p.created_at ? new Date(p.created_at).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) : null;
+    // Minggu kerja Senin-Sabtu (Minggu libur) tempat proyek dibuat adalah minggu 1
+    // dan belum dinilai; peringatan baru berlaku mulai minggu ke-2. Proyek yang
+    // dibuat hari Minggu masuk minggu depannya.
+    let masuk = p.created_at ? new Date(p.created_at).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) : null;
+    if (masuk && new Date(`${masuk}T00:00:00Z`).getUTCDay() === 0) masuk = tambahHari(masuk, 1);
     const mingguPertama = !!masuk && seninDari(masuk) >= seninIni;
     // Ada kenaikan progres sejak Senin minggu kalender ini?
     const adaProgres = mingguPertama || v - persenProyek(its, sebelumSenin) > 0.005;
