@@ -75,8 +75,11 @@ export default function Detail({ P }) {
   const [sisa, kelasSisa] = P.deadline ? labelDeadline(P.deadline) : [];
   const areas = [...new Set(items.map((i) => i.area))];
   const nilaiT = nilaiTermin(P);
-  const total = totalNilai(nilaiT);
-  const dibayar = totalDibayar(P.termin, nilaiT);
+  const addon = P.addon || [];
+  // Total & sisa di tab Pembayaran sudah termasuk addon (penambahan biaya di luar nilai proyek).
+  const totalAddon = addon.reduce((a, x) => a + x.nilai, 0);
+  const total = totalNilai(nilaiT) + totalAddon;
+  const dibayar = totalDibayar(P.termin, nilaiT) + addon.reduce((a, x) => a + (x.lunas_tgl ? x.nilai : 0), 0);
 
   return (
     <main className="wrap">
@@ -159,7 +162,7 @@ export default function Detail({ P }) {
       )}
 
       {tab === "bayar" && (
-        !P.termin.length ? (
+        !P.termin.length && !addon.length ? (
           <div className="card small">Jadwal pembayaran belum tersedia.</div>
         ) : (
           <>
@@ -198,6 +201,23 @@ export default function Detail({ P }) {
                 </section>
               );
             })}
+            {addon.length > 0 && (
+              <section className="card">
+                <h3 style={{ marginBottom: 8 }}>Addons / penambahan biaya</h3>
+                <ul className="tl">
+                  {addon.map((x, n) => (
+                    <li key={n}>
+                      <span className={`dot ${x.lunas_tgl ? "ok" : ""}`} />
+                      <div>
+                        <b style={{ fontWeight: 500 }}>{x.nama}</b>
+                        <div className="num">{rp(x.nilai)}</div>
+                      </div>
+                      <span className={`badge ${x.lunas_tgl ? "b-ok" : "b-n"}`}>{x.lunas_tgl ? `Lunas ${tgl(x.lunas_tgl)}` : "Belum"}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </>
         )
       )}
