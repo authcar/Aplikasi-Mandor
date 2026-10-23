@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { kompresBanyakGambar } from "@/lib/gambar";
 import { tgl, tglTh, STATUS_DEFECT } from "@/lib/portal/format";
+import { Memuat } from "../../portal/Pesan";
 
 const MAKS_FOTO = 5; // sama dengan MAKS_FOTO_DEFECT di lib/portal/defect.js
 // Timestamp -> "YYYY-MM-DD" waktu Jakarta.
@@ -107,6 +108,8 @@ export default function Defect({ items, defect }) {
 
   return (
     <>
+      {/* Pop up loading selama foto disiapkan / laporan dikirim; teksnya = tahap yang sedang berjalan. */}
+      {busy && <Memuat keterangan={busy.replace(/…$/, "")} />}
       <form className="card stack" onSubmit={kirim}>
         <div>
           <h3>Laporkan defect</h3>

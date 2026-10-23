@@ -9,7 +9,8 @@ import KotaGlow from "./proyek/[id]/KotaGlow";
 // bilah yang berjalan. Ketuk kartunya untuk menyembunyikan (proses tetap jalan).
 const KETERANGAN = ["Menyimpan perubahan", "Merapikan data", "Hampir selesai"];
 
-function Memuat({ aksi }) {
+// `keterangan` (opsional) = teks tetap pengganti keterangan yang berganti-ganti, mis. untuk halaman klien.
+export function Memuat({ aksi = {}, keterangan }) {
   const [n, setN] = useState(0);
   const [sembunyi, setSembunyi] = useState(false);
   useEffect(() => {
@@ -22,7 +23,7 @@ function Memuat({ aksi }) {
       <div className="memuat-k memuat-kota">
         <div className="memuat-gbr"><KotaGlow /></div>
         <div className="memuat-t">
-          <span key={aksi.memuat ? "m" : n} className="memuat-ket">{aksi.memuat ? "Memuat data terbaru" : KETERANGAN[n]}<i className="titik" aria-hidden="true" /></span>
+          <span key={keterangan || (aksi.memuat ? "m" : n)} className="memuat-ket">{keterangan || (aksi.memuat ? "Memuat data terbaru" : KETERANGAN[n])}<i className="titik" aria-hidden="true" /></span>
           <span className="memuat-bar" aria-hidden="true"><i /></span>
           <span className="memuat-tip">Ketuk untuk menyembunyikan</span>
         </div>
