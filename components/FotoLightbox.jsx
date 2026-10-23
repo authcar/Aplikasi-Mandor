@@ -23,7 +23,8 @@ export default function FotoLightbox({ src, driveUrl, caption, type = "foto", it
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(index);
 
-  const galeri = items && items.length > 1 ? items : null;
+  // Galeri berisi 1 foto tetap memakai `items` (MediaGallery tidak mengirim `src` sendiri); panah & nomor hanya untuk >1.
+  const galeri = items && items.length ? items : null;
   const current = galeri ? galeri[activeIndex] : { src, driveUrl, caption, type };
   const hasPrev = !!galeri && activeIndex > 0;
   const hasNext = !!galeri && activeIndex < galeri.length - 1;
@@ -79,7 +80,7 @@ export default function FotoLightbox({ src, driveUrl, caption, type = "foto", it
             <div className="flex shrink-0 items-center justify-between px-4 py-3">
               <span className="truncate text-sm font-semibold text-white">
                 {current.caption || "Foto"}
-                {galeri && ` (${activeIndex + 1}/${galeri.length})`}
+                {galeri && galeri.length > 1 && ` (${activeIndex + 1}/${galeri.length})`}
               </span>
               <button
                 type="button"
