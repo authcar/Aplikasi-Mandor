@@ -7,7 +7,7 @@ import { tahapItem, tahapTerakhir } from "@/lib/portal/progresBoq";
 import * as A from "../../aksi";
 
 const MAKS_PER_UNGGAH = 10; // sama dengan app/api/portal/progres-foto
-const MAKS_FOTO = 20; // sama dengan MAKS_FOTO_PROGRES di lib/portal/progresFoto.js
+const MAKS_FOTO = 50; // sama dengan MAKS_FOTO_PROGRES di lib/portal/progresFoto.js
 const tglJkt = (ts) => new Date(ts).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short" });
 const berhenti = (e) => e.stopPropagation();
 
