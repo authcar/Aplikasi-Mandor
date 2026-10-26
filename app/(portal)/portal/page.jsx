@@ -23,6 +23,10 @@ export default async function PortalBeranda() {
   const seninDari = (d) => tambahHari(d, -((new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7));
   const seninIni = seninDari(hari);
   const sebelumSenin = tambahHari(seninIni, -1); // hari Minggu lalu
+  // Laporan progres dikumpulkan Sabtu jam 12.00 WIB: peringatan "tidak ada progress"
+  // baru muncul sesudah batas itu (Sabtu >= 12.00 dan Minggu), bukan sepanjang minggu.
+  const sekarang = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+  const lewatBatas = sekarang.getDay() === 0 || (sekarang.getDay() === 6 && sekarang.getHours() >= 12);
   const kartu = proyek.map((p) => {
     const its = items.filter((i) => i.proyek_id === p.id);
     const v = persenProyek(its);
@@ -35,11 +39,13 @@ export default async function PortalBeranda() {
     const mingguPertama = !!masuk && seninDari(masuk) >= seninIni;
     // Ada kenaikan progres sejak Senin minggu kalender ini?
     const adaProgres = mingguPertama || v - persenProyek(its, sebelumSenin) > 0.005;
+    // Tanggal catatan progres terbaru di antara semua item proyek.
+    const terakhir = its.flatMap((i) => Object.values(i.progres || {})).filter(Boolean).sort().pop() || null;
     return {
       id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
       n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null,
       sisa: p.deadline && p.aktif ? [lewatDeadline(p) ? "Terkunci" : labelDeadline(p.deadline)[0], labelDeadline(p.deadline)[1]] : null,
-      status, kelas, persen: v, adaProgres, persenTeks: pct(v), defect: defectBaru[p.id] || 0,
+      status, kelas, persen: v, adaProgres: adaProgres || !lewatBatas, terakhir: terakhir ? tglTh(terakhir) : null, persenTeks: pct(v), defect: defectBaru[p.id] || 0,
     };
   });
 

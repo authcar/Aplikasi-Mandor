@@ -35,6 +35,7 @@ function Kartu({ k, pilih, dipilih, onToggle }) {
       </div>
       <div className="bar"><i style={{ width: `${k.persen}%` }} /></div>
       {k.aktif && k.n > 0 && k.persen < 99.995 && !k.adaProgres && <div className="small" style={{ marginTop: -2, color: "var(--bad)", fontWeight: 700 }}>Tidak ada progress minggu ini</div>}
+      {k.n > 0 && k.terakhir && <div className="small" style={{ marginTop: -2 }}>Terakhir update {k.terakhir}</div>}
       <div className="kpi">
         <div><b className="num">{k.persenTeks}</b><span>Progres</span></div>
         <div><b className="num">{k.n}</b><span>Item</span></div>
