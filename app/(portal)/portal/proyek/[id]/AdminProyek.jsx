@@ -541,6 +541,13 @@ function TabItem({ proyek, items, aksi }) {
                     </div>
                     <Isian label="Tim tukang" nilai={it.tim} list="daftar-tim" placeholder="mis. Mas Alan"
                       onSimpan={(v) => ubah(it.id, { tim: v || null }, v ? `${it.nama} dikerjakan tim ${v}.` : `Tim ${it.nama} dikosongkan.`)} />
+                    <label className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <input type="checkbox" checked={!!it.hanya_jasa} disabled={aksi.sibuk}
+                        onChange={(e) => ubah(it.id, { hanya_jasa: e.target.checked }, e.target.checked
+                          ? `${it.nama} hanya untuk jasa tukang (tidak tampil di klien & progres).`
+                          : `${it.nama} kembali ikut progres & tampil di klien.`)} />
+                      Hanya jasa tukang (tidak tampil di klien &amp; progres)
+                    </label>
                     <button type="button" className="act bahaya" disabled={aksi.sibuk}
                       onClick={() => confirm(`Hapus "${it.nama}" beserta progresnya?`) && aksi.jalankan(() => A.hapusItem(it.id), `${it.nama} dihapus.`)}>
                       Hapus item
@@ -670,7 +677,7 @@ function KartuJasaSaya({ items }) {
 }
 
 function TambahItem({ proyek, areas, urutan, aksi }) {
-  const kosong = { area: areas[areas.length - 1] || "", nama: "", kode: "", jenis: "HPL", qty: "1", satuan: "unit", dimensi: "", harga_satuan: null, harga: null, tim: "" };
+  const kosong = { area: areas[areas.length - 1] || "", nama: "", kode: "", jenis: "HPL", qty: "1", satuan: "unit", dimensi: "", harga_satuan: null, harga: null, tim: "", hanya_jasa: false };
   const [f, setF] = useState(kosong);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   // Area dipilih dari dropdown (semua area proyek + Lain-lain); "+ Area baru…" membuka kolom ketik.
@@ -685,7 +692,7 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
         const ok = await aksi.jalankan(() => A.tambahItem(proyek.id, [{
           area: f.area.trim(), nama, kode: f.kode.trim() || null, jenis: f.jenis, qty: angka(f.qty) || 1,
           satuan: f.satuan.trim() || null, dimensi: f.dimensi.trim() || null, harga_satuan: f.harga_satuan, harga: f.harga,
-          tim: f.tim.trim() || null, bobot: 1, urutan,
+          tim: f.tim.trim() || null, bobot: 1, urutan, hanya_jasa: f.hanya_jasa,
         }]), `${nama} ditambahkan.`);
         // Area dan tim dipertahankan untuk item berikutnya.
         if (ok) setF({ ...kosong, area: f.area, tim: f.tim });
@@ -722,6 +729,10 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
           </label>
         </div>
         <label className="lbl">Tim tukang<input className="inp" list="daftar-tim" value={f.tim} onChange={set("tim")} placeholder="mis. Mas Alan" /></label>
+        <label className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input type="checkbox" checked={f.hanya_jasa} onChange={(e) => setF({ ...f, hanya_jasa: e.target.checked })} />
+          Hanya jasa tukang (aksesoris, LED strip; tidak tampil di klien &amp; progres)
+        </label>
         <button className="btn" disabled={aksi.sibuk || !f.nama.trim() || !f.area.trim()}>Tambah item</button>
       </form>
     </>
