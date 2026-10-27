@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import { KLASIFIKASI_MANPOWER, KOLOM_MANPOWER, jumlahManpower, susunManpower } from "@/lib/manpower";
 
@@ -11,20 +11,55 @@ const dariServer = (rows) =>
     ])
   );
 
+const JEDA_SIMPAN = 700; // ms setelah ketikan terakhir
+
 // Input Man Power hari ini untuk proyek yang dipilih (tabel MAN POWER di PDF).
-// Disimpan terpisah dari kegiatan, jadi bisa diisi/diubah kapan pun hari itu.
+// Tersimpan otomatis beberapa saat setelah berhenti mengetik; terpisah dari
+// kegiatan, jadi bisa diisi/diubah kapan pun hari itu.
 export default function ManpowerCard({ proyekId }) {
   const [buka, setBuka] = useState(false);
   const [nilai, setNilai] = useState(() => dariServer([]));
   const [memuat, setMemuat] = useState(false);
-  const [simpan, setSimpan] = useState(false);
-  const [pesan, setPesan] = useState(null); // { ok, teks }
+  const [status, setStatus] = useState(null); // { tipe: "simpan" | "ok" | "galat", teks }
+  const timer = useRef(null);
+  const tertunda = useRef(null); // { proyek, data } yang belum terkirim
+  const rantai = useRef(Promise.resolve()); // PUT dikirim berurutan, tidak saling menyalip
+
+  const kirim = ({ proyek, data }) => {
+    setStatus({ tipe: "simpan", teks: "Menyimpan…" });
+    rantai.current = rantai.current.then(async () => {
+      try {
+        const res = await fetch("/api/laporan-harian/manpower", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            proyek_id: proyek,
+            rows: KLASIFIKASI_MANPOWER.map((nama) => ({ klasifikasi: nama, ...data[nama] })),
+          }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j.error || "Gagal menyimpan.");
+        if (!tertunda.current) setStatus({ tipe: "ok", teks: "Tersimpan ✓" });
+      } catch (e) {
+        setStatus({ tipe: "galat", teks: `${e.message} Ketik ulang untuk mencoba lagi.` });
+      }
+    });
+  };
+
+  // Kirim sekarang juga apa pun yang masih menunggu jeda (ganti proyek / tutup halaman).
+  const bilas = () => {
+    clearTimeout(timer.current);
+    timer.current = null;
+    const p = tertunda.current;
+    tertunda.current = null;
+    if (p) kirim(p);
+  };
 
   useEffect(() => {
     if (!proyekId) return;
     let batal = false;
     setMemuat(true);
-    setPesan(null);
+    setStatus(null);
     fetch(`/api/laporan-harian/manpower?proyek_id=${proyekId}`)
       .then((r) => r.json())
       .then((j) => {
@@ -34,37 +69,21 @@ export default function ManpowerCard({ proyekId }) {
       .finally(() => !batal && setMemuat(false));
     return () => {
       batal = true;
+      bilas();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proyekId]);
 
   const ubah = (nama, key, v) => {
-    setPesan(null);
-    setNilai((n) => ({ ...n, [nama]: { ...n[nama], [key]: v.replace(/\D/g, "").slice(0, 3) } }));
+    const baru = { ...nilai, [nama]: { ...nilai[nama], [key]: v.replace(/\D/g, "").slice(0, 3) } };
+    setNilai(baru);
+    tertunda.current = { proyek: proyekId, data: baru };
+    setStatus({ tipe: "simpan", teks: "Menyimpan…" });
+    clearTimeout(timer.current);
+    timer.current = setTimeout(bilas, JEDA_SIMPAN);
   };
 
   const totalHadir = KLASIFIKASI_MANPOWER.reduce((s, nama) => s + jumlahManpower(nilai[nama]), 0);
-
-  const simpanSemua = async () => {
-    setSimpan(true);
-    setPesan(null);
-    try {
-      const res = await fetch("/api/laporan-harian/manpower", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          proyek_id: proyekId,
-          rows: KLASIFIKASI_MANPOWER.map((nama) => ({ klasifikasi: nama, ...nilai[nama] })),
-        }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j.error || "Gagal menyimpan.");
-      setPesan({ ok: true, teks: "Man Power tersimpan ✓" });
-    } catch (e) {
-      setPesan({ ok: false, teks: e.message });
-    } finally {
-      setSimpan(false);
-    }
-  };
 
   return (
     <div className="card overflow-hidden">
@@ -114,18 +133,16 @@ export default function ManpowerCard({ proyekId }) {
             ))}
           </div>
           <p className="text-[11px] text-gray-400">
-            Site = hadir di lokasi, Ws = hadir di workshop. Jumlah di PDF = Site + Ws + Lembur.
+            Site = hadir di lokasi, Ws = hadir di workshop. Jumlah di PDF = Site + Ws + Lembur. Tersimpan otomatis.
           </p>
-          <button
-            type="button"
-            onClick={simpanSemua}
-            disabled={simpan || memuat}
-            className="w-full rounded-xl bg-brand/10 py-2.5 text-sm font-semibold text-brand active:opacity-70 disabled:opacity-50"
-          >
-            {simpan ? "Menyimpan…" : "Simpan Man Power"}
-          </button>
-          {pesan && (
-            <p className={`text-xs font-medium ${pesan.ok ? "text-emerald-600" : "text-red-600"}`}>{pesan.teks}</p>
+          {status && (
+            <p
+              className={`text-xs font-medium ${
+                status.tipe === "galat" ? "text-red-600" : status.tipe === "ok" ? "text-emerald-600" : "text-gray-400"
+              }`}
+            >
+              {status.teks}
+            </p>
           )}
         </div>
       )}
