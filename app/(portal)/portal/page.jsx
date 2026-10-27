@@ -1,7 +1,7 @@
 import Link from "next/link";
 import DaftarProyek from "./DaftarProyek";
 import { ambilStaf } from "@/lib/portal/server";
-import { ambilItem, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
+import { ambilItem, ambilPengubahTerakhir, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
 import { hitungDefectBaru } from "@/lib/portal/defect";
 import { persenProyek } from "@/lib/portal/progresBoq";
 import { hariIni, tambahHari, tglTh, pct, statusProyek, labelDeadline, lewatDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
@@ -11,10 +11,11 @@ export default async function PortalBeranda() {
   const { staf } = await ambilStaf();
   const admin = staf.role === "ADMIN";
   const tukang = staf.role === "TUKANG";
-  const [proyek, supervisors, defectBaru] = await Promise.all([
-    ambilProyekStaf(staf),
+  const proyek = await ambilProyekStaf(staf);
+  const [supervisors, defectBaru, pengubah] = await Promise.all([
     admin ? ambilSupervisor() : [],
     tukang || admin || !DEFECT_AKTIF ? {} : hitungDefectBaru(),
+    admin ? ambilPengubahTerakhir(proyek) : {},
   ]);
   // Tukang: jumlah item dan progres dihitung dari item timnya saja.
   const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));
@@ -45,7 +46,7 @@ export default async function PortalBeranda() {
       id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
       n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null,
       sisa: p.deadline && p.aktif ? [lewatDeadline(p) ? "Terkunci" : labelDeadline(p.deadline)[0], labelDeadline(p.deadline)[1]] : null,
-      status, kelas, persen: v, adaProgres: adaProgres || !lewatBatas, terakhir: terakhir ? tglTh(terakhir) : null, persenTeks: pct(v), defect: defectBaru[p.id] || 0,
+      status, kelas, persen: v, adaProgres: adaProgres || !lewatBatas, terakhir: terakhir ? tglTh(terakhir) : null, persenTeks: pct(v), oleh: admin ? pengubah[p.id]?.oleh || null : null, defect: defectBaru[p.id] || 0,
     };
   });
 
