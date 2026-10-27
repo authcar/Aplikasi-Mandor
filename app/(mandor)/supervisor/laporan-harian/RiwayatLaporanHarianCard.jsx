@@ -67,17 +67,19 @@ function TombolPdf({ proyekId, tanggal }) {
   };
 
   return (
-    <div className="pt-2">
+    <>
       <button
         type="button"
         onClick={unduh}
         disabled={memuat}
-        className="text-xs font-semibold text-brand active:opacity-70 disabled:opacity-50"
+        aria-label="Unduh PDF laporan"
+        className="flex shrink-0 items-center gap-1 rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-semibold text-brand active:opacity-70 disabled:opacity-50"
       >
-        {memuat ? "Membuat PDF…" : "Unduh PDF"}
+        <Icon name="download" className="h-3.5 w-3.5" />
+        {memuat ? "Membuat…" : "PDF"}
       </button>
-      {galat && <p className="mt-1 text-[11px] text-red-600">{galat}</p>}
-    </div>
+      {galat && <p className="basis-full pb-1 text-[11px] text-red-600">{galat}</p>}
+    </>
   );
 }
 
@@ -121,10 +123,11 @@ export default function RiwayatLaporanHarianCard({ riwayat = [] }) {
                     const proyekTerbuka = openProyek === key;
                     return (
                       <div key={key}>
+                        <div className="flex flex-wrap items-center pr-3">
                         <button
                           type="button"
                           onClick={() => setOpenProyek((cur) => (cur === key ? null : key))}
-                          className="flex w-full items-center justify-between px-4 py-2 active:bg-gray-50"
+                          className="flex min-w-0 flex-1 items-center justify-between px-4 py-2 active:bg-gray-50"
                         >
                           <span className="text-sm font-semibold text-gray-600">{p.nama}</span>
                           <span className="flex items-center gap-2 text-gray-400">
@@ -132,10 +135,11 @@ export default function RiwayatLaporanHarianCard({ riwayat = [] }) {
                             <Icon name="chevron-down" className={`h-3 w-3 transition-transform ${proyekTerbuka ? "rotate-180" : ""}`} />
                           </span>
                         </button>
+                        {p.proyekId && <TombolPdf proyekId={p.proyekId} tanggal={h.tanggal} />}
+                        </div>
 
                         {proyekTerbuka && (
                           <div className="space-y-1 bg-gray-50/60 px-4 pb-2">
-                            {p.proyekId && <TombolPdf proyekId={p.proyekId} tanggal={h.tanggal} />}
                             {p.items.map((it) => {
                               const badge = STATUS_BADGE[it.status] || STATUS_BADGE.ON_PROGRESS;
                               return (

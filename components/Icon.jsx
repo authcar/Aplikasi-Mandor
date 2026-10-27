@@ -217,6 +217,13 @@ const PATHS = {
       <path d="M7 4v16" />
     </>
   ),
+  download: (
+    <>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M12 15V3" />
+    </>
+  ),
   lock: (
     <>
       <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
