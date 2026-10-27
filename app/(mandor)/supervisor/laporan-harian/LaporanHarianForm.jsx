@@ -43,7 +43,7 @@ const ENTRI_KOSONG = () => ({
 // 1 proyek per submit, tapi bisa beberapa kegiatan sekaligus — tiap
 // kegiatan punya foto, deskripsi & status sendiri-sendiri (dikirim sebagai
 // baris laporan_harian terpisah, satu request per kegiatan).
-export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudahLaporIds = [] }) {
+export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudahLaporIds = [], userId = null }) {
   const router = useRouter();
   const sudahLapor = new Set(sudahLaporIds);
   const [proyekId, setProyekId] = useState(proyekList[0]?.id || "");
@@ -267,7 +267,7 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
         </form>
 
         {daftar.length > 0 ? (
-          <RiwayatLaporanHarianCard riwayat={daftar} />
+          <RiwayatLaporanHarianCard riwayat={daftar} peran="SUPERVISOR" userId={userId} />
         ) : (
           <section className="mt-6">
             <h2 className="mb-3 font-bold text-gray-700">Riwayat Laporan Harian</h2>

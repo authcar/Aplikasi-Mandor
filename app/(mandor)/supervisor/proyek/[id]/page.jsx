@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 const HALAMAN = 30;
 
 export default async function ProyekDetailPage({ params }) {
-  const { supabase } = await getSessionProfile();
+  const { profile, supabase } = await getSessionProfile();
   const { id } = params;
 
   const today = new Date().toISOString().slice(0, 10);
@@ -25,7 +25,7 @@ export default async function ProyekDetailPage({ params }) {
       .maybeSingle(),
     supabase
       .from("laporan_harian")
-      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at")
+      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at, created_by")
       .eq("proyek_id", id)
       .order("tanggal", { ascending: false })
       .order("created_at", { ascending: false })
@@ -54,6 +54,7 @@ export default async function ProyekDetailPage({ params }) {
       jumlahHadir={absensi?.jumlah_hadir ?? null}
       tidakAdaPengerjaan={absensi?.tidak_ada_pengerjaan ?? false}
       riwayat={riwayat}
+      userId={profile?.id ?? null}
     />
   );
 }

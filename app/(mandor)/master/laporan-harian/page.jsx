@@ -84,7 +84,7 @@ export default async function LaporanHarianMasterPage() {
           Belum ada laporan harian dari Supervisor manapun.
         </div>
       ) : (
-        <RiwayatLaporanHarianCard riwayat={riwayat} />
+        <RiwayatLaporanHarianCard riwayat={riwayat} peran="MASTER" />
       )}
     </main>
   );

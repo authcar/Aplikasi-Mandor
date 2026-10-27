@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
+import { bolehKoreksiLaporan } from "@/lib/laporanKoreksi";
+import KoreksiLaporan from "./KoreksiLaporan";
 
 const STATUS_BADGE = {
   ON_PROGRESS: { label: "Sedang Dikerjakan", cls: "bg-blue-100 text-blue-700" },
@@ -85,13 +88,49 @@ function TombolPdf({ proyekId, tanggal }) {
 
 // Riwayat Laporan Harian — dikelompokkan hari > dropdown proyek > baris
 // ringkas, ketuk baris untuk lihat detail (foto + deskripsi penuh).
-export default function RiwayatLaporanHarianCard({ riwayat = [] }) {
+// `peran` + `userId` (opsional) mengaktifkan Edit/Hapus di detail untuk yang
+// berhak: Master semua laporan, Supervisor hanya miliknya di hari yang sama
+// (aturan: lib/laporanKoreksi.js; izin sebenarnya dicek di server).
+export default function RiwayatLaporanHarianCard({ riwayat: riwayatAsli = [], peran = null, userId = null }) {
+  const router = useRouter();
+  // Hasil koreksi dipakai langsung di sini (id -> perubahan, atau null = terhapus),
+  // karena sebagian halaman menyimpan daftarnya sendiri dan tidak ikut refresh.
+  const [koreksi, setKoreksi] = useState({});
+  const riwayat = riwayatAsli.filter((r) => koreksi[r.id] !== null).map((r) => (koreksi[r.id] ? { ...r, ...koreksi[r.id] } : r));
   const perHari = kelompokkan(riwayat);
   const [openHari, setOpenHari] = useState(perHari[0]?.tanggal ?? null);
   const [openProyek, setOpenProyek] = useState(null); // `${tanggal}|${nama}`
-  const [detail, setDetail] = useState(null);
+  const [detailId, setDetailId] = useState(null);
+  const [mengedit, setMengedit] = useState(false);
+  const [menghapus, setMenghapus] = useState(false);
+  const [galat, setGalat] = useState("");
+  const detail = riwayat.find((r) => r.id === detailId) || null;
+  const setDetail = (it) => {
+    setDetailId(it?.id ?? null);
+    setMengedit(false);
+    setGalat("");
+  };
+  const boleh = !!detail && bolehKoreksiLaporan({ peran, userId, laporan: detail });
 
-  if (!riwayat.length) return null;
+  const hapus = async () => {
+    if (!confirm("Hapus kegiatan ini? Tindakan ini tidak bisa dibatalkan.")) return;
+    setMenghapus(true);
+    setGalat("");
+    try {
+      const res = await fetch(`/api/laporan-harian/${detail.id}`, { method: "DELETE" });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || "Gagal menghapus.");
+      setKoreksi((k) => ({ ...k, [detail.id]: null }));
+      setDetail(null);
+      router.refresh();
+    } catch (e) {
+      setGalat(e.message);
+    } finally {
+      setMenghapus(false);
+    }
+  };
+
+  if (!riwayatAsli.length) return null;
 
   return (
     <section className="mt-6">
@@ -194,17 +233,52 @@ export default function RiwayatLaporanHarianCard({ riwayat = [] }) {
               </div>
               <button onClick={() => setDetail(null)} className="shrink-0 px-1 text-2xl leading-none text-gray-400">×</button>
             </div>
-            <span className={`badge mb-3 w-fit ${(STATUS_BADGE[detail.status] || STATUS_BADGE.ON_PROGRESS).cls}`}>
-              {(STATUS_BADGE[detail.status] || STATUS_BADGE.ON_PROGRESS).label}
-            </span>
-            {detail.fotoSignedUrl && (
-              <img
-                src={detail.fotoSignedUrl}
-                alt="dokumentasi"
-                className="mb-3 max-h-[45vh] w-full rounded-xl border border-gray-200 object-contain"
+            {mengedit ? (
+              <KoreksiLaporan
+                laporan={detail}
+                onBatal={() => setMengedit(false)}
+                onSelesai={(patch) => {
+                  setKoreksi((k) => ({ ...k, [detail.id]: patch }));
+                  setMengedit(false);
+                  router.refresh();
+                }}
               />
+            ) : (
+              <>
+                <span className={`badge mb-3 w-fit ${(STATUS_BADGE[detail.status] || STATUS_BADGE.ON_PROGRESS).cls}`}>
+                  {(STATUS_BADGE[detail.status] || STATUS_BADGE.ON_PROGRESS).label}
+                </span>
+                {detail.fotoSignedUrl && (
+                  <img
+                    src={detail.fotoSignedUrl}
+                    alt="dokumentasi"
+                    className="mb-3 max-h-[45vh] w-full rounded-xl border border-gray-200 object-contain"
+                  />
+                )}
+                <p className="overflow-y-auto text-sm text-gray-700">{detail.deskripsi}</p>
+                {galat && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{galat}</p>}
+                {boleh && (
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMengedit(true)}
+                      disabled={menghapus}
+                      className="flex-1 rounded-xl bg-brand/10 py-2.5 text-sm font-semibold text-brand active:opacity-70 disabled:opacity-50"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={hapus}
+                      disabled={menghapus}
+                      className="flex-1 rounded-xl bg-red-50 py-2.5 text-sm font-semibold text-red-600 active:opacity-70 disabled:opacity-50"
+                    >
+                      {menghapus ? "Menghapus…" : "Hapus"}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
-            <p className="overflow-y-auto text-sm text-gray-700">{detail.deskripsi}</p>
           </div>
         </div>
       )}

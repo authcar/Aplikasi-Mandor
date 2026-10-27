@@ -112,7 +112,7 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
         )}
       </div>
 
-      <RiwayatLaporanHarianCard riwayat={riwayat} />
+      <RiwayatLaporanHarianCard riwayat={riwayat} peran="MASTER" />
     </main>
   );
 }

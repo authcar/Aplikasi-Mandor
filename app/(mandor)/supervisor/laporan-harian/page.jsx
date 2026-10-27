@@ -12,7 +12,7 @@ export default async function LaporanHarianPage() {
     supabase.from("proyek").select("id, nama").eq("supervisor_id", profile.id).eq("is_active", true).order("nama"),
     supabase
       .from("laporan_harian")
-      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at, proyek:proyek_id(nama)")
+      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at, created_by, proyek:proyek_id(nama)")
       .eq("created_by", profile.id)
       .order("tanggal", { ascending: false })
       .order("created_at", { ascending: false })
@@ -44,6 +44,7 @@ export default async function LaporanHarianPage() {
       riwayat={riwayat}
       hasMore={riwayat.length === HALAMAN}
       sudahLaporIds={sudahLaporIds}
+      userId={profile.id}
     />
   );
 }
