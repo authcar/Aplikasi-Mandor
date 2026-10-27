@@ -15,7 +15,7 @@ export default async function PortalBeranda() {
   const [supervisors, defectBaru, pengubah] = await Promise.all([
     admin ? ambilSupervisor() : [],
     tukang || admin || !DEFECT_AKTIF ? {} : hitungDefectBaru(),
-    admin ? ambilPengubahTerakhir(proyek) : {},
+    staf.peran === "MASTER" ? ambilPengubahTerakhir(proyek) : {},
   ]);
   // Tukang: jumlah item dan progres dihitung dari item timnya saja.
   const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));
@@ -46,7 +46,7 @@ export default async function PortalBeranda() {
       id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
       n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null,
       sisa: p.deadline && p.aktif ? [lewatDeadline(p) ? "Terkunci" : labelDeadline(p.deadline)[0], labelDeadline(p.deadline)[1]] : null,
-      status, kelas, persen: v, adaProgres: adaProgres || !lewatBatas, terakhir: terakhir ? tglTh(terakhir) : null, persenTeks: pct(v), oleh: admin ? pengubah[p.id]?.oleh || null : null, defect: defectBaru[p.id] || 0,
+      status, kelas, persen: v, adaProgres: adaProgres || !lewatBatas, terakhir: terakhir ? tglTh(terakhir) : null, persenTeks: pct(v), oleh: pengubah[p.id]?.oleh || null, defect: defectBaru[p.id] || 0,
     };
   });
 
