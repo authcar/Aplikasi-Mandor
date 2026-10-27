@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
-import { buatPdfLaporanHarian, hitungManPower } from "@/lib/laporanHarianPdf";
+import { buatPdfLaporanHarian } from "@/lib/laporanHarianPdf";
+import { createTaracoClient } from "@/lib/supabase/taraco";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const ROLE_BOLEH = ["MASTER", "FINANCE", "SUPERVISOR"];
 const FOTO_MAKS_BYTE = 8 * 1024 * 1024;
+
+// SPK = projects.code, Client = projects.client di Taraco (sumber identitas
+// proyek). Tidak pernah melempar: gagal = null, kop PDF menampilkan "-".
+async function ambilDariTaraco(taracoId) {
+  if (!taracoId) return null;
+  try {
+    const { data } = await createTaracoClient().from("projects").select("code, client").eq("id", taracoId).maybeSingle();
+    return data || null;
+  } catch {
+    return null;
+  }
+}
 
 // GET /api/laporan-harian/pdf?proyek_id=...&tanggal=YYYY-MM-DD
 // PDF laporan harian satu proyek pada satu hari. Query lewat client user,
@@ -25,7 +38,7 @@ export async function GET(req) {
 
   const { data: rows, error } = await supabase
     .from("laporan_harian")
-    .select("id, deskripsi, status, foto_url, created_at, proyek:proyek_id(nama, lokasi, supervisor:supervisor_id(name))")
+    .select("id, deskripsi, status, foto_url, created_at, proyek:proyek_id(nama, lokasi, taraco_id, supervisor:supervisor_id(name))")
     .eq("proyek_id", proyekId)
     .eq("tanggal", tanggal)
     .order("created_at", { ascending: true });
@@ -46,10 +59,17 @@ export async function GET(req) {
     items.push({ status: r.status, deskripsi: r.deskripsi, foto });
   }
 
-  // Man Power dari absensi tim hari itu; kalau gagal dibaca, tabelnya kosong
-  // (laporan tetap jadi). Logo diambil dari aset publik aplikasi sendiri.
-  const [{ data: absensi }, logo] = await Promise.all([
-    supabase.from("absensi_tim").select("tim, jumlah").eq("proyek_id", proyekId).eq("tanggal", tanggal),
+  // Man Power (tabel laporan_manpower), SPK & Client (Taraco: code, client),
+  // dan logo. Semuanya pelengkap: kalau gagal dibaca, bagian itu kosong/"-"
+  // dan PDF tetap jadi.
+  const taracoId = rows[0].proyek?.taraco_id;
+  const [{ data: manpower }, taraco, logo] = await Promise.all([
+    supabase
+      .from("laporan_manpower")
+      .select("klasifikasi, aktif_site, aktif_ws, lembur, alpha")
+      .eq("proyek_id", proyekId)
+      .eq("tanggal", tanggal),
+    ambilDariTaraco(taracoId),
     fetch(new URL("/logo.png", req.url))
       .then((r) => (r.ok ? r.arrayBuffer() : null))
       .then((b) => (b ? new Uint8Array(b) : null))
@@ -65,7 +85,9 @@ export async function GET(req) {
       supervisor: rows[0].proyek?.supervisor?.name || null,
       tanggal,
       items,
-      manpower: hitungManPower(absensi || []),
+      spk: taraco?.code || null,
+      client: taraco?.client && taraco.client !== "-" ? taraco.client : null,
+      manpower: manpower || [],
       logo,
     });
   } catch (e) {

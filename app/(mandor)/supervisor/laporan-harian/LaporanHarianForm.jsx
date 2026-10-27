@@ -6,6 +6,7 @@ import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
 import { kompresGambar } from "@/lib/gambar";
 import RiwayatLaporanHarianCard from "./RiwayatLaporanHarianCard";
+import ManpowerCard from "./ManpowerCard";
 
 const STATUS_OPTIONS = [
   {
@@ -152,6 +153,8 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
               ✓ {sudahLapor.size} dari {proyekList.length} proyek sudah dilaporkan hari ini
             </p>
           </Field>
+
+          <ManpowerCard proyekId={proyekId} />
 
           <div className="space-y-4">
             {entries.map((en, i) => (
