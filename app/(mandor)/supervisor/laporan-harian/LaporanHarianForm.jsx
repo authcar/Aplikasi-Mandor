@@ -263,7 +263,16 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
           </button>
         </form>
 
-        <RiwayatLaporanHarianCard riwayat={daftar} />
+        {daftar.length > 0 ? (
+          <RiwayatLaporanHarianCard riwayat={daftar} />
+        ) : (
+          <section className="mt-6">
+            <h2 className="mb-3 font-bold text-gray-700">Riwayat Laporan Harian</h2>
+            <div className="card p-6 text-center text-sm text-gray-400">
+              Belum ada riwayat. Laporan yang sudah Anda kirim akan muncul di sini, lengkap dengan tombol PDF.
+            </div>
+          </section>
+        )}
       </main>
     </>
   );
