@@ -29,9 +29,56 @@ function kelompokkan(riwayat) {
     const nama = r.proyek?.nama || "—";
     const lastProyek = hari.proyekGrup[hari.proyekGrup.length - 1];
     if (lastProyek && lastProyek.nama === nama) lastProyek.items.push(r);
-    else hari.proyekGrup.push({ nama, items: [r] });
+    else hari.proyekGrup.push({ nama, proyekId: r.proyek_id, items: [r] });
   }
   return perHari;
+}
+
+// Tombol unduh PDF laporan satu proyek pada satu hari. Pakai fetch (bukan
+// link langsung) supaya galat dari server tampil di tempat, bukan halaman JSON.
+function TombolPdf({ proyekId, tanggal }) {
+  const [memuat, setMemuat] = useState(false);
+  const [galat, setGalat] = useState(null);
+
+  const unduh = async () => {
+    setMemuat(true);
+    setGalat(null);
+    try {
+      const res = await fetch(`/api/laporan-harian/pdf?proyek_id=${proyekId}&tanggal=${tanggal}`);
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Gagal membuat PDF.");
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "")?.[1] ||
+        `Laporan Harian ${tanggal}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+      setGalat(e.message);
+    } finally {
+      setMemuat(false);
+    }
+  };
+
+  return (
+    <div className="pt-2">
+      <button
+        type="button"
+        onClick={unduh}
+        disabled={memuat}
+        className="text-xs font-semibold text-brand active:opacity-70 disabled:opacity-50"
+      >
+        {memuat ? "Membuat PDF…" : "Unduh PDF"}
+      </button>
+      {galat && <p className="mt-1 text-[11px] text-red-600">{galat}</p>}
+    </div>
+  );
 }
 
 // Riwayat Laporan Harian — dikelompokkan hari > dropdown proyek > baris
@@ -88,6 +135,7 @@ export default function RiwayatLaporanHarianCard({ riwayat = [] }) {
 
                         {proyekTerbuka && (
                           <div className="space-y-1 bg-gray-50/60 px-4 pb-2">
+                            {p.proyekId && <TombolPdf proyekId={p.proyekId} tanggal={h.tanggal} />}
                             {p.items.map((it) => {
                               const badge = STATUS_BADGE[it.status] || STATUS_BADGE.ON_PROGRESS;
                               return (

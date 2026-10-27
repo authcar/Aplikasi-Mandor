@@ -22,7 +22,7 @@ export default async function LaporanHarianFinancePage() {
       .order("nama"),
     supabase
       .from("laporan_harian")
-      .select("id, tanggal, deskripsi, status, foto_url, created_at, dibaca_master, proyek:proyek_id(nama)")
+      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at, dibaca_master, proyek:proyek_id(nama)")
       .order("tanggal", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(HALAMAN),
