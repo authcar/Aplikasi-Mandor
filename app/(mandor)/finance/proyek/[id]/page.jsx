@@ -23,7 +23,7 @@ export default async function ProyekDetailFinancePage({ params }) {
     supabase.from("absensi_tim").select("tim, jumlah").eq("proyek_id", id).eq("tanggal", today),
     supabase
       .from("laporan_harian")
-      .select("id, tanggal, deskripsi, status, foto_url, created_at")
+      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at")
       .eq("proyek_id", id)
       .order("tanggal", { ascending: false })
       .order("created_at", { ascending: false })
