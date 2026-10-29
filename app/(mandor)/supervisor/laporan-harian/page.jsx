@@ -1,4 +1,5 @@
 import { getSessionProfile } from "@/lib/supabase/server";
+import { daftarProyekLaporan } from "@/lib/laporanProyek";
 import LaporanHarianForm from "./LaporanHarianForm";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,8 @@ export default async function LaporanHarianPage() {
   const { profile, supabase } = await getSessionProfile();
 
   const [{ data: proyekList }, { data: riwayatRows }] = await Promise.all([
-    supabase.from("proyek").select("id, nama").eq("supervisor_id", profile.id).eq("is_active", true).order("nama"),
+    // Sumber daftar proyek (tracker / Taraco): lihat lib/laporanProyek.js.
+    daftarProyekLaporan(supabase, profile.id),
     supabase
       .from("laporan_harian")
       .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at, created_by, proyek:proyek_id(nama)")

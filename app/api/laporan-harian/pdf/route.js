@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { buatPdfLaporanHarian } from "@/lib/laporanHarianPdf";
 import { createTaracoClient } from "@/lib/supabase/taraco";
+import { identitasProyek } from "@/lib/laporanProyek";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,8 +10,8 @@ export const runtime = "nodejs";
 const ROLE_BOLEH = ["MASTER", "FINANCE", "SUPERVISOR"];
 const FOTO_MAKS_BYTE = 8 * 1024 * 1024;
 
-// SPK = projects.code, Client = projects.client di Taraco (sumber identitas
-// proyek). Tidak pernah melempar: gagal = null, kop PDF menampilkan "-".
+// SPK = projects.code, Client = projects.client di Taraco (proyek tracker:
+// portal_proyek.kode / klien_nama, lihat identitasProyek). Tidak pernah melempar: gagal = null, kop PDF menampilkan "-".
 async function ambilDariTaraco(taracoId) {
   if (!taracoId) return null;
   try {
@@ -38,7 +39,7 @@ export async function GET(req) {
 
   const { data: rows, error } = await supabase
     .from("laporan_harian")
-    .select("id, deskripsi, status, foto_url, created_at, proyek:proyek_id(nama, lokasi, taraco_id, supervisor:supervisor_id(name))")
+    .select("id, deskripsi, status, foto_url, created_at, proyek:proyek_id(nama, lokasi, taraco_id, portal_id, supervisor:supervisor_id(name))")
     .eq("proyek_id", proyekId)
     .eq("tanggal", tanggal)
     .order("created_at", { ascending: true });
@@ -62,14 +63,13 @@ export async function GET(req) {
   // Man Power (tabel laporan_manpower), SPK & Client (Taraco: code, client),
   // dan logo. Semuanya pelengkap: kalau gagal dibaca, bagian itu kosong/"-"
   // dan PDF tetap jadi.
-  const taracoId = rows[0].proyek?.taraco_id;
   const [{ data: manpower }, taraco, logo] = await Promise.all([
     supabase
       .from("laporan_manpower")
       .select("klasifikasi, aktif_site, aktif_ws, lembur, alpha")
       .eq("proyek_id", proyekId)
       .eq("tanggal", tanggal),
-    ambilDariTaraco(taracoId),
+    identitasProyek(rows[0].proyek, ambilDariTaraco),
     fetch(new URL("/logo.png", req.url))
       .then((r) => (r.ok ? r.arrayBuffer() : null))
       .then((b) => (b ? new Uint8Array(b) : null))
