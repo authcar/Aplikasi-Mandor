@@ -43,7 +43,7 @@ const ENTRI_KOSONG = () => ({
 // 1 proyek per submit, tapi bisa beberapa kegiatan sekaligus — tiap
 // kegiatan punya foto, deskripsi & status sendiri-sendiri (dikirim sebagai
 // baris laporan_harian terpisah, satu request per kegiatan).
-export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudahLaporIds = [], userId = null }) {
+export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudahLaporIds = [], userId = null, pesanKosong = null }) {
   const router = useRouter();
   const sudahLapor = new Set(sudahLaporIds);
   const [proyekId, setProyekId] = useState(proyekList[0]?.id || "");
@@ -120,7 +120,7 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
     return (
       <main className="p-4">
         <BackButton href="/supervisor" />
-        <p className="p-6 text-center text-sm text-gray-400">Belum ada proyek aktif.</p>
+        <p className="p-6 text-center text-sm text-gray-400">{pesanKosong || "Belum ada proyek aktif."}</p>
       </main>
     );
   }

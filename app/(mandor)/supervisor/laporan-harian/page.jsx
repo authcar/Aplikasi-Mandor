@@ -9,7 +9,7 @@ const HALAMAN = 30;
 export default async function LaporanHarianPage() {
   const { profile, supabase } = await getSessionProfile();
 
-  const [{ data: proyekList }, { data: riwayatRows }] = await Promise.all([
+  const [{ proyek: proyekList, pesanKosong }, { data: riwayatRows }] = await Promise.all([
     // Sumber daftar proyek (tracker / Taraco): lihat lib/laporanProyek.js.
     daftarProyekLaporan(supabase, profile.id),
     supabase
@@ -43,6 +43,7 @@ export default async function LaporanHarianPage() {
   return (
     <LaporanHarianForm
       proyekList={proyekList || []}
+      pesanKosong={pesanKosong}
       riwayat={riwayat}
       hasMore={riwayat.length === HALAMAN}
       sudahLaporIds={sudahLaporIds}
