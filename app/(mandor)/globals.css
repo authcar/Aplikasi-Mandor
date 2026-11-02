@@ -159,23 +159,18 @@ main h1.greet {
 /* `backwards`: gaya akhir tidak "menempel" setelah selesai, jadi elemen fixed
    di dalamnya (modal, kamera) tidak terpengaruh transform induknya. */
 main > * {
-  animation: enterUp 0.45s var(--ease-tracker) backwards;
+  animation: enterUp 0.28s var(--ease-tracker) backwards;
 }
-main > *:nth-child(2) { animation-delay: 50ms; }
-main > *:nth-child(3) { animation-delay: 100ms; }
-main > *:nth-child(4) { animation-delay: 150ms; }
-main > *:nth-child(5) { animation-delay: 200ms; }
-main > *:nth-child(6) { animation-delay: 250ms; }
-main > *:nth-child(7) { animation-delay: 300ms; }
-main > *:nth-child(n + 8) { animation-delay: 350ms; }
+/* Jeda antar blok sengaja pendek (maks. 90ms): konten tidak boleh terasa menunggu animasi. */
+main > *:nth-child(2) { animation-delay: 30ms; }
+main > *:nth-child(3) { animation-delay: 60ms; }
+main > *:nth-child(n + 4) { animation-delay: 90ms; }
 .stagger > * {
-  animation: enterUp 0.45s var(--ease-tracker) backwards;
+  animation: enterUp 0.28s var(--ease-tracker) backwards;
 }
-.stagger > *:nth-child(2) { animation-delay: 50ms; }
-.stagger > *:nth-child(3) { animation-delay: 100ms; }
-.stagger > *:nth-child(4) { animation-delay: 150ms; }
-.stagger > *:nth-child(5) { animation-delay: 200ms; }
-.stagger > *:nth-child(n + 6) { animation-delay: 250ms; }
+.stagger > *:nth-child(2) { animation-delay: 30ms; }
+.stagger > *:nth-child(3) { animation-delay: 60ms; }
+.stagger > *:nth-child(n + 4) { animation-delay: 90ms; }
 
 /* Skeleton loading: sapuan cahaya, bukan kedip */
 .skel {
