@@ -193,6 +193,23 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
 .stagger > *:nth-child(5) { animation-delay: 200ms; }
 .stagger > *:nth-child(n + 6) { animation-delay: 250ms; }
 
+/* Tombol absen (keadaan belum absen): bola kaca hitam-abu-putih.
+   Kilau putih di kiri atas, badan gradasi abu -> hitam, rim terang tipis. */
+.glass-orb {
+  background:
+    radial-gradient(110% 90% at 26% 14%, rgb(255 255 255 / 0.6) 0%, rgb(255 255 255 / 0) 42%),
+    linear-gradient(150deg, #9b9b9b 0%, #3a3a3a 42%, #0a0a0a 100%);
+  border: 1px solid rgb(255 255 255 / 0.5);
+  box-shadow:
+    inset 0 1px 1px rgb(255 255 255 / 0.7),
+    inset 0 -12px 20px rgb(255 255 255 / 0.1),
+    0 14px 30px -8px rgb(0 0 0 / 0.55);
+}
+/* Glow "napas" di belakang bola: putih -> abu -> hitam, lembut */
+.glass-orb-glow {
+  background: linear-gradient(135deg, #ffffff 0%, #a8a8a8 45%, #1a1a1a 100%);
+}
+
 /* Skeleton loading: sapuan cahaya, bukan kedip (sama dengan sk-geser di portal). */
 .skel {
   background-image: linear-gradient(100deg, transparent 25%, rgb(255 255 255 / 0.65) 50%, transparent 75%);

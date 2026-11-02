@@ -342,15 +342,15 @@ export default function KunjunganCard({
 
         <div className="relative my-1 flex shrink-0 items-center justify-center">
           <span
-            className={`absolute h-28 w-28 animate-[breathe_2.2s_ease-in-out_infinite] rounded-full bg-gradient-to-br ${
-              berjalan ? "from-amber-400 to-orange-500" : "from-brand via-indigo-400 to-purple-500"
+            className={`absolute h-28 w-28 animate-[breathe_2.2s_ease-in-out_infinite] rounded-full ${
+              berjalan ? "bg-gradient-to-br from-amber-400 to-orange-500" : "glass-orb-glow"
             }`}
           />
           <button
             onClick={bukaKonfirmasi}
             disabled={loading || (!berjalan && proyeks.length === 0)}
-            className={`relative z-10 flex h-28 w-28 flex-col items-center justify-center gap-0.5 rounded-full bg-gradient-to-br shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-60 ${
-              berjalan ? "from-amber-400 to-orange-500" : "from-brand to-indigo-500"
+            className={`relative z-10 flex h-28 w-28 flex-col items-center justify-center gap-0.5 rounded-full shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-60 ${
+              berjalan ? "bg-gradient-to-br from-amber-400 to-orange-500" : "glass-orb"
             }`}
           >
             {loading ? (

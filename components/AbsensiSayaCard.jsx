@@ -127,9 +127,9 @@ export default function AbsensiSayaCard({ chatId, sudahCheckin, sudahCheckout, c
   };
 
   const config = {
-    idle:   { label: bolehMasuk ? "Belum Absen" : `Absen mulai jam ${JAM_MASUK}:00`, sub: bolehMasuk ? "Tap untuk absen masuk" : "Belum waktunya", color: "from-brand to-indigo-500", icon: <IconTangan />, tombol: "ABSEN\nMASUK" },
-    masuk:  { label: "Sudah Masuk",   sub: bolehPulang ? "Tap untuk absen pulang" : `Pulang ab ${JAM_PULANG}:00`, color: "from-amber-400 to-orange-500", icon: <IconTangan />, tombol: "ABSEN\nPULANG" },
-    pulang: { label: "Sudah Pulang",  sub: "Absensi selesai hari ini", color: "from-green-400 to-emerald-500", icon: <IconCheck />, tombol: "SELESAI" },
+    idle:   { label: bolehMasuk ? "Belum Absen" : `Absen mulai jam ${JAM_MASUK}:00`, sub: bolehMasuk ? "Tap untuk absen masuk" : "Belum waktunya", color: "glass-orb", icon: <IconTangan />, tombol: "ABSEN\nMASUK" },
+    masuk:  { label: "Sudah Masuk",   sub: bolehPulang ? "Tap untuk absen pulang" : `Pulang ab ${JAM_PULANG}:00`, color: "bg-gradient-to-br from-amber-400 to-orange-500", icon: <IconTangan />, tombol: "ABSEN\nPULANG" },
+    pulang: { label: "Sudah Pulang",  sub: "Absensi selesai hari ini", color: "bg-gradient-to-br from-green-400 to-emerald-500", icon: <IconCheck />, tombol: "SELESAI" },
   };
 
   const c = config[mode];
@@ -157,15 +157,15 @@ export default function AbsensiSayaCard({ chatId, sudahCheckin, sudahCheckout, c
 
         {/* Tombol */}
         <div className="relative flex items-center justify-center shrink-0 my-1">
-          <span className={`absolute w-28 h-28 rounded-full animate-[breathe_2.2s_ease-in-out_infinite] bg-gradient-to-br ${
-            mode === "idle" ? "from-brand via-indigo-400 to-purple-500"
-            : mode === "masuk" ? "from-amber-400 to-orange-500"
-            : "from-green-400 to-emerald-500"
+          <span className={`absolute w-28 h-28 rounded-full animate-[breathe_2.2s_ease-in-out_infinite] ${
+            mode === "idle" ? "glass-orb-glow"
+            : mode === "masuk" ? "bg-gradient-to-br from-amber-400 to-orange-500"
+            : "bg-gradient-to-br from-green-400 to-emerald-500"
           }`} />
           <button
             onClick={() => (isDisabled ? undefined : setConfirmOpen(true))}
             disabled={isDisabled}
-            className={`relative z-10 w-28 h-28 rounded-full flex flex-col items-center justify-center gap-0.5 shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-60 bg-gradient-to-br ${c.color}`}
+            className={`relative z-10 w-28 h-28 rounded-full flex flex-col items-center justify-center gap-0.5 shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-60 ${c.color}`}
           >
             {loading ? (
               <svg className="w-8 h-8 text-white animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
