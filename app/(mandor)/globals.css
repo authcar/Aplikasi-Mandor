@@ -4,9 +4,9 @@
 
 /* ==========================================================================
    Tampilan disamakan dengan Taraco Project Tracker ("Japandi"):
-   Poppins, kanvas abu terang + tinta hampir hitam + abu kayu, kartu putih
+   Poppins, dasar HITAM-PUTIH yang tegas (tinta hitam pekat, kartu putih bergaris jelas) + aksen warna tetap hidup, kartu putih
    bergaris tipis, panel kaca buram, tombol pil gelap, animasi masuk bertahap
-   dengan kurva "spring-out". Warna hanya untuk status (sage/kuning/bata).
+   dengan kurva "spring-out". Warna aksen (ikon, tombol absen, status) dibiarkan menyala di atas dasar hitam-putih.
    Token warnanya ada di tailwind.config.js; di sini gaya komponen & animasi.
 
    Hanya transform + opacity yang dianimasikan (tanpa filter/blur bergerak),
@@ -16,10 +16,10 @@
 
 :root {
   color-scheme: light;
-  --ink: #1f1d1d;
-  --ink-soft: #5f5c5c;
-  --wood: #4a4646;
-  --line: rgb(31 29 29 / 0.16);
+  --ink: #0a0a0a;
+  --ink-soft: #525252;
+  --wood: #0a0a0a;
+  --line: rgb(0 0 0 / 0.2);
   --ease-tracker: cubic-bezier(0.2, 0.9, 0.25, 1);
   --ease-out: cubic-bezier(0.16, 0.84, 0.44, 1);
 }
@@ -38,8 +38,8 @@ html {
 body {
   @apply text-gray-900 antialiased;
   letter-spacing: -0.006em;
-  background-color: #eef0f2;
-  background-image: linear-gradient(160deg, #e4e7eb 0%, #f2f3f5 42%, #e8eaed 100%);
+  background-color: #f4f4f4;
+  background-image: linear-gradient(160deg, #ececec 0%, #ffffff 42%, #f0f0f0 100%);
   background-attachment: fixed;
   overflow-x: hidden;
 }
@@ -60,7 +60,7 @@ body::before {
   height: 70vmax;
   top: -38vmax;
   right: -22vmax;
-  background: radial-gradient(circle at 40% 40%, #dbdee3 0%, #d0d4da 40%, transparent 70%);
+  background: radial-gradient(circle at 40% 40%, #e6e6e6 0%, #dcdcdc 40%, transparent 70%);
   animation-name: bg-drift-a;
   animation-duration: 26s;
 }
@@ -69,7 +69,7 @@ body::after {
   height: 64vmax;
   bottom: -40vmax;
   left: -18vmax;
-  background: radial-gradient(circle at 60% 40%, #b6bcc8 0%, #a5adba 35%, transparent 68%);
+  background: radial-gradient(circle at 60% 40%, #c4c4c4 0%, #b4b4b4 35%, transparent 68%);
   opacity: 0.55;
   animation-name: bg-drift-b;
   animation-duration: 32s;
@@ -90,7 +90,7 @@ body::after {
   .app-frame {
     border-left: 1px solid rgb(255 255 255 / 0.7);
     border-right: 1px solid rgb(255 255 255 / 0.7);
-    background: rgb(255 255 255 / 0.28);
+    background: rgb(255 255 255 / 0.5);
     box-shadow: 0 0 60px -20px rgb(45 52 68 / 0.28);
   }
 }
@@ -114,12 +114,12 @@ textarea:focus-visible {
 
 /* ---- Judul halaman: ringan, rapat, garis kayu pendek di bawahnya ---- */
 main h1 {
-  font-weight: 300 !important;
+  font-weight: 600 !important;
   letter-spacing: -0.025em !important;
 }
 main h1 strong,
 main h1 b {
-  font-weight: 500;
+  font-weight: 700;
 }
 main h1::after {
   content: "";
@@ -130,10 +130,10 @@ main h1::after {
   border-radius: 2px;
   background: var(--wood);
 }
-/* Sapaan ("Halo, nama") tegas & tanpa garis, seperti .greet di tracker. */
+/* Sapaan ("Halo, nama") paling tebal (800) & tanpa garis. */
 main h1.greet {
-  font-weight: 600 !important;
-  letter-spacing: -0.015em !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
 }
 main h1.greet::after {
   display: none;
@@ -203,14 +203,14 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
 
 /* Scrollbar (layar lebar) */
 ::-webkit-scrollbar { height: 12px; width: 12px; }
-::-webkit-scrollbar-track { background: #e3e1e1; border-radius: 99px; }
+::-webkit-scrollbar-track { background: #e2e2e2; border-radius: 99px; }
 ::-webkit-scrollbar-thumb {
-  background: #5f5c5c;
+  background: #525252;
   border-radius: 99px;
-  border: 3px solid #e3e1e1;
+  border: 3px solid #e2e2e2;
   background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover { background: #1f1d1d; border: 3px solid #e3e1e1; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: #0a0a0a; border: 3px solid #e2e2e2; background-clip: padding-box; }
 ::-webkit-scrollbar-button { display: none; }
 
 /* ===== Komponen — dipakai ulang di seluruh halaman ===== */
@@ -223,8 +223,8 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
   }
   @media (hover: hover) {
     .card:hover {
-      border-color: rgb(31 29 29 / 0.3);
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 2px 4px rgb(31 29 29 / 0.08), 0 18px 34px -16px rgb(31 29 29 / 0.34);
+      border-color: rgb(0 0 0 / 0.3);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 2px 4px rgb(0 0 0 / 0.08), 0 18px 34px -16px rgb(0 0 0 / 0.34);
     }
   }
   /* Kartu yang bisa ditekan (navigasi) */
@@ -247,7 +247,7 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
   }
   .input:focus {
     border-color: var(--wood);
-    box-shadow: 0 0 0 3.5px rgb(74 70 70 / 0.1), 0 1px 4px rgb(31 29 29 / 0.06);
+    box-shadow: 0 0 0 3.5px rgb(0 0 0 / 0.1), 0 1px 4px rgb(0 0 0 / 0.06);
   }
 
   /* Tombol: pil, mantap saat ditekan */
@@ -263,14 +263,14 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
   }
   .btn-primary {
     @apply btn text-white;
-    background: linear-gradient(180deg, #2b2929 0%, #1f1d1d 100%);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 2px 8px -2px rgb(31 29 29 / 0.34), 0 1px 2px rgb(31 29 29 / 0.2);
+    background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 2px 8px -2px rgb(0 0 0 / 0.34), 0 1px 2px rgb(0 0 0 / 0.2);
   }
   .btn-outline {
     @apply btn border text-gray-900;
-    border-color: rgb(31 29 29 / 0.22);
+    border-color: rgb(0 0 0 / 0.22);
     background: rgb(255 255 255 / 0.72);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(31 29 29 / 0.05);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(0 0 0 / 0.05);
   }
   .btn-outline:active {
     @apply bg-gray-100;
@@ -289,15 +289,15 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
   }
   @media (hover: hover) {
     .btn-primary:hover {
-      background: linear-gradient(180deg, #3a3737 0%, #2b2929 100%);
+      background: linear-gradient(180deg, #262626 0%, #1a1a1a 100%);
       transform: translateY(-1px);
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 8px 20px -6px rgb(31 29 29 / 0.45);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 8px 20px -6px rgb(0 0 0 / 0.45);
     }
     .btn-primary:active {
       transform: translateY(0) scale(0.975);
     }
     .btn-outline:hover {
-      border-color: rgb(31 29 29 / 0.4);
+      border-color: rgb(0 0 0 / 0.4);
       background: #fff;
     }
     .btn-success:hover {
@@ -326,8 +326,8 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
   /* Hero: gradasi arang (--dark di tracker) + kilau tipis di atas */
   .hero {
     @apply relative overflow-hidden rounded-2xl p-5 text-white;
-    background: linear-gradient(180deg, #2b2929 0%, #1f1d1d 100%);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 14px 30px -14px rgb(31 29 29 / 0.45);
+    background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 14px 30px -14px rgb(0 0 0 / 0.45);
   }
   .hero::before {
     content: "";
@@ -357,7 +357,7 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
     background: rgb(255 255 255 / 0.78);
     -webkit-backdrop-filter: blur(22px) saturate(1.4);
     backdrop-filter: blur(22px) saturate(1.4);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 18px 40px -14px rgb(31 29 29 / 0.4);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 18px 40px -14px rgb(0 0 0 / 0.4);
     animation: tabbarIn 0.6s var(--ease-tracker) 0.15s backwards;
   }
   .tabbar-item {
@@ -369,16 +369,16 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
     gap: 2px;
     height: 54px;
     border-radius: 22px;
-    color: #5f5c5c;
+    color: #525252;
     transition: background 0.25s ease, color 0.2s ease, box-shadow 0.25s ease, transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .tabbar-item:active {
     transform: scale(0.94);
   }
   .tabbar-item.is-active {
-    color: #f5f5f5;
-    background: linear-gradient(180deg, #2b2929, #1f1d1d);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 6px 14px -6px rgb(31 29 29 / 0.5);
+    color: #ffffff;
+    background: linear-gradient(180deg, #1a1a1a, #0a0a0a);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 6px 14px -6px rgb(0 0 0 / 0.5);
   }
   .tabbar-item.is-active svg {
     animation: tabPop 0.4s var(--ease-tracker);
@@ -390,8 +390,8 @@ main > *:nth-child(n + 8) { animation-delay: 420ms; }
   }
   @media (hover: hover) {
     .tabbar-item:not(.is-active):hover {
-      background: rgb(31 29 29 / 0.06);
-      color: #1f1d1d;
+      background: rgb(0 0 0 / 0.06);
+      color: #0a0a0a;
     }
   }
 }

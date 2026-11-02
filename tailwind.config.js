@@ -1,27 +1,26 @@
 /** @type {import('tailwindcss').Config} */
 
-// Palet "Japandi" yang sama dengan Taraco Project Tracker (PALETTE di
-// Taraco-Project-Management/src/App.jsx): kanvas abu terang, tinta hampir
-// hitam, abu kayu walnut/oak. Warna hanya dipakai untuk STATUS:
-// sage (zaitun) = ok, kuning tua = peringatan, bata = buruk.
+// Palet dasar dari Taraco Project Tracker (PALETTE di Taraco-Project-Management/src/App.jsx),
+// dipertegas ke hitam-putih: kanvas putih/abu sangat terang, tinta hitam pekat.
+// Warna status: sage (zaitun) = ok, kuning tua = peringatan, bata = buruk.
 //
-// Seluruh kelas warna bawaan Tailwind yang sudah dipakai di app (gray-*, blue-*,
-// green-*, red-*, amber-* dst.) dipetakan ulang ke palet ini, jadi ratusan
-// halaman ikut berganti tanpa mengubah satu per satu.
+// Skala netral (gray-*), brand, dan warna status (green/red/amber) dipetakan ulang ke
+// palet ini, jadi ratusan halaman ikut berganti tanpa mengubah satu per satu.
+// Hitam-putih jadi dasar yang tegas; warna aksen (biru, ungu, oranye, ...) tetap ada.
 
-// Netral hangat — skala utama (gray) & juga dipakai untuk "warna info" (biru, ungu, dst.).
+// Netral murni — skala utama (gray).
 const netral = {
-  50: "#F5F5F5", // kanvas
-  100: "#EDEDED", // isian lembut (input, hover)
-  200: "#E3E1E1", // garis / chip
-  300: "#CFCDCD",
-  400: "#757171", // teks paling lemah — tetap >= 4.5:1 di atas putih (AA)
-  500: "#5F5C5C", // teks sekunder
-  600: "#4A4646", // kayu (wood)
-  700: "#3A3737",
-  800: "#2B2929",
-  900: "#1F1D1D", // tinta
-  950: "#151313",
+  50: "#F7F7F7", // kanvas
+  100: "#EFEFEF", // isian lembut (input, hover)
+  200: "#E2E2E2", // garis / chip
+  300: "#CFCFCF",
+  400: "#6E6E6E", // teks paling lemah — tetap >= 4.5:1 di atas putih (AA)
+  500: "#525252", // teks sekunder
+  600: "#3A3A3A",
+  700: "#262626",
+  800: "#141414",
+  900: "#0A0A0A", // tinta — hitam pekat
+  950: "#000000",
 };
 
 // Sage — ok / selesai / positif
@@ -81,47 +80,36 @@ module.exports = {
         neutral: netral,
         stone: netral,
 
-        // Aksen tunggal = tinta pekat. DEFAULT dipertahankan agar `bg-brand`, `text-brand` dll tetap jalan.
+        // Warna utama = hitam pekat. DEFAULT dipertahankan agar `bg-brand`, `text-brand` dll tetap jalan.
         brand: {
-          DEFAULT: "#1F1D1D",
-          50: "#F5F5F5",
-          100: "#E8E8E8",
-          200: "#DEDCDC",
-          300: "#A5A2A2",
-          500: "#4A4646", // kayu — cincin fokus
-          600: "#2B2929",
-          700: "#1F1D1D",
-          800: "#151313",
-          900: "#1F1D1D",
+          DEFAULT: "#0A0A0A",
+          50: "#F7F7F7",
+          100: "#EDEDED",
+          200: "#DADADA",
+          300: "#A3A3A3",
+          500: "#3A3A3A", // cincin fokus
+          600: "#1A1A1A",
+          700: "#0A0A0A",
+          800: "#000000",
+          900: "#000000",
         },
 
-        // Warna "info" (biru, ungu, dst.) tidak dipakai di tracker -> jadi netral kayu.
-        blue: netral,
-        indigo: netral,
-        sky: netral,
-        cyan: netral,
-        purple: netral,
-        violet: netral,
-        fuchsia: netral,
-        pink: netral,
+        // Biru, ungu, indigo, sky, oranye, dst. SENGAJA tidak dipetakan: dibiarkan warna
+        // bawaan Tailwind sebagai AKSEN (ikon, tombol absen, highlight) di atas dasar hitam-putih.
 
         green: sage,
         emerald: sage,
-        lime: sage,
-        teal: sage,
 
         red: bata,
         rose: bata,
 
         amber: kuning,
-        orange: kuning,
-        yellow: kuning,
       },
       boxShadow: {
         // Sama dengan .card di tracker: highlight tipis di atas + bayangan lembut panjang.
-        card: "inset 0 1px 0 rgb(255 255 255 / 0.8), 0 1px 2px rgb(31 29 29 / 0.06), 0 14px 30px -18px rgb(31 29 29 / 0.28)",
-        soft: "0 14px 30px -14px rgb(31 29 29 / 0.30)",
-        brand: "0 8px 20px -6px rgb(31 29 29 / 0.45)",
+        card: "inset 0 1px 0 rgb(255 255 255 / 0.8), 0 1px 2px rgb(0 0 0 / 0.06), 0 14px 30px -18px rgb(0 0 0 / 0.28)",
+        soft: "0 14px 30px -14px rgb(0 0 0 / 0.30)",
+        brand: "0 8px 20px -6px rgb(0 0 0 / 0.45)",
       },
       transitionTimingFunction: {
         // Kurva "spring-out" khas tracker.
