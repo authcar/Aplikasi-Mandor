@@ -83,7 +83,7 @@ export default async function DashboardMaster() {
       <header className="flex shrink-0 items-center justify-between">
         <div>
           <p className="text-xs font-medium text-brand">Master</p>
-          <h1 className="text-lg font-bold tracking-tight">{sapa}, {profile.name}!</h1>
+          <h1 className="greet text-lg font-bold tracking-tight">{sapa}, {profile.name}!</h1>
         </div>
       </header>
 

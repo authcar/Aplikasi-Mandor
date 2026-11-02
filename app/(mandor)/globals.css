@@ -2,33 +2,238 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Target HP jadul: font besar, tombol besar, kontras tinggi, tanpa animasi berat */
-html {
-  -webkit-text-size-adjust: 100%;
+/* ==========================================================================
+   Tampilan disamakan dengan Taraco Project Tracker ("Japandi"):
+   Poppins, kanvas abu terang + tinta hampir hitam + abu kayu, kartu putih
+   bergaris tipis, panel kaca buram, tombol pil gelap, animasi masuk bertahap
+   dengan kurva "spring-out". Warna hanya untuk status (sage/kuning/bata).
+   Token warnanya ada di tailwind.config.js; di sini gaya komponen & animasi.
+
+   Hanya transform + opacity yang dianimasikan (tanpa filter/blur bergerak),
+   supaya tetap ringan di HP lama. Semua animasi mati bila perangkat meminta
+   "kurangi gerakan" (prefers-reduced-motion).
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+  --ink: #1f1d1d;
+  --ink-soft: #5f5c5c;
+  --wood: #4a4646;
+  --line: rgb(31 29 29 / 0.16);
+  --ease-tracker: cubic-bezier(0.2, 0.9, 0.25, 1);
+  --ease-out: cubic-bezier(0.16, 0.84, 0.44, 1);
 }
 
-/* Glow "napas" (in-out) di belakang tombol absen — transform+opacity saja, ringan di HP jadul */
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+::selection {
+  background: var(--wood);
+  color: #fff;
+}
+
+/* ---- Kanvas: gradasi kaca abu pucat + dua cakram besar yang melayang pelan ---- */
+body {
+  @apply text-gray-900 antialiased;
+  letter-spacing: -0.006em;
+  background-color: #eef0f2;
+  background-image: linear-gradient(160deg, #e4e7eb 0%, #f2f3f5 42%, #e8eaed 100%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+body::before {
+  width: 70vmax;
+  height: 70vmax;
+  top: -38vmax;
+  right: -22vmax;
+  background: radial-gradient(circle at 40% 40%, #dbdee3 0%, #d0d4da 40%, transparent 70%);
+  animation-name: bg-drift-a;
+  animation-duration: 26s;
+}
+body::after {
+  width: 64vmax;
+  height: 64vmax;
+  bottom: -40vmax;
+  left: -18vmax;
+  background: radial-gradient(circle at 60% 40%, #b6bcc8 0%, #a5adba 35%, transparent 68%);
+  opacity: 0.55;
+  animation-name: bg-drift-b;
+  animation-duration: 32s;
+}
+@keyframes bg-drift-a {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-8vmax, 6vmax, 0) scale(1.07); }
+  100% { transform: translate3d(4vmax, 12vmax, 0) scale(0.98); }
+}
+@keyframes bg-drift-b {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(9vmax, -7vmax, 0) scale(1.06); }
+  100% { transform: translate3d(-4vmax, -13vmax, 0) scale(1.02); }
+}
+
+/* Bingkai HP: transparan agar kanvas terlihat; di layar lebar diberi tepi kaca tipis. */
+@media (min-width: 640px) {
+  .app-frame {
+    border-left: 1px solid rgb(255 255 255 / 0.7);
+    border-right: 1px solid rgb(255 255 255 / 0.7);
+    background: rgb(255 255 255 / 0.28);
+    box-shadow: 0 0 60px -20px rgb(45 52 68 / 0.28);
+  }
+}
+
+button {
+  touch-action: manipulation;
+}
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+:focus-visible {
+  outline: 2px solid var(--wood);
+  outline-offset: 2px;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+/* ---- Judul halaman: ringan, rapat, garis kayu pendek di bawahnya ---- */
+main h1 {
+  font-weight: 300 !important;
+  letter-spacing: -0.025em !important;
+}
+main h1 strong,
+main h1 b {
+  font-weight: 500;
+}
+main h1::after {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 3px;
+  margin-top: 10px;
+  border-radius: 2px;
+  background: var(--wood);
+}
+/* Sapaan ("Halo, nama") tegas & tanpa garis, seperti .greet di tracker. */
+main h1.greet {
+  font-weight: 600 !important;
+  letter-spacing: -0.015em !important;
+}
+main h1.greet::after {
+  display: none;
+}
+
+/* ---- Animasi masuk: tiap blok halaman naik satu per satu (stagger) ---- */
+@keyframes enterUp {
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.985); }
+}
+@keyframes fade {
+  from { opacity: 0; transform: translateY(10px); }
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.975); }
+}
+@keyframes tabPop {
+  0% { transform: scale(0.8); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes skShimmer {
+  from { background-position: 160% 0; }
+  to { background-position: -60% 0; }
+}
+/* Glow "napas" di belakang tombol absen (dipakai lewat animate-[breathe_...]) — transform+opacity saja */
 @keyframes breathe {
   0%, 100% { transform: scale(0.8); opacity: 0.15; }
   50% { transform: scale(1.25); opacity: 0.55; }
 }
-body {
-  @apply text-gray-900 antialiased;
-  background-color: #f1f5f9;
+@keyframes tabbarIn {
+  from { opacity: 0; transform: translate(-50%, 24px); }
 }
-button {
-  touch-action: manipulation;
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(163 64 47 / 0.4); }
+  50% { box-shadow: 0 0 0 6px rgb(163 64 47 / 0); }
 }
 
-/* ===== Design system ringan — dipakai ulang di seluruh halaman ===== */
+/* `backwards`: gaya akhir tidak "menempel" setelah selesai, jadi elemen fixed
+   di dalamnya (modal, kamera) tidak terpengaruh transform induknya. */
+main > * {
+  animation: enterUp 0.6s var(--ease-tracker) backwards;
+}
+main > *:nth-child(2) { animation-delay: 60ms; }
+main > *:nth-child(3) { animation-delay: 120ms; }
+main > *:nth-child(4) { animation-delay: 180ms; }
+main > *:nth-child(5) { animation-delay: 240ms; }
+main > *:nth-child(6) { animation-delay: 300ms; }
+main > *:nth-child(7) { animation-delay: 360ms; }
+main > *:nth-child(n + 8) { animation-delay: 420ms; }
+/* Daftar panjang: kartu di dalam grid/daftar ikut masuk bertahap tapi dibatasi. */
+.stagger > * {
+  animation: enterUp 0.5s var(--ease-tracker) backwards;
+}
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(n + 6) { animation-delay: 250ms; }
+
+/* Skeleton loading: sapuan cahaya, bukan kedip (sama dengan sk-geser di portal). */
+.skel {
+  background-image: linear-gradient(100deg, transparent 25%, rgb(255 255 255 / 0.65) 50%, transparent 75%);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: skShimmer 1.5s linear infinite;
+}
+
+/* Scrollbar (layar lebar) */
+::-webkit-scrollbar { height: 12px; width: 12px; }
+::-webkit-scrollbar-track { background: #e3e1e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb {
+  background: #5f5c5c;
+  border-radius: 99px;
+  border: 3px solid #e3e1e1;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #1f1d1d; border: 3px solid #e3e1e1; background-clip: padding-box; }
+::-webkit-scrollbar-button { display: none; }
+
+/* ===== Komponen — dipakai ulang di seluruh halaman ===== */
 @layer components {
-  /* Kartu dasar */
+  /* Kartu: putih, garis tipis, highlight dalam; terangkat saat disentuh/di-hover */
   .card {
-    @apply rounded-2xl border border-gray-200/80 bg-white shadow-card;
+    @apply rounded-2xl border bg-white shadow-card;
+    border-color: var(--line);
+    transition: border-color 0.22s ease, box-shadow 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.2s ease, background-color 0.15s ease;
+  }
+  @media (hover: hover) {
+    .card:hover {
+      border-color: rgb(31 29 29 / 0.3);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 2px 4px rgb(31 29 29 / 0.08), 0 18px 34px -16px rgb(31 29 29 / 0.34);
+    }
   }
   /* Kartu yang bisa ditekan (navigasi) */
   .card-tap {
-    @apply card transition active:bg-gray-50;
+    @apply card;
+  }
+  .card-tap:active {
+    transform: scale(0.985);
+    @apply bg-gray-50;
   }
 
   /* Field form */
@@ -36,41 +241,174 @@ button {
     @apply mb-1.5 block text-sm font-semibold text-gray-700;
   }
   .input {
-    @apply w-full rounded-xl border border-gray-300 bg-white p-3.5 text-base text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15;
+    @apply w-full rounded-xl border bg-white p-3.5 text-base text-gray-900 outline-none placeholder:text-gray-400;
+    border-color: var(--line);
+    transition: border-color 0.18s ease, box-shadow 0.22s ease, background-color 0.16s ease;
+  }
+  .input:focus {
+    border-color: var(--wood);
+    box-shadow: 0 0 0 3.5px rgb(74 70 70 / 0.1), 0 1px 4px rgb(31 29 29 / 0.06);
   }
 
-  /* Tombol */
+  /* Tombol: pil, mantap saat ditekan */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-base font-bold transition active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-base font-semibold disabled:pointer-events-none disabled:opacity-50;
+    transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.28s ease, background 0.28s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  }
+  .btn:active {
+    transform: scale(0.97);
   }
   .btn-lg {
     @apply py-4 text-lg;
   }
   .btn-primary {
-    @apply btn bg-brand text-white shadow-brand active:bg-brand-800;
+    @apply btn text-white;
+    background: linear-gradient(180deg, #2b2929 0%, #1f1d1d 100%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 2px 8px -2px rgb(31 29 29 / 0.34), 0 1px 2px rgb(31 29 29 / 0.2);
   }
   .btn-outline {
-    @apply btn border-2 border-gray-300 bg-white text-gray-700 active:bg-gray-100;
+    @apply btn border text-gray-900;
+    border-color: rgb(31 29 29 / 0.22);
+    background: rgb(255 255 255 / 0.72);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(31 29 29 / 0.05);
+  }
+  .btn-outline:active {
+    @apply bg-gray-100;
   }
   .btn-success {
-    @apply btn bg-green-600 text-white active:bg-green-700;
+    @apply btn text-white;
+    background: linear-gradient(180deg, #5f7c48 0%, #4f6b3a 100%);
+    box-shadow: 0 2px 8px -2px rgb(79 107 58 / 0.4);
   }
   .btn-danger {
-    @apply btn border-2 border-red-500 bg-white text-red-600 active:bg-red-50;
+    @apply btn border bg-white text-red-600;
+    border-color: rgb(163 64 47 / 0.5);
+  }
+  .btn-danger:active {
+    @apply bg-red-50;
+  }
+  @media (hover: hover) {
+    .btn-primary:hover {
+      background: linear-gradient(180deg, #3a3737 0%, #2b2929 100%);
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 8px 20px -6px rgb(31 29 29 / 0.45);
+    }
+    .btn-primary:active {
+      transform: translateY(0) scale(0.975);
+    }
+    .btn-outline:hover {
+      border-color: rgb(31 29 29 / 0.4);
+      background: #fff;
+    }
+    .btn-success:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px -6px rgb(79 107 58 / 0.5);
+    }
+    .btn-danger:hover {
+      @apply bg-red-50;
+    }
   }
 
-  /* Badge / label kecil */
+  /* Badge: pil kecil huruf kapital (warna status datang dari kelas bg dan text di tempat pakai) */
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider;
   }
 
-  /* Tile ikon (emoji) */
+  /* Tile ikon */
   .icon-tile {
     @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl;
+    transition: transform 0.2s var(--ease-tracker);
+  }
+  a:active > .icon-tile {
+    transform: scale(0.92);
   }
 
-  /* Hero gradient brand */
+  /* Hero: gradasi arang (--dark di tracker) + kilau tipis di atas */
   .hero {
-    @apply rounded-2xl bg-gradient-to-br from-brand-600 to-brand-900 p-5 text-white shadow-soft;
+    @apply relative overflow-hidden rounded-2xl p-5 text-white;
+    background: linear-gradient(180deg, #2b2929 0%, #1f1d1d 100%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 14px 30px -14px rgb(31 29 29 / 0.45);
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: -40% -20% auto auto;
+    width: 70%;
+    height: 120%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgb(255 255 255 / 0.1), transparent 65%);
+    pointer-events: none;
+  }
+  .hero > * {
+    position: relative;
+  }
+
+  /* ---- Tab bar bawah: pil kaca melayang, tab aktif = pil arang ---- */
+  .tabbar {
+    position: fixed;
+    z-index: 50;
+    left: 50%;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    width: min(calc(100% - 20px), 400px);
+    transform: translateX(-50%);
+    padding: 6px;
+    border-radius: 28px;
+    border: 1px solid rgb(255 255 255 / 0.8);
+    background: rgb(255 255 255 / 0.78);
+    -webkit-backdrop-filter: blur(22px) saturate(1.4);
+    backdrop-filter: blur(22px) saturate(1.4);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 18px 40px -14px rgb(31 29 29 / 0.4);
+    animation: tabbarIn 0.6s var(--ease-tracker) 0.15s backwards;
+  }
+  .tabbar-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 54px;
+    border-radius: 22px;
+    color: #5f5c5c;
+    transition: background 0.25s ease, color 0.2s ease, box-shadow 0.25s ease, transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .tabbar-item:active {
+    transform: scale(0.94);
+  }
+  .tabbar-item.is-active {
+    color: #f5f5f5;
+    background: linear-gradient(180deg, #2b2929, #1f1d1d);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 6px 14px -6px rgb(31 29 29 / 0.5);
+  }
+  .tabbar-item.is-active svg {
+    animation: tabPop 0.4s var(--ease-tracker);
+  }
+  .tabbar-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  @media (hover: hover) {
+    .tabbar-item:not(.is-active):hover {
+      background: rgb(31 29 29 / 0.06);
+      color: #1f1d1d;
+    }
+  }
+}
+
+/* Lencana angka notifikasi (bulatan merah di ikon aksi) berdenyut halus */
+.bg-red-500.rounded-full.text-white {
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

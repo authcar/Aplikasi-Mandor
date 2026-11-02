@@ -3,7 +3,7 @@ import PushNotificationSetup from "@/components/PushNotificationSetup";
 
 export default function TukangHarianLayout({ children }) {
   return (
-    <div className="pb-16">
+    <div className="pb-24">
       {children}
       <TukangHarianNavbar />
       <PushNotificationSetup />

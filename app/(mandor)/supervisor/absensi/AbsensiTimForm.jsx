@@ -332,7 +332,7 @@ export default function AbsensiTimForm({ initialTims = [], initialFotos = [], to
       <RiwayatLaporanCard riwayat={riwayat} />
 
       {/* Aksi */}
-      <div className="fixed inset-x-0 bottom-14 z-40 mx-auto flex max-w-md gap-2 border-t border-gray-200 bg-white/95 p-3 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-[84px] z-40 mx-auto flex max-w-md gap-2 border-t border-gray-200 bg-white/95 p-3 backdrop-blur">
         <button
           type="button"
           onClick={salin}

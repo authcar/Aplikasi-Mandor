@@ -3,7 +3,7 @@ import PushNotificationSetup from "@/components/PushNotificationSetup";
 
 export default function MasterLayout({ children }) {
   return (
-    <div className="pb-16">
+    <div className="pb-24">
       {children}
       <MasterNavbar />
       <PushNotificationSetup />

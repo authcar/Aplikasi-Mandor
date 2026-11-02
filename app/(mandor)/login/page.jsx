@@ -61,7 +61,7 @@ export default function LoginPage() {
 
         <a
           href="/login-staff"
-          className="block text-center text-sm text-amber-600 hover:text-amber-800 font-medium pt-1"
+          className="block text-center text-sm text-gray-600 hover:text-gray-900 font-medium pt-1"
         >
           Login Staff (nomor HP + PIN) →
         </a>

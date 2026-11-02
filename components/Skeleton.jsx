@@ -1,12 +1,12 @@
 // Bangunan dasar + template siap-pakai buat file loading.jsx tiap halaman.
-// Semua pakai animate-pulse Tailwind, tanpa JS tambahan.
+// Semua pakai skel Tailwind, tanpa JS tambahan.
 
 export function Bar({ w = "w-full", h = "h-4", className = "" }) {
-  return <div className={`animate-pulse rounded-md bg-gray-200 ${w} ${h} ${className}`} />;
+  return <div className={`skel rounded-md bg-gray-200 ${w} ${h} ${className}`} />;
 }
 
 export function Circle({ size = "h-10 w-10", className = "" }) {
-  return <div className={`animate-pulse rounded-full bg-gray-200 ${size} ${className}`} />;
+  return <div className={`skel rounded-full bg-gray-200 ${size} ${className}`} />;
 }
 
 export function SkeletonCard({ lines = 2, className = "" }) {
@@ -36,7 +36,7 @@ export function DashboardSkeleton({ tiles = 5 }) {
         <Circle size="h-8 w-8" />
       </header>
 
-      <div className="hero mb-4 h-24 animate-pulse !bg-gray-200 p-4" />
+      <div className="hero mb-4 h-24 skel !bg-gray-200 p-4" />
 
       <div className="grid grid-cols-4 gap-y-4">
         {Array.from({ length: tiles }).map((_, i) => (

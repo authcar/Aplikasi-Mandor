@@ -4,8 +4,8 @@
   "description": "Manajemen proyek lapangan untuk Mandor & Supervisor",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#1d4ed8",
+  "background_color": "#F5F5F5",
+  "theme_color": "#1F1D1D",
   "icons": [
     {
       "src": "/logoO.svg",

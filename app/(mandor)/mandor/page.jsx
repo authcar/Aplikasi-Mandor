@@ -103,7 +103,7 @@ export default async function DashboardMandor({ searchParams }) {
           </span>
           <div className="min-w-0">
             <p className="text-xs font-medium text-brand">{sapa}</p>
-            <h1 className="truncate text-lg font-bold tracking-tight">{profile.name}</h1>
+            <h1 className="greet truncate text-lg font-bold tracking-tight">{profile.name}</h1>
             <p className="text-xs capitalize text-gray-400">{tglID(today)}</p>
           </div>
         </div>

@@ -246,7 +246,7 @@ export default function RollCall({
           </>
         )}
 
-        <div className="fixed inset-x-0 bottom-14 z-40 mx-auto max-w-md border-t border-gray-200 bg-white/95 p-3 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-[84px] z-40 mx-auto max-w-md border-t border-gray-200 bg-white/95 p-3 backdrop-blur">
           <button
             onClick={simpan}
             disabled={saving}

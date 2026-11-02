@@ -34,23 +34,21 @@ export default function MandorNavbar() {
   };
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md border-t border-gray-200 bg-white/95 backdrop-blur">
-      <div className="grid grid-cols-2">
+    <nav className="tabbar">
+      <div className="grid grid-cols-2 gap-1">
         {TABS.map((tab) => {
           const active = isActive(tab.href);
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center gap-0.5 py-2 transition-colors ${
-                active ? "text-brand" : "text-gray-400 active:text-gray-600"
-              }`}
+              className={`tabbar-item ${active ? "is-active" : ""}`}
+              aria-current={active ? "page" : undefined}
             >
               {tab.icon}
-              <span className={`text-[10px] font-semibold ${active ? "text-brand" : "text-gray-400"}`}>
+              <span className="tabbar-label">
                 {tab.label}
-              </span>
-              {active && <span className="absolute bottom-0 h-0.5 w-8 rounded-full bg-brand" />}
+              </span>
             </Link>
           );
         })}

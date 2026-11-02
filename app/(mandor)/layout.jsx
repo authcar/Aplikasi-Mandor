@@ -1,4 +1,8 @@
+import { Poppins } from "next/font/google";
 import "./globals.css";
+
+// Poppins di seluruh aplikasi — sama dengan Taraco Project Tracker.
+const poppins = Poppins({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700", "800"], variable: "--font-poppins", display: "swap" });
 
 export const metadata = {
   title: "Taraco App",
@@ -24,14 +28,15 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#1d4ed8",
+  themeColor: "#1F1D1D",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="id">
+    <html lang="id" className={poppins.variable}>
       <body>
-        <div className="relative mx-auto min-h-screen max-w-md bg-slate-50 shadow-soft sm:my-0">
+        {/* Transparan di HP supaya gradasi kaca + cakram melayang dari globals.css terlihat. */}
+        <div className="app-frame relative mx-auto min-h-screen max-w-md">
           {children}
         </div>
       </body>

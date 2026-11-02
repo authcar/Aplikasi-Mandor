@@ -203,7 +203,7 @@ export default function PushNotificationSetup() {
   if (status === "diam") return null;
 
   const Bingkai = ({ warna, children }) => (
-    <div className="fixed inset-x-0 bottom-16 z-40 mx-auto max-w-md px-3">
+    <div className="fixed inset-x-0 bottom-[84px] z-40 mx-auto max-w-md px-3">
       <div className={`card flex items-start gap-3 p-3 text-xs ${warna}`}>{children}</div>
     </div>
   );
