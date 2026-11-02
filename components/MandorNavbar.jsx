@@ -33,8 +33,12 @@ export default function MandorNavbar() {
     return pathname.startsWith(href);
   };
 
+  const idx = TABS.findIndex((tab) => isActive(tab.href));
+
+
   return (
-    <nav className="tabbar">
+    <nav className="tabbar" style={{ "--n": TABS.length, "--i": Math.max(idx, 0), "--on": idx >= 0 ? 1 : 0 }}>
+      <span className="tabbar-pil" aria-hidden="true" />
       <div className="grid grid-cols-2 gap-1">
         {TABS.map((tab) => {
           const active = isActive(tab.href);
