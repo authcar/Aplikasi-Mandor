@@ -6,7 +6,7 @@
 //
 // Skala netral (gray-*), brand, dan warna status (green/red/amber) dipetakan ulang ke
 // palet ini, jadi ratusan halaman ikut berganti tanpa mengubah satu per satu.
-// Hitam-putih jadi dasar yang tegas; warna aksen (biru, ungu, oranye, ...) tetap ada.
+// Hitam-putih jadi dasar yang tegas; warna aksen (biru, ungu, oranye, ...) tetap ada tapi diredam.
 
 // Netral murni — skala utama (gray).
 const netral = {
@@ -65,6 +65,34 @@ const kuning = {
   900: "#55330C",
 };
 
+// Skala aksen yang DIREDAM (saturasi rendah, tidak menyala): dibangkitkan dari satu hue.
+// Dipakai untuk biru, ungu, oranye, dst. supaya tetap berwarna tapi tidak terlalu terang.
+function hslHex(h, s, l) {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => {
+    const k = (n + h / 30) % 12;
+    const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(255 * c).toString(16).padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+}
+function redam(h, s = 42) {
+  return {
+    50: hslHex(h, s * 0.5, 96),
+    100: hslHex(h, s * 0.65, 92),
+    200: hslHex(h, s * 0.7, 85),
+    300: hslHex(h, s * 0.7, 74),
+    400: hslHex(h, s * 0.65, 60),
+    500: hslHex(h, s * 0.7, 48),
+    600: hslHex(h, s * 0.8, 40),
+    700: hslHex(h, s * 0.85, 32),
+    800: hslHex(h, s * 0.85, 25),
+    900: hslHex(h, s * 0.85, 18),
+  };
+}
+
 module.exports = {
   content: ["./app/**/*.{js,jsx}", "./components/**/*.{js,jsx}"],
   theme: {
@@ -94,8 +122,19 @@ module.exports = {
           900: "#000000",
         },
 
-        // Biru, ungu, indigo, sky, oranye, dst. SENGAJA tidak dipetakan: dibiarkan warna
-        // bawaan Tailwind sebagai AKSEN (ikon, tombol absen, highlight) di atas dasar hitam-putih.
+        // Aksen berwarna tetap ada, tapi diredam (tidak menyala).
+        blue: redam(214),
+        indigo: redam(232),
+        sky: redam(199),
+        cyan: redam(187),
+        teal: redam(170),
+        purple: redam(268),
+        violet: redam(256),
+        fuchsia: redam(300),
+        pink: redam(334),
+        orange: redam(24, 50),
+        yellow: redam(43, 50),
+        lime: redam(82),
 
         green: sage,
         emerald: sage,
