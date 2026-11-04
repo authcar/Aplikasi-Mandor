@@ -385,10 +385,8 @@ export default function KunjunganCard({
           >
             {pesan?.teks || (berjalan ? "Sedang di lokasi" : "Tap untuk absen masuk")}
           </p>
-          {!pesan && (
-            <p className="truncate text-xs text-gray-400">
-              {berjalan ? proyekBerjalan?.lokasi || "—" : "Lokasi diperiksa otomatis saat absen"}
-            </p>
+          {!pesan && berjalan && (
+            <p className="truncate text-xs text-gray-400">{proyekBerjalan?.lokasi || "—"}</p>
           )}
         </div>
 
