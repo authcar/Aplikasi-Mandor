@@ -4,6 +4,7 @@ import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import { getProyekMandor } from "@/lib/supabase/proyekMandor";
 import { rupiah, tglID, labelDeadlineProyek } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
+import AbsensiPegawaiSlot from "@/components/AbsensiPegawaiSlot";
 import ProyekSwitcher from "./ProyekSwitcher";
 import Icon from "@/components/Icon";
 
@@ -109,6 +110,8 @@ export default async function DashboardMandor({ searchParams }) {
         </div>
         <LogoutButton />
       </header>
+
+      <AbsensiPegawaiSlot supabase={supabase} profile={profile} />
 
       {!proyek ? (
         // Belum ada proyek aktif: langsung tampilkan ikon Project Tracker saja.

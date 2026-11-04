@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import LogoutButton from "@/components/LogoutButton";
+import AbsensiPegawaiSlot from "@/components/AbsensiPegawaiSlot";
 import Icon from "@/components/Icon";
 import ProyekSayaCard from "@/components/ProyekSayaCard";
 
@@ -86,6 +87,8 @@ export default async function DashboardMaster() {
           <h1 className="greet text-lg font-bold tracking-tight">{sapa}, {profile.name}!</h1>
         </div>
       </header>
+
+      <AbsensiPegawaiSlot supabase={supabase} profile={profile} />
 
       {/* Notifikasi: proyek yang belum absen / belum lapor hari ini, digabung
           jadi satu kartu, satu baris per notifikasi — cuma label + jumlah,
@@ -180,7 +183,12 @@ export default async function DashboardMaster() {
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Kunjungan SPV</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
-        <Link href="/portal" className="col-span-2 card-tap flex flex-col items-center justify-center gap-1 p-3">
+        <Link href="/master/absensi-pegawai" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+          <span className="icon-tile bg-teal-100 text-teal-600 !w-8 !h-8"><Icon name="clock" /></span>
+          <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Absensi Pegawai</p>
+          <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
+        </Link>
+        <Link href="/portal" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-amber-100 text-amber-700 !w-8 !h-8"><Icon name="share" /></span>
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Project Tracker</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />

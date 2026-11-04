@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import LogoutButton from "@/components/LogoutButton";
+import AbsensiPegawaiSlot from "@/components/AbsensiPegawaiSlot";
 import Icon from "@/components/Icon";
 import StreakWidget from "@/components/StreakWidget";
 import ProyekSayaCard from "@/components/ProyekSayaCard";
@@ -134,6 +135,8 @@ export default async function DashboardSupervisor() {
           </h1>
         </div>
       </header>
+
+      <AbsensiPegawaiSlot supabase={supabase} profile={profile} />
 
       {/* Hero: menunggu persetujuan */}
       <Link
