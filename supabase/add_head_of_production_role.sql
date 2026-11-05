@@ -1,0 +1,13 @@
+-- Jalankan di Supabase Studio > SQL Editor.
+--
+-- Role baru HEAD_OF_PRODUCTION: dashboard sendiri (/hop) berisi absensi pegawai,
+-- laporan harian semua proyek (hanya baca), dan Project Tracker (/portal, peran
+-- setara Supervisor: boleh mencentang progres, tanpa wewenang Admin).
+--
+-- Tidak ada perubahan RLS: halaman /hop membaca laporan harian lewat server
+-- (service role) setelah memeriksa role-nya, pola yang sama dengan Project
+-- Tracker. Jadi role ini tidak otomatis membuka tabel lain di Supabase.
+--
+-- ALTER TYPE ... ADD VALUE tidak bisa dipakai di transaksi yang sama dengan
+-- penggunaannya, jadi jalankan blok ini SENDIRI lebih dulu, lalu update di bawah.
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'HEAD_OF_PRODUCTION';

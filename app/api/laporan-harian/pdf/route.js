@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { buatPdfLaporanHarian } from "@/lib/laporanHarianPdf";
 import { createTaracoClient } from "@/lib/supabase/taraco";
@@ -7,7 +8,15 @@ import { identitasProyek } from "@/lib/laporanProyek";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const ROLE_BOLEH = ["MASTER", "FINANCE", "SUPERVISOR"];
+const ROLE_BOLEH = ["MASTER", "FINANCE", "SUPERVISOR", "HEAD_OF_PRODUCTION"];
+
+// RLS laporan_harian tidak mengenal HEAD_OF_PRODUCTION, jadi role itu membaca
+// lewat service role (hanya baca; role sudah dicek di GET).
+const supabaseAdmin = createAdminClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 const FOTO_MAKS_BYTE = 8 * 1024 * 1024;
 
 // SPK = projects.code, Client = projects.client di Taraco (proyek tracker:
@@ -26,10 +35,11 @@ async function ambilDariTaraco(taracoId) {
 // PDF laporan harian satu proyek pada satu hari. Query lewat client user,
 // jadi RLS menentukan apa yang boleh dilihat (Supervisor hanya proyeknya).
 export async function GET(req) {
-  const { profile, supabase } = await getSessionProfile();
+  const { profile, supabase: supabaseUser } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!ROLE_BOLEH.includes(profile.role))
     return NextResponse.json({ error: "Tidak diizinkan." }, { status: 403 });
+  const supabase = profile.role === "HEAD_OF_PRODUCTION" ? supabaseAdmin : supabaseUser;
 
   const { searchParams } = new URL(req.url);
   const proyekId = searchParams.get("proyek_id");
