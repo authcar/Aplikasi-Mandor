@@ -49,7 +49,19 @@ export default async function DashboardHop() {
             {sapa}, {profile.name}!
           </h1>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/hop/profil"
+            aria-label="Profil"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-card active:bg-gray-100"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+          </Link>
+          <LogoutButton />
+        </div>
       </header>
 
       <AbsensiPegawaiSlot supabase={supabase} profile={profile} />

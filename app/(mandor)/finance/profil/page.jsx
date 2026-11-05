@@ -1,6 +1,7 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
 import EditableNama from "@/components/EditableNama";
+import UbahSandiCard from "@/components/UbahSandiCard";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ export default async function ProfilFinancePage() {
       <div className="card divide-y divide-gray-100 mb-4">
         <EditableNama id={profile.id} initialName={profile.name} />
       </div>
+
+      <UbahSandiCard />
 
       <LogoutButton className="w-full" />
     </main>

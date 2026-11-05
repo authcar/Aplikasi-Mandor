@@ -1,6 +1,7 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
 import EditableNama from "@/components/EditableNama";
+import UbahSandiCard from "@/components/UbahSandiCard";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ export default async function ProfilSupervisorPage() {
             : "—"
         } />
       </div>
+
+      <UbahSandiCard />
 
       <LogoutButton className="w-full" />
     </main>

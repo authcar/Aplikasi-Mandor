@@ -18,6 +18,7 @@ import { hitungJarak } from "@/lib/geo";
 // kecil (~50-70 KB): cukup untuk membuktikan wajah + stempel terbaca.
 const SISI_MAKS = 720;
 const KUALITAS_JPEG = 0.7;
+const KUNCI_BALIK = "absen_selfie_balik";
 const JARAK_CARI_LABEL_METER = 50; // minta nama proyek lagi hanya kalau sudah berpindah sejauh ini
 const PERCOBAAN_ALAMAT = 3;
 const JEDA_ULANG_ALAMAT_MS = 2000;
@@ -81,6 +82,25 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
   const [sekarang, setSekarang] = useState(() => new Date());
   const [pratinjau, setPratinjau] = useState(null); // { url, posisi } hasil jepretan
   const [menyimpan, setMenyimpan] = useState(false);
+  // Banyak HP (terutama Android) memberi aliran kamera depan yang sudah
+  // terbalik seperti cermin, sehingga tulisan dan wajah di foto tampak
+  // terbalik. Default-nya dibalikkan kembali (foto tidak mirror); tombol "Balik"
+  // untuk HP yang aliran kameranya sudah benar. Pilihan diingat per HP.
+  const [balik, setBalik] = useState(() => {
+    try {
+      return localStorage.getItem(KUNCI_BALIK) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const ubahBalik = () => {
+    setBalik((b) => {
+      try {
+        localStorage.setItem(KUNCI_BALIK, b ? "0" : "1");
+      } catch {}
+      return !b;
+    });
+  };
   const [errorSimpan, setErrorSimpan] = useState(null);
 
   // Kamera depan
@@ -199,7 +219,17 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, w, h);
+    // Dibalik hanya gambar kameranya; stempel teks digambar setelah ini dan
+    // tidak ikut terbalik.
+    if (balik) {
+      ctx.save();
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, w, h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(video, 0, 0, w, h);
+    }
 
     const ukuran = Math.max(14, Math.round(w * 0.036));
     const jarakBaris = Math.round(ukuran * 1.35);
@@ -228,7 +258,7 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
       "image/jpeg",
       KUALITAS_JPEG
     );
-  }, [nama, posisi, proyek, alamat]);
+  }, [nama, posisi, proyek, alamat, balik]);
 
   const pakai = async () => {
     if (!pratinjau || menyimpan) return;
@@ -259,7 +289,18 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
           </svg>
         </button>
         <span className="text-sm font-semibold text-white">{judul}</span>
-        <div className="w-6" />
+        {pratinjau ? (
+          <div className="w-6" />
+        ) : (
+          <button
+            type="button"
+            onClick={ubahBalik}
+            className="rounded-full border border-white/40 px-2.5 py-1 text-xs font-semibold text-white active:bg-white/10"
+            aria-label="Balik gambar kamera kiri-kanan"
+          >
+            ⇋ Balik
+          </button>
+        )}
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -269,7 +310,13 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
           <p className="absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-red-400">{errorKamera}</p>
         ) : (
           <>
-            <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-contain" />
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`absolute inset-0 h-full w-full object-contain ${balik ? "-scale-x-100" : ""}`}
+            />
             {/* Pratinjau stempel yang akan tercetak di foto */}
             <div className="absolute inset-x-0 bottom-0 bg-black/55 px-3 py-2 text-white">
               {baris.map((teks, i) => (
