@@ -396,6 +396,7 @@ main > *:nth-child(n + 4) { animation-delay: 90ms; }
   .tabbar-label {
     font-size: 0.7rem;
     font-weight: 600;
+    white-space: nowrap; /* label panjang tidak boleh turun baris dan merusak tinggi tab */
   }
   @media (hover: hover) {
     .tabbar-item:not(.is-active):hover {
