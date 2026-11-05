@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
-import { ROLE_LAPOR, klienLaporan, supabaseAdmin } from "@/lib/laporanAkses";
+import { ROLE_LAPOR, klienLaporan } from "@/lib/laporanAkses";
+import { proyekHop } from "@/lib/supabase/proyekHop";
 
 const STATUS_VALID = ["ON_PROGRESS", "DONE", "PERBAIKAN"];
 
@@ -24,15 +25,11 @@ export async function POST(req) {
     return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
 
   // Supervisor dibatasi RLS ke proyeknya; Head of Production melewati RLS,
-  // jadi cukup dipastikan proyeknya memang ada dan aktif.
+  // jadi dipastikan proyeknya termasuk yang dipegangnya (Kick Off Meeting atau
+  // Production di Taraco).
   if (profile.role === "HEAD_OF_PRODUCTION") {
-    const { data: ada } = await supabaseAdmin
-      .from("proyek")
-      .select("id")
-      .eq("id", proyek_id)
-      .eq("is_active", true)
-      .maybeSingle();
-    if (!ada) return NextResponse.json({ error: "Proyek tidak ditemukan atau sudah tidak aktif." }, { status: 404 });
+    if (!(await proyekHop()).has(proyek_id))
+      return NextResponse.json({ error: "Proyek tidak ditemukan atau bukan proyek Kick Off Meeting/Production." }, { status: 404 });
   }
 
   let foto_url = null;

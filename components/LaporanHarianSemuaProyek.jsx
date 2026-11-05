@@ -13,15 +13,17 @@ const HALAMAN = 60;
 //                    pemanggil WAJIB sudah memeriksa role-nya.
 //   tandaiDibaca   — hanya Master: menandai laporan sudah dilihat (badge di dashboard).
 //   peran          — "MASTER" mengaktifkan Edit/Hapus; null = hanya baca.
-export default async function LaporanHarianSemuaProyek({ supabase, homePath, tandaiDibaca = false, peran = null }) {
+export default async function LaporanHarianSemuaProyek({ supabase, homePath, tandaiDibaca = false, peran = null, proyekIds = null }) {
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
+  // proyekIds (opsional): daftar proyek untuk "Status Hari Ini" ditentukan
+  // pemanggil (Head of Production: Kick Off Meeting + Production). Tanpa itu =
+  // semua proyek aktif, seperti biasa.
+  let daftarProyek = supabase.from("proyek").select("id, nama, supervisor:supervisor_id(name)").order("nama");
+  daftarProyek = proyekIds ? daftarProyek.in("id", proyekIds) : daftarProyek.eq("is_active", true);
+
   const [{ data: proyekAktif }, { data: rows }] = await Promise.all([
-    supabase
-      .from("proyek")
-      .select("id, nama, supervisor:supervisor_id(name)")
-      .eq("is_active", true)
-      .order("nama"),
+    daftarProyek,
     supabase
       .from("laporan_harian")
       .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at, dibaca_master, proyek:proyek_id(nama)")

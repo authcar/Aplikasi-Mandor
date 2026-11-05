@@ -1,5 +1,6 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
+import { proyekHop } from "@/lib/supabase/proyekHop";
 import { supabaseAdmin } from "@/lib/laporanAkses";
 import LaporanHarianSemuaProyek from "@/components/LaporanHarianSemuaProyek";
 
@@ -15,5 +16,6 @@ export default async function LaporanSemuaHopPage() {
   // Daftar proyek aktif disegarkan dari Taraco (biasanya dilakukan dashboard
   // Supervisor/Master; di sini supaya tidak bergantung pada mereka).
   await syncProyekFromTaraco();
-  return <LaporanHarianSemuaProyek supabase={supabaseAdmin} homePath="/hop" />;
+  const idProyek = [...(await proyekHop()).keys()];
+  return <LaporanHarianSemuaProyek supabase={supabaseAdmin} homePath="/hop" proyekIds={idProyek} />;
 }

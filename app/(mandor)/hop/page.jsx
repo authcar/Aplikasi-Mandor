@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
+import { proyekHop, STAGE_LABEL } from "@/lib/supabase/proyekHop";
 import { labelDeadlineProyek } from "@/lib/format";
 import AbsensiPegawaiSlot from "@/components/AbsensiPegawaiSlot";
 import LogoutButton from "@/components/LogoutButton";
@@ -21,18 +22,19 @@ const supabaseAdmin = createAdminClient(
 // Dashboard Head of Production: absensi pegawai, laporan harian semua proyek
 // (hanya baca), dan Project Tracker. Sengaja tidak ada menu lain.
 //
-// Proyek Head of Production = SEMUA proyek yang tersinkron dari Taraco
-// (pipeline MASTER di prod_ongoing, kanban PRODUCTION belum "done"; lihat
-// lib/supabase/syncProyek.js) — tidak bergantung pada kecocokan nama
+// Proyek Head of Production = SEMUA proyek Taraco yang pipeline MASTER-nya di
+// Kick Off Meeting atau Production, kanban PRODUCTION belum "done" (lihat
+// lib/supabase/proyekHop.js) — tidak bergantung pada kecocokan nama
 // supervisor/mandor seperti proyek Supervisor.
 export default async function DashboardHop() {
   const { profile, supabase } = await getSessionProfile();
 
   await syncProyekFromTaraco();
+  const stagePerProyek = await proyekHop();
   const { data: proyek } = await supabaseAdmin
     .from("proyek")
     .select("id, nama, lokasi, deadline, portal_id, supervisor:supervisor_id(name)")
-    .eq("is_active", true)
+    .in("id", [...stagePerProyek.keys()])
     .order("deadline", { ascending: true, nullsFirst: false });
 
   const jam = Number(
@@ -101,7 +103,16 @@ export default async function DashboardHop() {
                   <Icon name="building" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{p.nama}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-semibold">{p.nama}</p>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        stagePerProyek.get(p.id) === "kickoff" ? "bg-amber-100 text-amber-700" : "bg-brand-50 text-brand-600"
+                      }`}
+                    >
+                      {STAGE_LABEL[stagePerProyek.get(p.id)] || "Production"}
+                    </span>
+                  </div>
                   <p className="truncate text-xs text-gray-500">
                     {[p.lokasi, p.supervisor?.name && `SPV ${p.supervisor.name}`].filter(Boolean).join(" · ")}
                   </p>

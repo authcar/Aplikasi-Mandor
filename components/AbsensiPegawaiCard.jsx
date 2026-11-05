@@ -1,14 +1,7 @@
 "use client";
 import { useState } from "react";
 import SelfieStampModal from "@/components/SelfieStampModal";
-import {
-  JAM_MASUK,
-  JAM_PULANG,
-  BUKA_MASUK_JAM,
-  sudahBukaMasuk,
-  formatJam,
-  durasiKerja,
-} from "@/lib/absensiPegawaiAturan";
+import { BUKA_MASUK_JAM, sudahBukaMasuk, formatJam } from "@/lib/absensiPegawaiAturan";
 
 // Kartu "Absensi Saya" untuk akun yang wajib_absen: tap -> selfie berstempel
 // lokasi -> clock in / clock out.
@@ -118,15 +111,12 @@ export default function AbsensiPegawaiCard({ nama, awal }) {
 
       <div className="min-w-0">
         <p className="text-sm font-medium text-gray-600">{pesan || label.judul}</p>
-        <p className="text-xs text-gray-400">
-          {pesan ? label.sub : `Jam kerja ${String(JAM_MASUK).padStart(2, "0")}:00 – ${JAM_PULANG}:00`}
-        </p>
+        {pesan && <p className="text-xs text-gray-400">{label.sub}</p>}
       </div>
 
-      <div className="mt-1 grid w-full grid-cols-3 divide-x divide-amber-200 rounded-xl border border-amber-200 bg-amber-50/50 py-2.5">
+      <div className="mt-1 grid w-full grid-cols-2 divide-x divide-amber-200 rounded-xl border border-amber-200 bg-amber-50/50 py-2.5">
         <Stat value={formatJam(data?.masuk_at)} label="Masuk" />
         <Stat value={formatJam(data?.keluar_at)} label="Pulang" />
-        <Stat value={durasiKerja(data?.masuk_at, data?.keluar_at)} label="Total jam" />
       </div>
 
       {(data?.lokasi_masuk || data?.lokasi_keluar) && (
