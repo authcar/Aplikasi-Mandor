@@ -29,15 +29,34 @@ const waktuStempel = (d) => {
   return `${tgl} · ${jam} WIB`;
 };
 
-function barisStempel({ nama, sekarang, posisi, proyek }) {
+function barisStempel({ nama, sekarang, posisi, proyek, alamat }) {
   return [
     nama,
     waktuStempel(sekarang),
+    alamat,
     posisi
       ? `${posisi.lat.toFixed(5)}, ${posisi.lng.toFixed(5)} (±${Math.round(posisi.akurasi ?? 0)} m)`
       : "Mencari lokasi…",
     proyek ? `Dekat proyek: ${proyek}` : null,
   ].filter(Boolean);
+}
+
+// Alamat bisa panjang; fillText(maxWidth) akan menyempitkan hurufnya, jadi
+// dipecah per baris sesuai lebar canvas.
+function bungkusBaris(ctx, teks, lebarMaks) {
+  const hasil = [];
+  let baris = "";
+  for (const kata of teks.split(" ")) {
+    const calon = baris ? `${baris} ${kata}` : kata;
+    if (baris && ctx.measureText(calon).width > lebarMaks) {
+      hasil.push(baris);
+      baris = kata;
+    } else {
+      baris = calon;
+    }
+  }
+  if (baris) hasil.push(baris);
+  return hasil;
 }
 
 export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose }) {
@@ -51,6 +70,7 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
   const [posisi, setPosisi] = useState(null);
   const [errorGps, setErrorGps] = useState(null);
   const [proyek, setProyek] = useState(null);
+  const [alamat, setAlamat] = useState(null);
   const [sekarang, setSekarang] = useState(() => new Date());
   const [pratinjau, setPratinjau] = useState(null); // { url, posisi } hasil jepretan
   const [menyimpan, setMenyimpan] = useState(false);
@@ -89,8 +109,22 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
       setErrorGps("Perangkat ini tidak mendukung GPS.");
       return undefined;
     }
+    // Titik awal cepat dari Wi-Fi/menara (1-3 dtk) supaya tombol foto tidak
+    // menunggu GPS satelit yang di dalam ruangan bisa belasan detik. Hanya
+    // dipakai kalau pantauan GPS di bawah belum memberi titik apa pun.
+    let sudahAdaGps = false;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (sudahAdaGps) return;
+        setErrorGps(null);
+        setPosisi({ lat: pos.coords.latitude, lng: pos.coords.longitude, akurasi: pos.coords.accuracy });
+      },
+      () => {},
+      { enableHighAccuracy: false, maximumAge: 0, timeout: 8000 }
+    );
     const id = navigator.geolocation.watchPosition(
       (pos) => {
+        sudahAdaGps = true;
         setErrorGps(null);
         setPosisi({ lat: pos.coords.latitude, lng: pos.coords.longitude, akurasi: pos.coords.accuracy });
       },
@@ -107,7 +141,7 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
     return () => clearInterval(t);
   }, [pratinjau]);
 
-  // Nama proyek terdekat — hanya label, gagal pun tidak apa-apa.
+  // Nama proyek terdekat + alamat — hanya label, gagal pun tidak apa-apa.
   useEffect(() => {
     if (!posisi) return;
     const t = terakhirCariRef.current;
@@ -115,7 +149,10 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
     terakhirCariRef.current = { lat: posisi.lat, lng: posisi.lng };
     fetch(`/api/absensi-pegawai/lokasi?lat=${posisi.lat}&lng=${posisi.lng}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => setProyek(j?.proyek || null))
+      .then((j) => {
+        setProyek(j?.proyek || null);
+        setAlamat(j?.alamat || null);
+      })
       .catch(() => {});
   }, [posisi]);
 
@@ -135,10 +172,13 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
 
-    const baris = barisStempel({ nama, sekarang: new Date(), posisi, proyek });
     const ukuran = Math.max(14, Math.round(w * 0.036));
     const jarakBaris = Math.round(ukuran * 1.35);
     const pad = Math.round(ukuran * 0.7);
+    ctx.font = `500 ${ukuran}px sans-serif`;
+    const baris = barisStempel({ nama, sekarang: new Date(), posisi, proyek, alamat }).flatMap((teks, i) =>
+      i === 0 ? [teks] : bungkusBaris(ctx, teks, w - pad * 2)
+    );
     const tinggiBand = pad * 2 + jarakBaris * baris.length;
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fillRect(0, h - tinggiBand, w, tinggiBand);
@@ -159,7 +199,7 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
       "image/jpeg",
       0.85
     );
-  }, [nama, posisi, proyek]);
+  }, [nama, posisi, proyek, alamat]);
 
   const pakai = async () => {
     if (!pratinjau || menyimpan) return;
@@ -177,7 +217,7 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
     }
   };
 
-  const baris = barisStempel({ nama, sekarang, posisi, proyek });
+  const baris = barisStempel({ nama, sekarang, posisi, proyek, alamat });
   const siapJepret = kameraSiap && !!posisi;
 
   return (
