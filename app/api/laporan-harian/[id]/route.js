@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { bolehKoreksiLaporan } from "@/lib/laporanKoreksi";
+import { klienLaporan } from "@/lib/laporanAkses";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,11 @@ const supabaseAdmin = createAdminClient(
 const buangFile = (path) => (path ? supabaseAdmin.storage.from("progres").remove([path]).catch(() => {}) : null);
 
 async function muat(id) {
-  const { profile, supabase } = await getSessionProfile();
+  const { profile, supabase: supabaseUser } = await getSessionProfile();
   if (!profile) return { galat: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  // Head of Production: RLS tidak mengenalnya, jadi dibaca lewat service role;
+  // izin sebenarnya ditentukan bolehKoreksiLaporan di bawah.
+  const supabase = klienLaporan(profile, supabaseUser);
 
   const { data: laporan } = await supabase
     .from("laporan_harian")
@@ -34,8 +38,8 @@ async function muat(id) {
       galat: NextResponse.json(
         {
           error:
-            profile.role === "SUPERVISOR"
-              ? "Supervisor hanya bisa mengubah laporannya sendiri di hari yang sama."
+            profile.role === "SUPERVISOR" || profile.role === "HEAD_OF_PRODUCTION"
+              ? "Hanya bisa mengubah laporan sendiri di hari yang sama."
               : "Tidak diizinkan.",
         },
         { status: 403 }

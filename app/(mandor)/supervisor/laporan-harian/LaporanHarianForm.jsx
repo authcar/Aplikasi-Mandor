@@ -43,7 +43,8 @@ const ENTRI_KOSONG = () => ({
 // 1 proyek per submit, tapi bisa beberapa kegiatan sekaligus — tiap
 // kegiatan punya foto, deskripsi & status sendiri-sendiri (dikirim sebagai
 // baris laporan_harian terpisah, satu request per kegiatan).
-export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudahLaporIds = [], userId = null, pesanKosong = null }) {
+// homePath/peran: dipakai bersama halaman Head of Production (/hop/laporan-harian).
+export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudahLaporIds = [], userId = null, pesanKosong = null, homePath = "/supervisor", peran = "SUPERVISOR" }) {
   const router = useRouter();
   const sudahLapor = new Set(sudahLaporIds);
   const [proyekId, setProyekId] = useState(proyekList[0]?.id || "");
@@ -119,7 +120,7 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
   if (!proyekList.length) {
     return (
       <main className="p-4">
-        <BackButton href="/supervisor" />
+        <BackButton href={homePath} />
         <p className="p-6 text-center text-sm text-gray-400">{pesanKosong || "Belum ada proyek aktif."}</p>
       </main>
     );
@@ -131,7 +132,7 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
         <KameraModal title="Foto Dokumentasi" onCapture={pakaiFoto} onClose={() => setKameraFor(null)} />
       )}
       <main className="p-4 pb-8">
-        <BackButton href="/supervisor" />
+        <BackButton href={homePath} />
         <h1 className="text-xl font-bold tracking-tight">Laporan Harian</h1>
         <p className="mb-4 text-sm text-gray-500">Dokumentasi & status pekerjaan hari ini</p>
 
@@ -267,7 +268,7 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
         </form>
 
         {daftar.length > 0 ? (
-          <RiwayatLaporanHarianCard riwayat={daftar} peran="SUPERVISOR" userId={userId} />
+          <RiwayatLaporanHarianCard riwayat={daftar} peran={peran} userId={userId} />
         ) : (
           <section className="mt-6">
             <h2 className="mb-3 font-bold text-gray-700">Riwayat Laporan Harian</h2>

@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
+import { ROLE_LAPOR, klienLaporan, supabaseAdmin } from "@/lib/laporanAkses";
 
 const STATUS_VALID = ["ON_PROGRESS", "DONE", "PERBAIKAN"];
 
-// POST /api/laporan-harian — Laporan Harian Supervisor (foto + deskripsi + status).
+// POST /api/laporan-harian — Laporan Harian Supervisor / Head of Production
+// (foto + deskripsi + status).
 // Menerima multipart/form-data: proyek_id, deskripsi, status, foto(File?)
 export async function POST(req) {
-  const { profile, supabase } = await getSessionProfile();
+  const { profile, supabase: supabaseUser } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (profile.role !== "SUPERVISOR")
-    return NextResponse.json({ error: "Hanya Supervisor." }, { status: 403 });
+  if (!ROLE_LAPOR.includes(profile.role))
+    return NextResponse.json({ error: "Hanya Supervisor atau Head of Production." }, { status: 403 });
+  const supabase = klienLaporan(profile, supabaseUser);
 
   const form = await req.formData();
   const proyek_id = form.get("proyek_id");
@@ -19,6 +22,18 @@ export async function POST(req) {
 
   if (!proyek_id || !deskripsi || !STATUS_VALID.includes(status))
     return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
+
+  // Supervisor dibatasi RLS ke proyeknya; Head of Production melewati RLS,
+  // jadi cukup dipastikan proyeknya memang ada dan aktif.
+  if (profile.role === "HEAD_OF_PRODUCTION") {
+    const { data: ada } = await supabaseAdmin
+      .from("proyek")
+      .select("id")
+      .eq("id", proyek_id)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (!ada) return NextResponse.json({ error: "Proyek tidak ditemukan atau sudah tidak aktif." }, { status: 404 });
+  }
 
   let foto_url = null;
   if (foto && typeof foto === "object" && foto.size > 0) {

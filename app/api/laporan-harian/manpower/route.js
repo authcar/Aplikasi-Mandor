@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { KLASIFIKASI_MANPOWER } from "@/lib/manpower";
+import { ROLE_LAPOR, klienLaporan } from "@/lib/laporanAkses";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,9 @@ const angka = (v) => (Number(v) > 0 ? Math.min(Math.floor(Number(v)), 999) : 0);
 // GET /api/laporan-harian/manpower?proyek_id=...[&tanggal=YYYY-MM-DD]
 // Man Power satu proyek (default hari ini). RLS menentukan akses.
 export async function GET(req) {
-  const { profile, supabase } = await getSessionProfile();
+  const { profile, supabase: supabaseUser } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = klienLaporan(profile, supabaseUser);
 
   const { searchParams } = new URL(req.url);
   const proyekId = searchParams.get("proyek_id");
@@ -31,10 +33,11 @@ export async function GET(req) {
 // body: { proyek_id, rows: [{ klasifikasi, aktif_site, aktif_ws, lembur, alpha }] }
 // Baris yang semua angkanya 0 dihapus, sisanya di-upsert.
 export async function PUT(req) {
-  const { profile, supabase } = await getSessionProfile();
+  const { profile, supabase: supabaseUser } = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!["SUPERVISOR", "MASTER"].includes(profile.role))
-    return NextResponse.json({ error: "Hanya Supervisor atau Master." }, { status: 403 });
+  if (![...ROLE_LAPOR, "MASTER"].includes(profile.role))
+    return NextResponse.json({ error: "Hanya Supervisor, Head of Production, atau Master." }, { status: 403 });
+  const supabase = klienLaporan(profile, supabaseUser);
 
   const body = await req.json().catch(() => ({}));
   const proyekId = body.proyek_id;
