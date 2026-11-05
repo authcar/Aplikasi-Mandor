@@ -49,7 +49,7 @@ export async function GET(req) {
 
   const { data: rows, error } = await supabase
     .from("laporan_harian")
-    .select("id, deskripsi, status, foto_url, created_at, proyek:proyek_id(nama, lokasi, taraco_id, portal_id, supervisor:supervisor_id(name))")
+    .select("id, deskripsi, status, foto_url, created_at, created_by, proyek:proyek_id(nama, lokasi, taraco_id, portal_id, supervisor:supervisor_id(name))")
     .eq("proyek_id", proyekId)
     .eq("tanggal", tanggal)
     .order("created_at", { ascending: true });
@@ -69,6 +69,21 @@ export async function GET(req) {
     }
     items.push({ status: r.status, deskripsi: r.deskripsi, foto });
   }
+
+  // "Diajukan Oleh" = yang membuat laporan hari itu (bisa Supervisor atau Head of
+  // Production), bukan supervisor yang tertera di proyek: proyek tanpa
+  // supervisor, atau laporan buatan Head of Production, akan kosong. Nama dibaca
+  // lewat service role karena RLS profiles tidak membuka semua role. Gagal =
+  // jatuh ke supervisor proyek.
+  const pembuatIds = [...new Set(rows.map((r) => r.created_by).filter(Boolean))];
+  const pembuat = pembuatIds.length
+    ? await supabaseAdmin
+        .from("profiles")
+        .select("id, name")
+        .in("id", pembuatIds)
+        .then(({ data }) => pembuatIds.map((id) => data?.find((p) => p.id === id)?.name).filter(Boolean).join(", "))
+        .catch(() => "")
+    : "";
 
   // Man Power (tabel laporan_manpower), SPK & Client (Taraco: code, client),
   // dan logo. Semuanya pelengkap: kalau gagal dibaca, bagian itu kosong/"-"
@@ -92,7 +107,7 @@ export async function GET(req) {
     pdf = buatPdfLaporanHarian({
       proyek: namaProyek,
       lokasi: rows[0].proyek?.lokasi || null,
-      supervisor: rows[0].proyek?.supervisor?.name || null,
+      supervisor: pembuat || rows[0].proyek?.supervisor?.name || null,
       tanggal,
       items,
       spk: taraco?.code || null,
