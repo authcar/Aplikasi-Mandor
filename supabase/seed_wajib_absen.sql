@@ -6,7 +6,7 @@
 --   update profiles set wajib_absen = false where lower(email) = '...';
 --
 -- Kolom profiles.email diisi oleh add_profiles_email.sql. Setelah dijalankan,
--- cek hasilnya — 11 baris untuk 11 email:
+-- cek hasilnya — 12 baris untuk 12 email:
 --   select name, email, role from profiles where wajib_absen order by name;
 -- Email yang tidak muncul berarti belum punya akun / emailnya beda ketik.
 
@@ -23,5 +23,6 @@ where lower(email) in (
   'nbilahamiroh@gmail.com',
   'ilysmch12@gmail.com',
   'basselimam03@gmail.com',
-  'agung.suherman1414@gmail.com'
+  'agung.suherman1414@gmail.com',
+  'authcar@gmail.com'
 );

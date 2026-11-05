@@ -16,6 +16,8 @@ import { hitungJarak } from "@/lib/geo";
 
 const SISI_MAKS = 1280;
 const JARAK_CARI_LABEL_METER = 50; // minta nama proyek lagi hanya kalau sudah berpindah sejauh ini
+const PERCOBAAN_ALAMAT = 3;
+const JEDA_ULANG_ALAMAT_MS = 2000;
 
 const waktuStempel = (d) => {
   const tgl = d.toLocaleDateString("id-ID", {
@@ -64,6 +66,7 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const terakhirCariRef = useRef(null);
+  const idCariRef = useRef(0); // penanda pencarian alamat terbaru; yang lama diabaikan
 
   const [kameraSiap, setKameraSiap] = useState(false);
   const [errorKamera, setErrorKamera] = useState(null);
@@ -71,6 +74,7 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
   const [errorGps, setErrorGps] = useState(null);
   const [proyek, setProyek] = useState(null);
   const [alamat, setAlamat] = useState(null);
+  const [statusAlamat, setStatusAlamat] = useState("memuat"); // "memuat" | "ok" | "gagal"
   const [sekarang, setSekarang] = useState(() => new Date());
   const [pratinjau, setPratinjau] = useState(null); // { url, posisi } hasil jepretan
   const [menyimpan, setMenyimpan] = useState(false);
@@ -147,14 +151,36 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
     const t = terakhirCariRef.current;
     if (t && hitungJarak(posisi.lat, posisi.lng, t.lat, t.lng) < JARAK_CARI_LABEL_METER) return;
     terakhirCariRef.current = { lat: posisi.lat, lng: posisi.lng };
-    fetch(`/api/absensi-pegawai/lokasi?lat=${posisi.lat}&lng=${posisi.lng}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        setProyek(j?.proyek || null);
-        setAlamat(j?.alamat || null);
-      })
-      .catch(() => {});
+
+    // Tombol foto menunggu alamat. Kalau Google gagal/kunci belum ada, coba
+    // beberapa kali lalu menyerah ("gagal") supaya absen tidak macet total —
+    // fotonya lalu memakai koordinat saja.
+    const saya = ++idCariRef.current;
+    setStatusAlamat("memuat");
+    setAlamat(null);
+    setProyek(null);
+    (async () => {
+      for (let i = 0; i < PERCOBAAN_ALAMAT; i++) {
+        try {
+          const r = await fetch(`/api/absensi-pegawai/lokasi?lat=${posisi.lat}&lng=${posisi.lng}`);
+          const j = r.ok ? await r.json() : null;
+          if (idCariRef.current !== saya) return;
+          if (j?.proyek) setProyek(j.proyek);
+          if (j?.alamat) {
+            setAlamat(j.alamat);
+            setStatusAlamat("ok");
+            return;
+          }
+        } catch {}
+        if (i < PERCOBAAN_ALAMAT - 1) await new Promise((res) => setTimeout(res, JEDA_ULANG_ALAMAT_MS));
+        if (idCariRef.current !== saya) return;
+      }
+      setStatusAlamat("gagal");
+    })();
   }, [posisi]);
+
+  // Batalkan pencarian alamat yang masih berjalan saat modal ditutup.
+  useEffect(() => () => { idCariRef.current += 1; }, []);
 
   // Lepas object URL pratinjau saat diganti / modal ditutup.
   useEffect(() => () => pratinjau && URL.revokeObjectURL(pratinjau.url), [pratinjau]);
@@ -218,7 +244,7 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
   };
 
   const baris = barisStempel({ nama, sekarang, posisi, proyek, alamat });
-  const siapJepret = kameraSiap && !!posisi;
+  const siapJepret = kameraSiap && !!posisi && statusAlamat !== "memuat";
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black">
@@ -279,6 +305,10 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
               <p className="text-center text-xs text-red-400">{errorGps}</p>
             ) : !posisi ? (
               <p className="text-xs text-white/70">Mencari lokasi…</p>
+            ) : statusAlamat === "memuat" ? (
+              <p className="text-xs text-white/70">Mencari alamat…</p>
+            ) : statusAlamat === "gagal" ? (
+              <p className="text-xs text-amber-300">Alamat tidak tersedia, foto memakai koordinat saja.</p>
             ) : null}
             <button
               onClick={jepret}
