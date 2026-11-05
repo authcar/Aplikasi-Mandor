@@ -68,20 +68,14 @@ export default async function DashboardHop() {
 
       <AbsensiPegawaiSlot supabase={supabase} profile={profile} />
 
-      <div className="grid grid-cols-3 gap-3">
-        <Link href="/hop/laporan-harian" className="card-tap flex flex-col items-center justify-center gap-2 p-4 active:opacity-70">
+      <div className="grid grid-cols-2 gap-3">
+        <Link href="/hop/laporan-harian" className="card-tap flex flex-col items-center justify-center gap-2 p-5 active:opacity-70">
           <span className="icon-tile !rounded-full bg-sky-100 text-sky-600">
             <Icon name="clipboard" />
           </span>
-          <p className="text-center text-xs font-semibold leading-tight text-gray-600">Buat Laporan Harian</p>
+          <p className="text-center text-xs font-semibold leading-tight text-gray-600">Laporan Harian</p>
         </Link>
-        <Link href="/hop/laporan-semua" className="card-tap flex flex-col items-center justify-center gap-2 p-4 active:opacity-70">
-          <span className="icon-tile !rounded-full bg-emerald-100 text-emerald-600">
-            <Icon name="check-circle" />
-          </span>
-          <p className="text-center text-xs font-semibold leading-tight text-gray-600">Semua Laporan</p>
-        </Link>
-        <Link href="/portal" className="card-tap flex flex-col items-center justify-center gap-2 p-4 active:opacity-70">
+        <Link href="/portal" className="card-tap flex flex-col items-center justify-center gap-2 p-5 active:opacity-70">
           <span className="icon-tile !rounded-full bg-amber-100 text-amber-700">
             <Icon name="share" />
           </span>

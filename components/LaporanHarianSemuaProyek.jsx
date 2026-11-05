@@ -4,26 +4,20 @@ import StatusHariIniCard from "@/app/(mandor)/master/laporan-harian/StatusHariIn
 
 const HALAMAN = 60;
 
-// Laporan harian dari SEMUA proyek (semua Supervisor), dipakai bersama oleh
-// /master/laporan-harian dan /hop/laporan-harian.
+// Laporan harian dari SEMUA proyek (semua Supervisor), dipakai /master/laporan-harian.
 //
-//   supabase       — client yang dipakai membaca. Master: client user (RLS).
-//                    Head of Production: client service role, karena RLS
-//                    laporan_harian hanya mengenal Master/Supervisor; halaman
-//                    pemanggil WAJIB sudah memeriksa role-nya.
-//   tandaiDibaca   — hanya Master: menandai laporan sudah dilihat (badge di dashboard).
+//   supabase       — client yang dipakai membaca (client user, tunduk RLS).
+//   tandaiDibaca   — menandai laporan sudah dilihat Master (badge di dashboard).
 //   peran          — "MASTER" mengaktifkan Edit/Hapus; null = hanya baca.
-export default async function LaporanHarianSemuaProyek({ supabase, homePath, tandaiDibaca = false, peran = null, proyekIds = null }) {
+export default async function LaporanHarianSemuaProyek({ supabase, homePath, tandaiDibaca = false, peran = null }) {
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-  // proyekIds (opsional): daftar proyek untuk "Status Hari Ini" ditentukan
-  // pemanggil (Head of Production: Kick Off Meeting + Production). Tanpa itu =
-  // semua proyek aktif, seperti biasa.
-  let daftarProyek = supabase.from("proyek").select("id, nama, supervisor:supervisor_id(name)").order("nama");
-  daftarProyek = proyekIds ? daftarProyek.in("id", proyekIds) : daftarProyek.eq("is_active", true);
-
   const [{ data: proyekAktif }, { data: rows }] = await Promise.all([
-    daftarProyek,
+    supabase
+      .from("proyek")
+      .select("id, nama, supervisor:supervisor_id(name)")
+      .eq("is_active", true)
+      .order("nama"),
     supabase
       .from("laporan_harian")
       .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at, dibaca_master, proyek:proyek_id(nama)")
