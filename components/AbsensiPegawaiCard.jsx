@@ -15,7 +15,8 @@ import {
 //
 // Tidak ada pengecekan radius: pegawai boleh absen dari proyek mana pun.
 // Jam resmi dibuat server (app/api/absensi-pegawai); jam di kartu ini hanya
-// tampilan. Fotonya tidak disimpan — lihat components/SelfieStampModal.jsx.
+// tampilan. Selfie ikut dikirim dan disimpan server untuk arsip PDF bulanan —
+// lihat components/SelfieStampModal.jsx.
 export default function AbsensiPegawaiCard({ nama, awal }) {
   const [data, setData] = useState(awal || null); // baris absen hari ini
   const [kamera, setKamera] = useState(null);     // "masuk" | "pulang" | null
@@ -26,11 +27,13 @@ export default function AbsensiPegawaiCard({ nama, awal }) {
   const nonaktif = mode === "selesai" || (mode === "idle" && !bukaMasuk);
 
   const kirim = async (aksi, posisi) => {
-    const res = await fetch("/api/absensi-pegawai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aksi, ...posisi }),
-    });
+    const form = new FormData();
+    form.set("aksi", aksi);
+    form.set("lat", String(posisi.lat));
+    form.set("lng", String(posisi.lng));
+    if (posisi.accuracy != null) form.set("accuracy", String(posisi.accuracy));
+    form.set("foto", posisi.foto, "selfie.jpg");
+    const res = await fetch("/api/absensi-pegawai", { method: "POST", body: form });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) return j.error || "Gagal menyimpan absen";
     setData((d) =>
@@ -52,8 +55,9 @@ export default function AbsensiPegawaiCard({ nama, awal }) {
           }
     );
     setKamera(null);
-    setPesan(aksi === "masuk" ? "Absen masuk tercatat ✓" : "Absen pulang tercatat ✓");
-    setTimeout(() => setPesan(""), 3000);
+    const tercatat = aksi === "masuk" ? "Absen masuk tercatat ✓" : "Absen pulang tercatat ✓";
+    setPesan(j.foto_tersimpan === false ? `${tercatat} (foto gagal tersimpan)` : tercatat);
+    setTimeout(() => setPesan(""), j.foto_tersimpan === false ? 6000 : 3000);
     return null;
   };
 

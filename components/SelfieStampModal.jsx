@@ -5,16 +5,19 @@ import { hitungJarak } from "@/lib/geo";
 // Kamera selfie untuk absen, dengan stempel nama + waktu + lokasi yang
 // tercetak di foto.
 //
-// Fotonya TIDAK PERNAH diunggah atau disimpan. Selfie ini cuma hasil jepretan
-// di layar untuk dilihat orangnya sebelum menekan "Pakai"; yang dikirim ke
-// server hanya koordinat (onKonfirmasi), dan jam resminya dibuat server. Jadi
-// jam di stempel adalah jam HP — itu murni tampilan, bukan catatan absen.
+// Setelah orangnya menekan "Pakai", foto (sudah dikecilkan: SISI_MAKS, JPEG)
+// dikirim bersama koordinat lewat onKonfirmasi dan disimpan server di bucket
+// privat untuk arsip PDF bulanan. Jam resmi dan alamat yang tersimpan dibuat
+// server; jam & alamat di stempel hanya tampilan di foto.
 //
 // Sengaja bukan perpanjangan KameraModal: modal itu dipakai belasan form
 // dengan kamera belakang, sedangkan yang ini kamera depan, butuh GPS, dan
 // punya langkah pratinjau.
 
-const SISI_MAKS = 1280;
+// Foto disimpan ~480 buah per bulan lalu dijadikan satu PDF, jadi sengaja
+// kecil (~50-70 KB): cukup untuk membuktikan wajah + stempel terbaca.
+const SISI_MAKS = 720;
+const KUALITAS_JPEG = 0.7;
 const JARAK_CARI_LABEL_METER = 50; // minta nama proyek lagi hanya kalau sudah berpindah sejauh ini
 const PERCOBAAN_ALAMAT = 3;
 const JEDA_ULANG_ALAMAT_MS = 2000;
@@ -220,10 +223,10 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
         if (!blob) return;
         streamRef.current?.getTracks().forEach((t) => t.stop());
         setErrorSimpan(null);
-        setPratinjau({ url: URL.createObjectURL(blob), posisi });
+        setPratinjau({ url: URL.createObjectURL(blob), posisi, blob });
       },
       "image/jpeg",
-      0.85
+      KUALITAS_JPEG
     );
   }, [nama, posisi, proyek, alamat]);
 
@@ -235,6 +238,7 @@ export default function SelfieStampModal({ judul, nama, onKonfirmasi, onClose })
       lat: pratinjau.posisi.lat,
       lng: pratinjau.posisi.lng,
       accuracy: pratinjau.posisi.akurasi,
+      foto: pratinjau.blob,
     });
     // Sukses: parent menutup modal. Gagal: tetap di pratinjau supaya bisa dicoba lagi.
     if (galat) {
