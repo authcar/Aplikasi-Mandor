@@ -15,7 +15,7 @@ import { JENIS_TERMIN, terminStandar, hariIni } from "@/lib/portal/format";
 
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
 
-const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "supervisor_id", "aktif", "timbang_harga", "nilai_proyek"];
+const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "tanggal_kirim", "supervisor_id", "aktif", "timbang_harga", "nilai_proyek"];
 const F_ITEM = ["area", "kode", "nama", "jenis", "qty", "satuan", "dimensi", "harga", "harga_satuan", "tim", "bobot", "urutan", "foto", "hanya_jasa"];
 const F_TERMIN = ["urutan", "jenis", "label", "persen", "jatuh_tempo", "lunas_tgl", "dibayar", "bukti"];
 
@@ -30,7 +30,7 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, add_portal_progres_persen.sql, add_portal_item_foto.sql, add_portal_item_hanya_jasa.sql, add_portal_progres_foto.sql, add_portal_progres_foto_tahap.sql, dan add_portal_progres_riwayat.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, add_portal_progres_persen.sql, add_portal_item_foto.sql, add_portal_item_hanya_jasa.sql, add_portal_progres_foto.sql, add_portal_progres_foto_tahap.sql, add_portal_progres_riwayat.sql, dan add_portal_tanggal_kirim.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
 }
@@ -111,6 +111,7 @@ export async function ubahProyek(id, patch) {
     const p = pilih(patch, F_PROYEK);
     if (p.nilai_proyek != null && !(Number(p.nilai_proyek) >= 0)) throw new Error("nilai proyek tidak valid.");
     if ("deadline" in p && p.deadline && !/^\d{4}-\d{2}-\d{2}$/.test(p.deadline)) throw new Error("tanggal deadline tidak valid.");
+    if ("tanggal_kirim" in p && p.tanggal_kirim && !/^\d{4}-\d{2}-\d{2}$/.test(p.tanggal_kirim)) throw new Error("tanggal pengiriman tidak valid.");
     await ubah("portal_proyek", id, p);
   });
 }

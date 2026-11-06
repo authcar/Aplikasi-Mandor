@@ -37,6 +37,17 @@ export default async function DashboardHop() {
     .in("id", [...stagePerProyek.keys()])
     .order("deadline", { ascending: true, nullsFirst: false });
 
+  // Tanggal pengiriman diisi admin di Project Tracker (portal_proyek.tanggal_kirim).
+  // Pelengkap: kolom belum dibuat / gagal dibaca -> tanpa label, beranda tetap jalan.
+  const kirimPortal = {};
+  const idPortal = (proyek || []).map((p) => p.portal_id).filter(Boolean);
+  if (idPortal.length) {
+    const { data: kirim } = await supabaseAdmin.from("portal_proyek").select("id, tanggal_kirim").in("id", idPortal);
+    for (const k of kirim || []) if (k.tanggal_kirim) kirimPortal[k.id] = k.tanggal_kirim;
+  }
+  const tglKirim = (s) =>
+    new Date(`${s}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+
   const jam = Number(
     new Intl.DateTimeFormat("id-ID", { hour: "numeric", hour12: false, timeZone: "Asia/Jakarta" }).format(new Date()),
   );
@@ -110,12 +121,20 @@ export default async function DashboardHop() {
                   <p className="truncate text-xs text-gray-500">
                     {[p.lokasi, p.supervisor?.name && `SPV ${p.supervisor.name}`].filter(Boolean).join(" · ")}
                   </p>
-                  {deadline && (
-                    <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.cls}`}>
-                      <Icon name="calendar" className="h-3 w-3" />
-                      {deadline.teks}
-                    </span>
-                  )}
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {deadline && (
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${deadline.cls}`}>
+                        <Icon name="calendar" className="h-3 w-3" />
+                        {deadline.teks}
+                      </span>
+                    )}
+                    {kirimPortal[p.portal_id] && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                        <Icon name="calendar" className="h-3 w-3" />
+                        Pengiriman {tglKirim(kirimPortal[p.portal_id])}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </>
             );

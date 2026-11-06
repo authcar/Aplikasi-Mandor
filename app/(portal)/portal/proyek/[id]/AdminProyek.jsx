@@ -59,6 +59,12 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
           ) : (
             <span className="badge b-bad">Perlu input deadline</span>
           )}
+          {/* Tanggal pengiriman: diisi admin (tab Info), terlihat oleh semua staf termasuk Head of Production. */}
+          {proyek.tanggal_kirim ? (
+            <span className="badge b-n">Pengiriman {tglTh(proyek.tanggal_kirim)}</span>
+          ) : admin ? (
+            <span className="small">Tanggal pengiriman belum diisi</span>
+          ) : null}
         </div>
       </div>
       {/* Nilai kontrak hanya untuk master; supervisor cukup melihat progres. */}
@@ -1301,7 +1307,7 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
 function TabInfo({ proyek, supervisors, klien = [], aksi }) {
   const [f, setF] = useState({
     nama: proyek.nama, kode: proyek.kode || "", klien_nama: proyek.klien_nama || "", lokasi: proyek.lokasi || "",
-    mulai: proyek.mulai, deadline: proyek.deadline || "", supervisor_id: proyek.supervisor_id || "", aktif: proyek.aktif,
+    mulai: proyek.mulai, deadline: proyek.deadline || "", tanggal_kirim: proyek.tanggal_kirim || "", supervisor_id: proyek.supervisor_id || "", aktif: proyek.aktif,
   });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const [disalin, setDisalin] = useState(false);
@@ -1325,6 +1331,8 @@ ${url}`
         nama: f.nama.trim(), kode: f.kode.trim() || null, klien_nama: f.klien_nama.trim() || null, lokasi: f.lokasi.trim() || null,
         mulai: f.mulai, supervisor_id: f.supervisor_id || null, aktif: f.aktif,
         deadline: f.deadline || null,
+        // Hanya dikirim kalau berubah, supaya simpan info tetap jalan sebelum kolomnya dibuat (add_portal_tanggal_kirim.sql).
+        ...(f.tanggal_kirim !== (proyek.tanggal_kirim || "") ? { tanggal_kirim: f.tanggal_kirim || null } : {}),
       }), "Info proyek disimpan.");
     }}>
       {klien.length > 1 && (
@@ -1362,6 +1370,9 @@ ${url}`
           <input className="inp" type="date" value={f.deadline} onChange={set("deadline")} min={f.mulai} />
         </label>
       </div>
+      <label className="lbl">Tanggal pengiriman
+        <input className="inp" type="date" value={f.tanggal_kirim} onChange={set("tanggal_kirim")} />
+      </label>
       <label className="lbl">Supervisor
         <select className="inp" value={f.supervisor_id} onChange={set("supervisor_id")}>
           <option value="">— Belum ditentukan —</option>
