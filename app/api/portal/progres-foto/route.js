@@ -5,7 +5,6 @@ import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek } from "@/lib/portal/data";
 import { TAHAP } from "@/lib/portal/progresBoq";
 import { BUCKET_PROGRES, MAKS_FOTO_PROGRES } from "@/lib/portal/progresFoto";
-import { lewatDeadline, tglTh } from "@/lib/portal/format";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +40,6 @@ export async function POST(req) {
     if (tahap && !(TAHAP[item.jenis] || TAHAP.HPL).some((s) => s.k === tahap)) return gagal("tahap tidak valid.");
     const p = await ambilProyek(item.proyek_id);
     if (!bolehProyek(staf, p)) return gagal("tidak punya akses ke proyek ini.", 403);
-    if (lewatDeadline(p)) return gagal(`proyek sudah lewat deadline ${tglTh(p.deadline)}, jadi terkunci.`);
 
     let ada;
     try {

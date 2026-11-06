@@ -161,7 +161,7 @@ export default function ProyekBaru({ supervisors }) {
         <label className="lbl">Deadline<input className="inp" type="date" value={f.deadline} onChange={set("deadline")} min={f.mulai} /></label>
       </div>
       <p className="small" style={{ margin: 0 }}>
-        Deadline tidak bisa diubah setelah disimpan. Setelah lewat deadline, proyek terkunci.
+        Deadline bisa diubah nanti oleh master dan admin di tab Info.
       </p>
       <label className="lbl">
         Supervisor

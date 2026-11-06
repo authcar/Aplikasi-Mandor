@@ -20,7 +20,7 @@ async function ambilNotif(staf, proyek) {
     if (p.deadline) {
       const [teks, kelas] = labelDeadline(p.deadline);
       if (kelas === "b-bad" || kelas === "b-warn")
-        notif.push({ id: `d-${p.id}`, jenis: "deadline", judul: p.nama, sub: lewatDeadline(p) ? "Proyek terkunci karena lewat deadline" : "Deadline mendekat", label: teks, kelas, href });
+        notif.push({ id: `d-${p.id}`, jenis: "deadline", judul: p.nama, sub: lewatDeadline(p) ? "Proyek sudah lewat deadline" : "Deadline mendekat", label: teks, kelas, href });
     }
     if (defect[p.id] > 0)
       notif.push({ id: `f-${p.id}`, jenis: "defect", judul: p.nama, sub: "Ada laporan defect dari klien", label: `${defect[p.id]} baru`, kelas: "b-bad", href });

@@ -11,7 +11,7 @@ import { BUCKET_PROGRES, hapusFotoProgres } from "@/lib/portal/progresFoto";
 import { catatRiwayat } from "@/lib/portal/riwayat";
 import { BUCKET_DEFECT, hapusFotoDefect } from "@/lib/portal/defect";
 import { FASE, JENIS, TAHAP, tahapItem, faseMenghalangi } from "@/lib/portal/progresBoq";
-import { JENIS_TERMIN, terminStandar, lewatDeadline, tglTh, hariIni } from "@/lib/portal/format";
+import { JENIS_TERMIN, terminStandar, hariIni } from "@/lib/portal/format";
 
 const pilih = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, o[k]]));
 
@@ -74,11 +74,11 @@ async function cekTotalTermin(proyekId, jenis, tambahan, kecualiId) {
     throw new Error(`total termin ${jenis} jadi ${Math.round(total * 100) / 100}%, maksimal 100%. Kurangi termin lain dulu.`);
 }
 
-// Proyek yang sudah lewat deadline terkunci: tidak ada data yang boleh diubah.
-async function cekTerbuka(proyekId) {
+// Proyek harus ada. Lewat deadline TIDAK mengunci proyek: tetap bisa diakses dan
+// diubah, hanya label deadline-nya yang merah.
+async function pastikanProyek(proyekId) {
   const p = await ambilProyek(proyekId);
   if (!p) throw new Error("Proyek tidak ditemukan.");
-  if (lewatDeadline(p)) throw new Error(`proyek sudah lewat deadline ${tglTh(p.deadline)}, jadi terkunci.`);
   return p;
 }
 
@@ -103,20 +103,20 @@ export async function buatProyek(f) {
   });
 }
 
-// Deadline hanya bisa diisi sekali; setelah itu tidak bisa diubah atau dikosongkan.
+// Hanya admin (MASTER/FINANCE) yang sampai sini (jalan() default admin: true), jadi
+// hanya mereka yang bisa mengubah deadline; supervisor ditolak.
 export async function ubahProyek(id, patch) {
   return jalan(async () => {
-    const lama = await cekTerbuka(id);
+    await pastikanProyek(id);
     const p = pilih(patch, F_PROYEK);
     if (p.nilai_proyek != null && !(Number(p.nilai_proyek) >= 0)) throw new Error("nilai proyek tidak valid.");
-    if ("deadline" in p && lama.deadline && p.deadline !== lama.deadline)
-      throw new Error("deadline sudah ditetapkan dan tidak bisa diubah.");
+    if ("deadline" in p && p.deadline && !/^\d{4}-\d{2}-\d{2}$/.test(p.deadline)) throw new Error("tanggal deadline tidak valid.");
     await ubah("portal_proyek", id, p);
   });
 }
 
 // Hapus permanen, hanya master. Item, progres, termin, dan link klien ikut
-// terhapus (on delete cascade). Konfirmasi dilakukan di UI. Proyek yang sudah terkunci (lewat deadline) tetap bisa dihapus.
+// terhapus (on delete cascade). Konfirmasi dilakukan di UI.
 async function hapusSatuProyek(id) {
   const fotoItem = await hasil(db().from("portal_item").select("*").eq("proyek_id", id));
   await hapusFotoItem(fotoItem.flatMap((i) => i.foto || []));
@@ -169,7 +169,6 @@ export async function setProgres(itemId, tahap, persen) {
     // Proyek dan bobot bawaan diambil bersamaan (bobot hanya perlu kalau item tidak punya bobot sendiri).
     const [p, bobotBawaan] = await Promise.all([ambilProyek(row.proyek_id), row.bobot_tahap ? null : ambilBobotTahap()]);
     if (!bolehProyek(staf, p)) throw new Error("Tidak punya akses ke proyek ini.");
-    if (lewatDeadline(p)) throw new Error(`proyek sudah lewat deadline ${tglTh(p.deadline)}, jadi terkunci.`);
     const { portal_progres, ...i } = row;
     const item = { ...i, bobot_tahap: i.bobot_tahap || bobotBawaan?.[i.jenis] || null, ...bacaProgres(portal_progres) };
     const s = tahapItem(item).find((x) => x.k === tahap);
@@ -211,12 +210,12 @@ export async function setProgres(itemId, tahap, persen) {
 
 /* ---------- Foto progres item ---------- */
 // Hapus satu foto progres (diunggah lewat app/api/portal/progres-foto). Admin
-// dan supervisor; proyek yang sudah terkunci tidak bisa diubah.
+// dan supervisor.
 export async function hapusFotoProgresItem(id) {
   return jalan(async (staf) => {
     const f = await hasil(db().from("portal_progres_foto").select("*").eq("id", id).maybeSingle());
     if (!f) throw new Error("Foto tidak ditemukan.");
-    if (!bolehProyek(staf, await cekTerbuka(f.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    if (!bolehProyek(staf, await pastikanProyek(f.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
     await hapus("portal_progres_foto", id);
     await db().storage.from(BUCKET_PROGRES).remove([f.path]);
   }, { admin: false });
@@ -227,7 +226,7 @@ export async function tandaiFotoProgres(id, tahap) {
   return jalan(async (staf) => {
     const f = await hasil(db().from("portal_progres_foto").select("*, item:item_id(jenis)").eq("id", id).maybeSingle());
     if (!f) throw new Error("Foto tidak ditemukan.");
-    if (!bolehProyek(staf, await cekTerbuka(f.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    if (!bolehProyek(staf, await pastikanProyek(f.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
     if (!(TAHAP[f.item?.jenis] || TAHAP.HPL).some((s) => s.k === tahap)) throw new Error("Tahap tidak valid.");
     await ubah("portal_progres_foto", id, { tahap });
   }, { admin: false });
@@ -236,7 +235,7 @@ export async function tandaiFotoProgres(id, tahap) {
 /* ---------- Item BOQ ---------- */
 export async function tambahItem(proyekId, rows) {
   return jalan(async () => {
-    await cekTerbuka(proyekId);
+    await pastikanProyek(proyekId);
     const baru = rows.filter((r) => r.nama).map((r) => ({ ...cekItem(pilih(r, F_ITEM)), proyek_id: proyekId }));
     cekFoto(baru, proyekId);
     if (baru.length) await hasil(db().from("portal_item").insert(baru));
@@ -245,7 +244,7 @@ export async function tambahItem(proyekId, rows) {
 
 export async function ubahItem(id, patch) {
   return jalan(async () => {
-    await cekTerbuka(await proyekDari("portal_item", "id", id));
+    await pastikanProyek(await proyekDari("portal_item", "id", id));
     await ubah("portal_item", id, cekItem(pilih(patch, F_ITEM)));
   });
 }
@@ -255,7 +254,7 @@ export async function ubahItem(id, patch) {
 // Progres item lama ikut terhapus (on delete cascade).
 export async function gantiItem(proyekId, rows) {
   return jalan(async () => {
-    await cekTerbuka(proyekId);
+    await pastikanProyek(proyekId);
     const baru = rows.filter((r) => r.nama).map((r) => ({ ...cekItem(pilih(r, F_ITEM)), proyek_id: proyekId }));
     if (!baru.length) throw new Error("Tidak ada item pengganti.");
     cekFoto(baru, proyekId);
@@ -273,7 +272,7 @@ export async function gantiItem(proyekId, rows) {
 // rows = [{ id, harga_satuan, harga, tim, foto }]; hanya item proyek ini.
 export async function simpanJasaTukang(proyekId, rows) {
   return jalan(async () => {
-    await cekTerbuka(proyekId);
+    await pastikanProyek(proyekId);
     const milik = new Set((await hasil(db().from("portal_item").select("id").eq("proyek_id", proyekId))).map((i) => i.id));
     if (rows.some((r) => !milik.has(r.id))) throw new Error("ada item yang bukan milik proyek ini.");
     cekFoto(rows, proyekId);
@@ -284,7 +283,7 @@ export async function simpanJasaTukang(proyekId, rows) {
 // Progres item ikut terhapus (on delete cascade).
 export async function hapusItem(id) {
   return jalan(async () => {
-    await cekTerbuka(await proyekDari("portal_item", "id", id));
+    await pastikanProyek(await proyekDari("portal_item", "id", id));
     const it = await hasil(db().from("portal_item").select("*").eq("id", id).maybeSingle());
     await hapusFotoProgres({ itemIds: [id] });
     await hapus("portal_item", id);
@@ -295,7 +294,7 @@ export async function hapusItem(id) {
 /* ---------- Termin ---------- */
 export async function tambahTermin(proyekId, rows) {
   return jalan(async () => {
-    await cekTerbuka(proyekId);
+    await pastikanProyek(proyekId);
     const baru = rows.map((r) => ({ jenis: "produksi", ...cekTermin(pilih(r, F_TERMIN)), proyek_id: proyekId }));
     for (const [jenis] of JENIS_TERMIN) {
       const tambahan = baru.filter((r) => r.jenis === jenis).reduce((a, r) => a + Number(r.persen), 0);
@@ -310,7 +309,7 @@ export async function tambahTermin(proyekId, rows) {
 export async function buatTerminStandar(proyekId, jenis) {
   return jalan(async () => {
     if (!JENIS_TERMIN.some(([k]) => k === jenis)) throw new Error("Jenis termin tidak valid.");
-    await cekTerbuka(proyekId);
+    await pastikanProyek(proyekId);
     const lama = await hasil(
       db().from("portal_termin").select("id, lunas_tgl, dibayar").eq("proyek_id", proyekId).eq("jenis", jenis)
     );
@@ -331,7 +330,7 @@ export async function ubahTermin(id, patch) {
     const { jenis, ...p } = cekTermin(pilih(patch, F_TERMIN));
     const t = await hasil(db().from("portal_termin").select("*").eq("id", id).maybeSingle());
     if (!t) throw new Error("Termin tidak ditemukan.");
-    await cekTerbuka(t.proyek_id);
+    await pastikanProyek(t.proyek_id);
     if ("persen" in p) await cekTotalTermin(t.proyek_id, t.jenis || "produksi", Number(p.persen), id);
     // Lunas hanya sah dengan foto bukti pembayaran.
     if (p.lunas_tgl && !(("bukti" in p ? p.bukti : t.bukti) || "")) throw new Error("Unggah foto bukti pembayaran dulu.");
@@ -345,7 +344,7 @@ export async function ubahTermin(id, patch) {
 
 export async function hapusTermin(id) {
   return jalan(async () => {
-    await cekTerbuka(await proyekDari("portal_termin", "id", id));
+    await pastikanProyek(await proyekDari("portal_termin", "id", id));
     const t = await hasil(db().from("portal_termin").select("*").eq("id", id).maybeSingle());
     await hapus("portal_termin", id);
     await hapusFotoItem([t?.bukti]);
@@ -364,21 +363,21 @@ function cekAddon(r) {
 
 export async function tambahAddon(proyekId, f) {
   return jalan(async () => {
-    await cekTerbuka(proyekId);
+    await pastikanProyek(proyekId);
     await hasil(db().from("portal_addon").insert({ ...cekAddon(pilih(f, F_ADDON)), proyek_id: proyekId }));
   });
 }
 
 export async function ubahAddon(id, patch) {
   return jalan(async () => {
-    await cekTerbuka(await proyekDari("portal_addon", "id", id));
+    await pastikanProyek(await proyekDari("portal_addon", "id", id));
     await ubah("portal_addon", id, cekAddon(pilih(patch, F_ADDON)));
   });
 }
 
 export async function hapusAddon(id) {
   return jalan(async () => {
-    await cekTerbuka(await proyekDari("portal_addon", "id", id));
+    await pastikanProyek(await proyekDari("portal_addon", "id", id));
     await hapus("portal_addon", id);
   });
 }
@@ -392,7 +391,7 @@ export async function simpanBobotItem(itemId, bobot) {
   return jalan(async (staf) => {
     const item = await hasil(db().from("portal_item").select("proyek_id, jenis").eq("id", itemId).maybeSingle());
     if (!item) throw new Error("Item tidak ditemukan.");
-    if (!bolehProyek(staf, await cekTerbuka(item.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    if (!bolehProyek(staf, await pastikanProyek(item.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
     let isi = null;
     if (bobot) {
       isi = Object.fromEntries((TAHAP[item.jenis] || TAHAP.HPL).map((s) => [s.k, Number(bobot[s.k])]));
@@ -435,7 +434,7 @@ const DI_MANDOR = "defect ini dikelola di Defect List Aplikasi Mandor.";
 const hanyaSpv = (staf) => { if (staf.role === "ADMIN") throw new Error("Defect hanya dikelola supervisor."); };
 
 // Supervisor: ubah status (BARU/DIPROSES/SELESAI) dan tanggapan yang
-// tampil di halaman klien. Tidak ikut kunci deadline (keluhan sering datang
+// tampil di halaman klien. Tidak terpengaruh deadline (keluhan sering datang
 // setelah serah terima).
 export async function ubahDefect(id, patch) {
   return jalan(async (staf) => {
@@ -479,7 +478,7 @@ export async function hapusFotoTanggapan(id, path) {
 // dibuat ulang; link baru hanya bisa dibuat setelah link lama dihapus.
 export async function buatLink(proyekId, nama) {
   return jalan(async () => {
-    await cekTerbuka(proyekId);
+    await pastikanProyek(proyekId);
     const ada = await hasil(db().from("portal_link").select("token").eq("proyek_id", proyekId).limit(1));
     if (ada.length) throw new Error("proyek ini sudah punya link klien. Hapus link lama dulu kalau mau membuat yang baru.");
     const token = randomBytes(32).toString("base64url");
@@ -490,7 +489,7 @@ export async function buatLink(proyekId, nama) {
 
 export async function cabutLink(token) {
   return jalan(async () => {
-    await cekTerbuka(await proyekDari("portal_link", "token", token));
+    await pastikanProyek(await proyekDari("portal_link", "token", token));
     await hasil(db().from("portal_link").delete().eq("token", token));
   });
 }

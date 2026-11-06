@@ -16,7 +16,7 @@ import {
   tahapTerakhir, tahapBerikut, tahapBar, itemProgres, faseKini, faseTerkunci, tahapTerkunci, persenTahap, tahapSelesai,
 } from "@/lib/portal/progresBoq";
 import {
-  hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, lewatDeadline, labelDeadline, statusProyek,
+  hariIni, tgl, tglTh, rp, pct, angka, tagihanTermin, dibayarTermin, totalDibayar, labelDeadline, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, terminStandar, judulTermin, keteranganTermin, STATUS_DEFECT, DEFECT_AKTIF,
 } from "@/lib/portal/format";
 import { bacaBoq, bacaItemSheet, formatLama } from "@/lib/portal/imporBoq";
@@ -39,7 +39,6 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
   const nilaiT = nilaiTermin({ ...proyek, items });
   const totalAddon = addon.reduce((a, x) => a + x.nilai, 0);
   const nilaiProyek = totalNilai(nilaiT) + totalAddon; // nilai proyek + addon
-  const kunci = lewatDeadline(proyek);
   const [sisa, kelasSisa] = proyek.deadline ? labelDeadline(proyek.deadline) : [];
   const [status, kelasStatus] = statusProyek({ ...proyek, items });
 
@@ -62,11 +61,6 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
           )}
         </div>
       </div>
-      {kunci && !tukang && (
-        <p className="note b-bad">
-          Proyek sudah lewat deadline, jadi terkunci. Progres, item, termin, link klien, dan info proyek tidak bisa diubah lagi.
-        </p>
-      )}
       {/* Nilai kontrak hanya untuk master; supervisor cukup melihat progres. */}
       <div className="grid2" style={{ gridTemplateColumns: admin || tukang ? "minmax(0,5fr) minmax(0,7fr)" : "1fr" }}>
         <div className="stat lead">
@@ -91,29 +85,25 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
       <Pesan aksi={aksi} />
 
       <div key={tab} className="tab-isi">
-      {/* Lewat deadline: semua isian & tombol dimatikan sekaligus lewat fieldset. Tab Defect
-          di luar fieldset (juga tombol link klien di tab Info, berupa <a>): link masih bisa disalin / dikirim, dan keluhan klien
-          sering datang setelah serah terima. */}
+      {/* Lewat deadline tidak mengunci apa pun; hanya label deadline yang merah. */}
       {tukang ? (
         tab === "progres" ? <TabProgres proyek={proyek} items={items} aksi={aksi} admin={false} lihat fotoProgres={fotoProgres} />
           : <JasaTukangLihat items={items} proyek={proyek} riwayat={riwayat} />
       ) : tab === "mingguan" ? (
-        // Laporan hanya dibaca, jadi tetap bisa dibuka setelah proyek terkunci.
         <Mingguan proyek={proyek} items={items} riwayat={riwayat} />
       ) : tab === "defect" ? (
         <TabDefect items={items} defect={defect} aksi={aksi} admin={admin} mandor={mandor} />
       ) : (
         <>
         {tab === "item" && <UpahMingguan proyek={proyek} items={items} riwayat={riwayat} />}
-        <fieldset className="kunci" disabled={kunci}>
+        <fieldset className="kunci">
           {tab === "progres" && <TabProgres proyek={proyek} items={items} aksi={aksi} admin={admin} fotoProgres={fotoProgres} />}
           {tab === "item" && <TabItem proyek={proyek} items={items} aksi={aksi} />}
           {tab === "termin" && <TabTermin proyek={proyek} items={items} termin={termin} addon={addon} nilai={nilaiT} aksi={aksi} />}
-          {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} klien={klien} kunci={kunci} aksi={aksi} />}
+          {tab === "info" && <TabInfo proyek={proyek} supervisors={supervisors} klien={klien} aksi={aksi} />}
         </fieldset>
         </>
       )}
-      {/* Di luar fieldset: proyek yang terkunci tetap bisa dihapus. */}
       {admin && tab === "info" && <HapusProyek proyek={proyek} items={items} termin={termin} klien={klien} aksi={aksi} />}
       </div>
     </main>
@@ -257,7 +247,7 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
         <FotoWajib item={perlu.it} s={perlu.s} persen={perlu.persen} aksi={aksi} tutup={() => setPerlu(null)}
           sisa={Math.max(0, 20 - fotoItem(perlu.it).length)} />
       )}
-      {/* Pengingat deadline (hanya label, tidak bisa diubah). */}
+      {/* Pengingat deadline (hanya label; diubah admin di tab Info). */}
       <div className="card tglrow" style={{ padding: "12px 14px" }}>
         <span>Deadline</span>
         {proyek.deadline ? (
@@ -1308,7 +1298,7 @@ function KartuDefect({ d, namaItem, aksi, admin }) {
 }
 
 /* ---------- Info proyek ---------- */
-function TabInfo({ proyek, supervisors, klien = [], kunci, aksi }) {
+function TabInfo({ proyek, supervisors, klien = [], aksi }) {
   const [f, setF] = useState({
     nama: proyek.nama, kode: proyek.kode || "", klien_nama: proyek.klien_nama || "", lokasi: proyek.lokasi || "",
     mulai: proyek.mulai, deadline: proyek.deadline || "", supervisor_id: proyek.supervisor_id || "", aktif: proyek.aktif,
@@ -1334,7 +1324,7 @@ ${url}`
       aksi.jalankan(() => A.ubahProyek(proyek.id, {
         nama: f.nama.trim(), kode: f.kode.trim() || null, klien_nama: f.klien_nama.trim() || null, lokasi: f.lokasi.trim() || null,
         mulai: f.mulai, supervisor_id: f.supervisor_id || null, aktif: f.aktif,
-        ...(proyek.deadline ? {} : { deadline: f.deadline || null }),
+        deadline: f.deadline || null,
       }), "Info proyek disimpan.");
     }}>
       {klien.length > 1 && (
@@ -1343,23 +1333,20 @@ ${url}`
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
         <label className="lbl" style={{ flex: "1 1 220px", minWidth: 0 }}>Nama proyek<input className="inp" required value={f.nama} onChange={set("nama")} /></label>
         {/* Link klien dibuat dari sini (satu per proyek); memakai Nama klien di bawah. */}
-        {!klien.length && !kunci && (
+        {!klien.length && (
           <button type="button" className="btn" disabled={aksi.sibuk} style={{ width: "auto", flex: "none", padding: "0 20px", whiteSpace: "nowrap" }}
             onClick={() => aksi.jalankan(() => A.buatLink(proyek.id, f.klien_nama.trim()), "Link dibuat. Salin atau kirim lewat WA.")}>
             Buat link klien
           </button>
         )}
-        {/* Tombol berupa <a> supaya tetap bisa dipakai saat proyek terkunci (fieldset disabled). */}
         {link && (
           <div className="acts link-klien">
             <a className="act" href={url} onClick={(e) => { e.preventDefault(); salin(); }}>{disalin ? "Tersalin ✓" : "Copy link untuk klien"}</a>
             <a className="act" href={`https://wa.me/?text=${encodeURIComponent(pesan)}`} target="_blank" rel="noreferrer">Kirim WA</a>
-            {!kunci && (
-              <button type="button" className="act bahaya" disabled={aksi.sibuk}
-                onClick={() => confirm("Hapus link klien? Link ini tidak bisa dibuka lagi.") && aksi.jalankan(() => A.cabutLink(link.id), "Link dihapus.")}>
-                Hapus
-              </button>
-            )}
+            <button type="button" className="act bahaya" disabled={aksi.sibuk}
+              onClick={() => confirm("Hapus link klien? Link ini tidak bisa dibuka lagi.") && aksi.jalankan(() => A.cabutLink(link.id), "Link dihapus.")}>
+              Hapus
+            </button>
           </div>
         )}
       </div>
@@ -1370,15 +1357,13 @@ ${url}`
       <label className="lbl">Lokasi<input className="inp" value={f.lokasi} onChange={set("lokasi")} /></label>
       <div className="g2">
         <label className="lbl">Mulai<input className="inp" type="date" required value={f.mulai} onChange={set("mulai")} /></label>
-        {/* Deadline hanya bisa diisi sekali; setelah tersimpan tidak bisa diubah. */}
+        {/* Tab Info hanya muncul untuk admin/master; supervisor tidak bisa mengubah deadline. */}
         <label className="lbl">Deadline
-          <input className="inp" type="date" value={f.deadline} onChange={set("deadline")} disabled={!!proyek.deadline} min={f.mulai} />
+          <input className="inp" type="date" value={f.deadline} onChange={set("deadline")} min={f.mulai} />
         </label>
       </div>
       <p className="small" style={{ margin: 0 }}>
-        {proyek.deadline
-          ? "Deadline sudah ditetapkan dan tidak bisa diubah. Setelah lewat deadline, proyek terkunci."
-          : "Deadline hanya bisa diisi sekali dan tidak bisa diubah setelah disimpan."}
+        Deadline bisa diubah oleh master dan admin. Proyek yang lewat deadline tetap bisa diakses dan diedit; hanya labelnya yang merah.
       </p>
       <label className="lbl">Supervisor
         <select className="inp" value={f.supervisor_id} onChange={set("supervisor_id")}>

@@ -4,7 +4,7 @@ import { ambilStaf } from "@/lib/portal/server";
 import { ambilItem, ambilPengubahTerakhir, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
 import { hitungDefectBaru } from "@/lib/portal/defect";
 import { persenProyek } from "@/lib/portal/progresBoq";
-import { hariIni, tambahHari, tglTh, pct, statusProyek, labelDeadline, lewatDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
+import { hariIni, tambahHari, tglTh, pct, statusProyek, labelDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
 import ProyekBaru from "./ProyekBaru";
 
 export default async function PortalBeranda() {
@@ -45,7 +45,7 @@ export default async function PortalBeranda() {
     return {
       id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
       n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null,
-      sisa: p.deadline && p.aktif ? [lewatDeadline(p) ? "Terkunci" : labelDeadline(p.deadline)[0], labelDeadline(p.deadline)[1]] : null,
+      sisa: p.deadline && p.aktif ? labelDeadline(p.deadline) : null,
       status, kelas, persen: v, adaProgres: adaProgres || !lewatBatas, terakhir: terakhir ? tglTh(terakhir) : null, persenTeks: pct(v), oleh: pengubah[p.id]?.oleh || null, defect: defectBaru[p.id] || 0,
     };
   });
