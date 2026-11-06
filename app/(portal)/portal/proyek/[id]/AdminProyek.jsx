@@ -1362,9 +1362,6 @@ ${url}`
           <input className="inp" type="date" value={f.deadline} onChange={set("deadline")} min={f.mulai} />
         </label>
       </div>
-      <p className="small" style={{ margin: 0 }}>
-        Deadline bisa diubah oleh master dan admin. Proyek yang lewat deadline tetap bisa diakses dan diedit; hanya labelnya yang merah.
-      </p>
       <label className="lbl">Supervisor
         <select className="inp" value={f.supervisor_id} onChange={set("supervisor_id")}>
           <option value="">— Belum ditentukan —</option>
