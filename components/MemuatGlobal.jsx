@@ -1,18 +1,24 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import KotaGlow from "@/app/(portal)/portal/proyek/[id]/KotaGlow";
 
 // Pop up loading "kota garis" yang sama dengan Project Tracker, dipasang sekali
-// di layout dan muncul otomatis selama permintaan TULIS ke /api/* masih berjalan
-// (kirim laporan, absen, persetujuan, dst.), tanpa perlu dipasang di tiap form.
+// di layout. Muncul otomatis, tanpa perlu dipasang di tiap halaman/form, untuk
+// dua hal:
+//   1. PINDAH HALAMAN: mengetuk tautan internal (menu, tile dashboard, tab bar).
+//      Pop up tampil sampai halaman tujuan selesai dimuat, yaitu kerangka
+//      abu-abu (loading.jsx, kelas .skel) sudah diganti isi sebenarnya.
+//   2. AKSI TULIS: permintaan same-origin ke /api/* dengan metode selain
+//      GET/HEAD (kirim laporan, absen, persetujuan, dst.).
 //
-// Cara kerja: window.fetch dibungkus; permintaan same-origin ke /api/* dengan
-// metode selain GET/HEAD dihitung. Pop up baru tampil setelah JEDA_MS (aksi
-// cepat tidak berkedip), lalu tetap tampil minimal TAMPIL_MIN_MS dan hilang
-// begitu semua permintaan selesai. Ketuk kartunya untuk menyembunyikan (proses
-// tetap jalan).
+// Pop up baru tampil setelah JEDA_MS (aksi/halaman cepat tidak berkedip), lalu
+// tetap tampil minimal TAMPIL_MIN_MS. Ketuk kartunya untuk menyembunyikan
+// (proses tetap jalan).
 const JEDA_MS = 250;
 const TAMPIL_MIN_MS = 500;
+const NAV_MAKS_MS = 12000; // pengaman: navigasi yang tidak pernah selesai (dibatalkan, gagal)
+const CEK_SKELETON_MS = 80;
 
 // Permintaan latar belakang / senyap: tidak boleh memunculkan pop up. Autosave
 // Man Power (tiap jeda ketikan), detak lokasi kunjungan, notifikasi, sinkron
@@ -28,6 +34,7 @@ const SENYAP = [
 ];
 
 const KETERANGAN_UMUM = ["Menyimpan perubahan", "Merapikan data", "Hampir selesai"];
+const KETERANGAN_NAV = "Memuat halaman";
 const KETERANGAN_KHUSUS = [
   ["/api/absensi-pegawai", "Mencatat absensi"],
   ["/api/absensi", "Menyimpan absensi"],
@@ -53,51 +60,115 @@ function bacaPermintaan(input, init) {
   }
 }
 
+// Tautan internal yang akan memindahkan halaman (bukan tab baru, unduhan, anchor, atau halaman yang sama).
+function tujuanNavigasi(e) {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return null;
+  const a = e.target instanceof Element ? e.target.closest("a[href]") : null;
+  if (!a || (a.target && a.target !== "_self") || a.hasAttribute("download")) return null;
+  try {
+    const url = new URL(a.href, window.location.href);
+    if (url.origin !== window.location.origin) return null;
+    if (url.pathname === window.location.pathname) return null; // mis. ganti bulan (?bulan=) cukup cepat
+    return url.pathname;
+  } catch {
+    return null;
+  }
+}
+
 export default function MemuatGlobal() {
+  const pathname = usePathname();
   const [tampil, setTampil] = useState(false);
   const [sembunyi, setSembunyi] = useState(false);
-  const [tetap, setTetap] = useState(null); // keterangan khusus untuk permintaan pertama
+  const [tetap, setTetap] = useState(null); // keterangan khusus untuk pekerjaan pertama
   const [n, setN] = useState(0);
-  const status = useRef({ berjalan: 0, jeda: null, sejak: 0, tutup: null });
+  // berjalan = jumlah pekerjaan aktif (permintaan tulis + navigasi). Fungsi
+  // mulai/selesai diisi di efek di bawah, dipakai juga oleh efek pathname.
+  const s = useRef({ berjalan: 0, jeda: null, sejak: 0, tutup: null, nav: null, mulai: null, selesai: null });
 
   useEffect(() => {
-    const asli = window.fetch;
-    const s = status.current;
+    const st = s.current;
 
-    const mulai = (path) => {
-      clearTimeout(s.tutup);
-      if (s.berjalan++ === 0) {
+    st.mulai = (keterangan) => {
+      clearTimeout(st.tutup);
+      if (st.berjalan++ === 0) {
         setSembunyi(false);
-        setTetap(KETERANGAN_KHUSUS.find(([p]) => path.startsWith(p))?.[1] || null);
-        s.jeda = setTimeout(() => {
-          s.sejak = Date.now();
+        setTetap(keterangan);
+        st.jeda = setTimeout(() => {
+          st.sejak = Date.now();
           setTampil(true);
         }, JEDA_MS);
       }
     };
-    const selesai = () => {
-      if (--s.berjalan > 0) return;
-      clearTimeout(s.jeda);
-      if (!s.sejak) return;
-      const sisa = Math.max(0, TAMPIL_MIN_MS - (Date.now() - s.sejak));
-      s.tutup = setTimeout(() => {
-        s.sejak = 0;
+    st.selesai = () => {
+      if (--st.berjalan > 0) return;
+      clearTimeout(st.jeda);
+      if (!st.sejak) return;
+      const sisa = Math.max(0, TAMPIL_MIN_MS - (Date.now() - st.sejak));
+      st.tutup = setTimeout(() => {
+        st.sejak = 0;
         setTampil(false);
       }, sisa);
     };
 
+    // --- aksi tulis ---
+    const asli = window.fetch;
     window.fetch = function (input, init) {
       const path = bacaPermintaan(input, init);
       if (!path) return asli.apply(this, arguments);
-      mulai(path);
-      return asli.apply(this, arguments).finally(selesai);
+      st.mulai(KETERANGAN_KHUSUS.find(([p]) => path.startsWith(p))?.[1] || null);
+      return asli.apply(this, arguments).finally(st.selesai);
     };
+
+    // --- pindah halaman ---
+    // Fase capture: jalan sebelum handler Link milik Next. Navigasi dianggap
+    // selesai oleh efek pathname di bawah (atau pengaman NAV_MAKS_MS).
+    const akhiriNav = () => {
+      if (!st.nav) return;
+      clearTimeout(st.nav.pengaman);
+      clearInterval(st.nav.cek);
+      st.nav = null;
+      st.selesai();
+    };
+    st.akhiriNav = akhiriNav;
+    const klik = (e) => {
+      const tujuan = tujuanNavigasi(e);
+      if (!tujuan) return;
+      if (st.nav) akhiriNav();
+      st.nav = { tujuan, asal: window.location.pathname, pengaman: setTimeout(akhiriNav, NAV_MAKS_MS), cek: null };
+      st.mulai(KETERANGAN_NAV);
+    };
+    document.addEventListener("click", klik, true);
+
     return () => {
       window.fetch = asli;
-      clearTimeout(s.jeda);
-      clearTimeout(s.tutup);
+      document.removeEventListener("click", klik, true);
+      clearTimeout(st.jeda);
+      clearTimeout(st.tutup);
+      if (st.nav) {
+        clearTimeout(st.nav.pengaman);
+        clearInterval(st.nav.cek);
+        st.nav = null;
+      }
     };
   }, []);
+
+  // Halaman tujuan sudah dipasang (pathname berubah). Dengan loading.jsx, ini
+  // terjadi begitu kerangka tampil, jadi tunggu sampai kerangka hilang.
+  useEffect(() => {
+    const st = s.current;
+    if (!st.nav || pathname === st.nav.asal) return undefined;
+    if (st.nav.cek) return undefined;
+    let kosong = 0;
+    const periksa = () => {
+      // Dua kali berturut-turut tanpa .skel, supaya jeda antar kerangka tidak terhitung selesai.
+      kosong = document.querySelector(".skel") ? 0 : kosong + 1;
+      if (kosong >= 2) st.akhiriNav();
+    };
+    st.nav.cek = setInterval(periksa, CEK_SKELETON_MS);
+    return () => {
+      /* dibersihkan oleh akhiriNav / efek utama */
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (!tampil) return undefined;
