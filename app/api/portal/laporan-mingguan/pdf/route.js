@@ -75,10 +75,12 @@ export async function GET(req) {
     if (!minggu) return NextResponse.json({ error: "Minggu tidak ditemukan." }, { status: 404 });
     const h = hitungMinggu(items, indeksRiwayat(riwayat), minggu, hari);
 
-    // Item yang progresnya berubah (naik atau dikoreksi turun), per area lalu nama.
+    // Item yang sudah punya progres di akhir minggu atau berubah minggu ini (naik atau
+    // dikoreksi turun), per area lalu nama. Item tanpa perubahan tetap tampil supaya
+    // minggu yang sepi tidak menghasilkan laporan kosong.
     const item = h.tim
       .flatMap((t) => t.item.map((i) => ({ ...i, tim: t.tim === "Belum ada tim" ? "" : t.tim })))
-      .filter((i) => Math.abs(i.naik) > 0.005)
+      .filter((i) => i.sesudah > 0.005 || Math.abs(i.naik) > 0.005)
       .sort((a, b) => String(a.area).localeCompare(String(b.area)) || String(a.nama).localeCompare(String(b.nama)));
 
     // Foto progres yang diunggah pada minggu itu (maks MAKS_FOTO terbaru), diunduh
