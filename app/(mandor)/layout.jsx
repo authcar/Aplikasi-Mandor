@@ -1,5 +1,6 @@
 import { Poppins } from "next/font/google";
 import "./globals.css";
+import MemuatGlobal from "@/components/MemuatGlobal";
 
 // Poppins di seluruh aplikasi — sama dengan Taraco Project Tracker.
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--font-poppins", display: "swap" });
@@ -39,6 +40,8 @@ export default function RootLayout({ children }) {
         <div className="app-frame relative mx-auto min-h-screen max-w-md">
           {children}
         </div>
+        {/* Pop up loading kota garis (sama dengan Project Tracker) untuk semua aksi tulis ke /api. */}
+        <MemuatGlobal />
       </body>
     </html>
   );
