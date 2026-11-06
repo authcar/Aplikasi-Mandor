@@ -12,9 +12,31 @@ import { buatPdfLaporanMingguan } from "@/lib/portal/mingguanPdf";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const MAKS_FOTO = 12; // foto per PDF
-const MAKS_BYTE_FOTO = 1.5 * 1024 * 1024; // per foto
-const MAKS_BYTE_TOTAL = 3.2 * 1024 * 1024; // total foto (batas respons serverless ~4,5 MB)
+const MAKS_FOTO = 40; // foto per PDF
+const MAKS_BYTE_ASAL = 12 * 1024 * 1024; // foto asli yang lebih besar dari ini dilewati
+const MAKS_BYTE_TOTAL = 3.4 * 1024 * 1024; // total foto setelah dikompres (batas respons serverless ~4,5 MB)
+const SISI_FOTO = 800; // px, sisi terpanjang; di PDF foto hanya tampil ±9 x 7 cm
+const MUTU_FOTO = 70;
+const SERENTAK = 6; // unduh + kompres paralel
+
+// Foto diperkecil dan diputar sesuai EXIF, hasilnya JPEG ±60-80 KB. null = gagal.
+async function kecilkan(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const asal = Buffer.from(await res.arrayBuffer());
+    if (asal.length > MAKS_BYTE_ASAL) return null;
+    const { default: sharp } = await import("sharp");
+    const hasilJpeg = await sharp(asal)
+      .rotate()
+      .resize(SISI_FOTO, SISI_FOTO, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: MUTU_FOTO, mozjpeg: true })
+      .toBuffer();
+    return new Uint8Array(hasilJpeg);
+  } catch {
+    return null;
+  }
+}
 const tglJakarta = (iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
 // GET /api/portal/laporan-mingguan/pdf?proyek_id=...&minggu=N
@@ -67,23 +89,24 @@ export async function GET(req) {
     });
     const dipilih = dalamMinggu.slice(-MAKS_FOTO);
     const infoItem = new Map(items.map((i) => [i.id, i]));
+    // Diunduh dan dikompres per kelompok (SERENTAK foto) supaya cepat tapi memori tetap terkendali.
+    const kecil = [];
+    for (let n = 0; n < dipilih.length; n += SERENTAK)
+      kecil.push(...(await Promise.all(dipilih.slice(n, n + SERENTAK).map((f) => kecilkan(f.url)))));
     const foto = [];
     let total = 0;
-    for (const f of dipilih) {
+    let terbuang = 0; // foto yang tidak muat di batas total
+    dipilih.forEach((f, i) => {
       const it = infoItem.get(f.item_id);
       const tahap = it ? tahapItem(it).find((s) => s.k === f.tahap)?.label : null;
       const keterangan = [it?.nama || "Item", tahap].filter(Boolean).join(" - ");
-      let data = null;
-      try {
-        const res = await fetch(f.url);
-        const buf = res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
-        if (buf && buf.length <= MAKS_BYTE_FOTO && total + buf.length <= MAKS_BYTE_TOTAL) {
-          data = buf;
-          total += buf.length;
-        }
-      } catch {}
+      let data = kecil[i];
+      if (data && total + data.length > MAKS_BYTE_TOTAL) {
+        data = null;
+        terbuang++;
+      } else if (data) total += data.length;
       foto.push({ data, keterangan });
-    }
+    });
 
     const namaProyek = proyek.nama || "Proyek";
     const pdf = buatPdfLaporanMingguan({
@@ -96,7 +119,7 @@ export async function GET(req) {
       hasil: h,
       item,
       foto,
-      fotoLebih: dalamMinggu.length - dipilih.length,
+      fotoLebih: dalamMinggu.length - dipilih.length + terbuang,
       logo,
     });
 
