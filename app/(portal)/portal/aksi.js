@@ -30,7 +30,7 @@ async function jalan(fn, { admin = true } = {}) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
     // Kolom baru belum dibuat di Supabase.
     if (/could not find the '\w+' column|column .* does not exist/i.test(e.message || ""))
-      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, add_portal_progres_persen.sql, add_portal_item_foto.sql, add_portal_item_hanya_jasa.sql, add_portal_progres_foto.sql, add_portal_progres_foto_tahap.sql, add_portal_progres_riwayat.sql, dan add_portal_tanggal_kirim.sql di Supabase dulu." };
+      return { error: "kolomnya belum ada di database. Jalankan supabase/add_portal_pembayaran.sql, add_portal_termin_jenis.sql, add_portal_bobot_item.sql, add_portal_nilai_proyek.sql, add_portal_jasa_tukang.sql, add_portal_progres_persen.sql, add_portal_item_foto.sql, add_portal_item_hanya_jasa.sql, add_portal_progres_foto.sql, add_portal_progres_foto_tahap.sql, add_portal_progres_riwayat.sql, add_portal_tanggal_kirim.sql, dan add_portal_progres_foto_caption.sql di Supabase dulu." };
     return { error: e.message || "Terjadi kesalahan." };
   }
 }
@@ -219,6 +219,16 @@ export async function hapusFotoProgresItem(id) {
     if (!bolehProyek(staf, await pastikanProyek(f.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
     await hapus("portal_progres_foto", id);
     await db().storage.from(BUCKET_PROGRES).remove([f.path]);
+  }, { admin: false });
+}
+
+// Ubah caption (keterangan) satu foto progres; kosong = hapus caption.
+export async function ubahCaptionFoto(id, caption) {
+  return jalan(async (staf) => {
+    const f = await hasil(db().from("portal_progres_foto").select("id, proyek_id").eq("id", id).maybeSingle());
+    if (!f) throw new Error("Foto tidak ditemukan.");
+    if (!bolehProyek(staf, await pastikanProyek(f.proyek_id))) throw new Error("Tidak punya akses ke proyek ini.");
+    await ubah("portal_progres_foto", id, { caption: String(caption || "").trim().slice(0, 200) || null });
   }, { admin: false });
 }
 

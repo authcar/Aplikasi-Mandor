@@ -378,7 +378,11 @@ div.acc-h{cursor:pointer}
 .fprog-pic img{width:100%;height:100%;object-fit:cover;border-radius:6px;display:block}
 .fprog-lagi{position:absolute;right:-6px;top:-6px;width:20px;height:20px;border-radius:50%;background:var(--ok);color:#fff;font-size:1rem;font-weight:800;line-height:19px;text-align:center;box-shadow:0 0 0 2px var(--surface)}
 .fprog-body{display:flex;flex-direction:column;gap:14px;padding:12px 14px 14px;overflow-y:auto}
-.fprog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.fprog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px 8px}
+.fprog-item{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fprog-cap{display:block;width:100%;padding:0;border:0;background:none;text-align:left;font:inherit;font-size:.72rem;line-height:1.25;color:var(--fg);word-break:break-word;cursor:pointer}
+.fprog-cap.kosong{color:var(--wood);font-weight:600}
+.fprog-cap-in{height:32px;padding:0 8px;font-size:.78rem}
 .fprog-sel{position:relative;aspect-ratio:1;min-width:0}
 .fprog-img{position:relative;display:block;width:100%;height:100%;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--sunk);cursor:zoom-in}
 .fprog-img img{width:100%;height:100%;object-fit:cover;display:block}

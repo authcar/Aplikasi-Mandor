@@ -4,7 +4,7 @@ import { db, hasil, UUID } from "@/lib/portal/db";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilProyek } from "@/lib/portal/data";
 import { TAHAP } from "@/lib/portal/progresBoq";
-import { BUCKET_PROGRES, MAKS_FOTO_PROGRES } from "@/lib/portal/progresFoto";
+import { BUCKET_PROGRES, MAKS_FOTO_PROGRES, MAKS_CAPTION } from "@/lib/portal/progresFoto";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +27,7 @@ export async function POST(req) {
   }
   const itemId = String(form.get("item_id") || "");
   const tahap = String(form.get("tahap") || "") || null; // opsional: foto untuk satu tahap
+  const caption = String(form.get("caption") || "").trim().slice(0, MAKS_CAPTION); // opsional, sama untuk semua foto unggahan ini
   const foto = form.getAll("foto").filter((f) => f && typeof f === "object" && f.size > 0);
   if (!UUID.test(itemId)) return gagal("item tidak valid.");
   if (!foto.length) return gagal("pilih fotonya dulu.");
@@ -65,10 +66,11 @@ export async function POST(req) {
         paths.push(path);
       }
       await hasil(
-        db().from("portal_progres_foto").insert(paths.map((path) => ({ proyek_id: item.proyek_id, item_id: itemId, path, dicatat_oleh: staf.id, ...(tahap ? { tahap } : {}) })))
+        db().from("portal_progres_foto").insert(paths.map((path) => ({ proyek_id: item.proyek_id, item_id: itemId, path, dicatat_oleh: staf.id, ...(tahap ? { tahap } : {}), ...(caption ? { caption } : {}) })))
       );
     } catch (e) {
       if (paths.length) await db().storage.from(BUCKET_PROGRES).remove(paths);
+      if (/column .*caption|'caption' column/i.test(e.message || "")) throw new Error("kolom caption belum ada. Jalankan supabase/add_portal_progres_foto_caption.sql di Supabase dulu.");
       if (/column .*tahap|'tahap' column/i.test(e.message || "")) throw new Error("kolom tahap belum ada. Jalankan supabase/add_portal_progres_foto_tahap.sql di Supabase dulu.");
       throw e;
     }

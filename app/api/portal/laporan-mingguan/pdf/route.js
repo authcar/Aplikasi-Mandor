@@ -98,7 +98,8 @@ export async function GET(req) {
     dipilih.forEach((f, i) => {
       const it = infoItem.get(f.item_id);
       const tahap = it ? tahapItem(it).find((s) => s.k === f.tahap)?.label : null;
-      const keterangan = [it?.nama || "Item", tahap].filter(Boolean).join(" - ");
+      // Caption yang ditulis staf dipakai apa adanya; tanpa caption: nama item - tahap.
+      const keterangan = f.caption || [it?.nama || "Item", tahap].filter(Boolean).join(" - ");
       let data = kecil[i];
       if (data && total + data.length > MAKS_BYTE_TOTAL) {
         data = null;
