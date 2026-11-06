@@ -62,8 +62,8 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
           {/* Tanggal pengiriman: diisi admin (tab Info), terlihat oleh semua staf termasuk Head of Production. */}
           {proyek.tanggal_kirim ? (
             <span className="badge b-n">Pengiriman {tglTh(proyek.tanggal_kirim)}</span>
-          ) : admin ? (
-            <span className="small">Tanggal pengiriman belum diisi</span>
+          ) : !tukang ? (
+            <span className="small">Pengiriman belum ditentukan</span>
           ) : null}
         </div>
       </div>
@@ -265,6 +265,17 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
           <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 700, color: "var(--bad)" }}>Belum ditetapkan</span>
         )}
       </div>
+      {/* Tanggal pengiriman (diisi admin di tab Info); tukang tidak melihatnya. */}
+      {!lihat && (
+        <div className="card tglrow" style={{ padding: "12px 14px" }}>
+          <span>Pengiriman</span>
+          {proyek.tanggal_kirim ? (
+            <b className="num" style={{ fontSize: ".9rem", color: "var(--fg)", textTransform: "none", letterSpacing: 0 }}>{tglTh(proyek.tanggal_kirim)}</b>
+          ) : (
+            <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 600 }}>Belum ditentukan</span>
+          )}
+        </div>
+      )}
       {lihat && (
         <p className="small" style={{ margin: 0 }}>Progres dicatat oleh supervisor.</p>
       )}
