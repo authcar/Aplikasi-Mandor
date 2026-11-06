@@ -39,7 +39,7 @@ export default async function StafLayout({ children }) {
     <>
       <Header kembali label={`Project Tracker · ${staf.nama}`} notif={notif} />
       <div className="shell">
-        <Sidebar admin={staf.role === "ADMIN"} nama={staf.nama} peran={staf.peran === "HEAD_OF_PRODUCTION" ? "Head of Production" : PERAN[staf.role] || "Supervisor"} jumlah={proyek.filter((p) => p.aktif).length} />
+        <Sidebar admin={staf.role === "ADMIN"} nama={staf.nama} peran={staf.peran === "HEAD_OF_PRODUCTION" ? "Head of Production" : staf.peran === "STAFF" ? "Staff" : PERAN[staf.role] || "Supervisor"} jumlah={proyek.filter((p) => p.aktif).length} />
         <div className="isi">{children}</div>
       </div>
     </>

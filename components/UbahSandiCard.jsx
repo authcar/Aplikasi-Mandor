@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 const MIN_PANJANG = 8;
 
 // Ubah sandi sendiri untuk akun yang login dengan email + sandi (Supervisor,
-// Master, Finance, Head of Production). Mandor & Tukang masuk dengan PIN, bukan
+// Master, Finance, Head of Production, Staff). Mandor & Tukang masuk dengan PIN, bukan
 // sandi, jadi tidak memakai kartu ini.
 //
 // Sandi lama diperiksa dulu dengan login ulang, supaya HP yang sedang tidak

@@ -11,6 +11,7 @@ export default async function Home() {
   if (role === "MASTER") redirect("/master");
   if (role === "FINANCE") redirect("/finance");
   if (role === "HEAD_OF_PRODUCTION") redirect("/hop");
+  if (role === "STAFF") redirect("/staff");
   if (role === "TUKANG_HARIAN") redirect("/tukang-harian");
   redirect("/mandor");
 }

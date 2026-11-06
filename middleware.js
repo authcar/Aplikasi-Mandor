@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 
-const ROLE_HOME = { MANDOR: "/mandor", SUPERVISOR: "/supervisor", MASTER: "/master", FINANCE: "/finance", HEAD_OF_PRODUCTION: "/hop", TUKANG_HARIAN: "/tukang-harian" };
+const ROLE_HOME = { MANDOR: "/mandor", SUPERVISOR: "/supervisor", MASTER: "/master", FINANCE: "/finance", HEAD_OF_PRODUCTION: "/hop", STAFF: "/staff", TUKANG_HARIAN: "/tukang-harian" };
 
 export async function middleware(request) {
   let response = NextResponse.next({ request });
@@ -32,6 +32,7 @@ export async function middleware(request) {
     path.startsWith("/master") ||
     path.startsWith("/finance") ||
     path.startsWith("/hop") ||
+    path.startsWith("/staff") ||
     path.startsWith("/tukang-harian") ||
     path.startsWith("/portal");
 
@@ -58,13 +59,15 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL(home, request.url));
     if (path.startsWith("/hop") && role !== "HEAD_OF_PRODUCTION")
       return NextResponse.redirect(new URL(home, request.url));
+    if (path.startsWith("/staff") && role !== "STAFF")
+      return NextResponse.redirect(new URL(home, request.url));
     if (path.startsWith("/tukang-harian") && role !== "TUKANG_HARIAN")
       return NextResponse.redirect(new URL(home, request.url));
     // Portal Klien (area staf): MASTER & FINANCE = admin, SUPERVISOR &
-    // HEAD_OF_PRODUCTION = centang progres, MANDOR = tukang (hanya melihat item
+    // HEAD_OF_PRODUCTION = centang progres, STAFF = admin, MANDOR = tukang (hanya melihat item
     // timnya). Peran lengkapnya di lib/portal/server.js. Halaman klien /k/[token]
     // sengaja TIDAK masuk matcher (tanpa login).
-    if (path.startsWith("/portal") && !["MASTER", "FINANCE", "SUPERVISOR", "HEAD_OF_PRODUCTION", "MANDOR"].includes(role))
+    if (path.startsWith("/portal") && !["MASTER", "FINANCE", "SUPERVISOR", "HEAD_OF_PRODUCTION", "STAFF", "MANDOR"].includes(role))
       return NextResponse.redirect(new URL(home, request.url));
   }
 
@@ -72,5 +75,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/mandor/:path*", "/supervisor/:path*", "/master/:path*", "/finance/:path*", "/hop/:path*", "/tukang-harian/:path*", "/portal/:path*"],
+  matcher: ["/mandor/:path*", "/supervisor/:path*", "/master/:path*", "/finance/:path*", "/hop/:path*", "/staff/:path*", "/tukang-harian/:path*", "/portal/:path*"],
 };
