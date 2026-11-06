@@ -33,6 +33,8 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
         </select>
       </label>
 
+      {!upah && <TombolPdf proyekId={proyek.id} minggu={m.no} />}
+
       {!upah && (
         <>
       <div className="card stack" style={{ gap: 10 }}>
@@ -94,6 +96,46 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
           </div>
         </details>
       )}
+    </>
+  );
+}
+
+// Unduh PDF laporan mingguan untuk minggu terpilih. Pakai fetch (bukan link
+// langsung) supaya galat dari server tampil di sini, bukan halaman JSON.
+function TombolPdf({ proyekId, minggu }) {
+  const [memuat, setMemuat] = useState(false);
+  const [galat, setGalat] = useState("");
+
+  async function unduh() {
+    setMemuat(true);
+    setGalat("");
+    try {
+      const res = await fetch(`/api/portal/laporan-mingguan/pdf?proyek_id=${proyekId}&minggu=${minggu}`);
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Gagal membuat PDF.");
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "")?.[1] || `Laporan Mingguan - Minggu ${minggu}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+      setGalat(e.message || "Gagal membuat PDF.");
+    } finally {
+      setMemuat(false);
+    }
+  }
+
+  return (
+    <>
+      <button type="button" className="btn" disabled={memuat} onClick={unduh}>
+        {memuat ? "Membuat PDF…" : `Unduh PDF laporan minggu ${minggu}`}
+      </button>
+      {galat && <p className="note b-bad" style={{ margin: 0 }}>{galat}</p>}
     </>
   );
 }

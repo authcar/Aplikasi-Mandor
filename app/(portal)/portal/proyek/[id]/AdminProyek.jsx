@@ -25,7 +25,7 @@ import { kompresBanyakGambar, kompresGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const tanpaDefect = (tabs) => (DEFECT_AKTIF ? tabs : tabs.filter(([k]) => k !== "defect"));
-const TABS = tanpaDefect([["progres", "Progres"], ["item", "Jasa tukang"], ["termin", "Termin"], ["info", "Info"]]);
+const TABS = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["item", "Jasa tukang"], ["termin", "Termin"], ["info", "Info"]]);
 const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["defect", "Defect"]]);
 const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
 
