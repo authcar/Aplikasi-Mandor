@@ -75,13 +75,10 @@ export async function GET(req) {
     if (!minggu) return NextResponse.json({ error: "Minggu tidak ditemukan." }, { status: 404 });
     const h = hitungMinggu(items, indeksRiwayat(riwayat), minggu, hari);
 
-    // Item yang sudah punya progres di akhir minggu atau berubah minggu ini (naik atau
-    // dikoreksi turun), per area lalu nama. Item tanpa perubahan tetap tampil supaya
-    // minggu yang sepi tidak menghasilkan laporan kosong.
-    const item = h.tim
-      .flatMap((t) => t.item.map((i) => ({ ...i, tim: t.tim === "Belum ada tim" ? "" : t.tim })))
-      .filter((i) => i.sesudah > 0.005 || Math.abs(i.naik) > 0.005)
-      .sort((a, b) => String(a.area).localeCompare(String(b.area)) || String(a.nama).localeCompare(String(b.nama)));
+    // Semua item yang ikut hitungan progres (termasuk yang masih 0%), sesuai urutan
+    // di BoQ; PDF mengelompokkannya per area seperti contoh laporan.
+    const hitung = new Map(h.tim.flatMap((t) => t.item.map((i) => [i.id, i])));
+    const item = items.filter((i) => hitung.has(i.id)).map((i) => ({ ...hitung.get(i.id), kode: i.kode || "" }));
 
     // Foto progres yang diunggah pada minggu itu (maks MAKS_FOTO terbaru), diunduh
     // satu per satu dengan batas ukuran supaya respons tidak kebesaran.
@@ -114,8 +111,6 @@ export async function GET(req) {
     const pdf = buatPdfLaporanMingguan({
       proyek: namaProyek,
       lokasi: proyek.lokasi || null,
-      spk: proyek.kode || null,
-      client: proyek.klien_nama || null,
       supervisor: spv?.name || (staf.role === "SUPERVISOR" ? staf.nama : null),
       minggu,
       hasil: h,
