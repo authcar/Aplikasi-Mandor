@@ -34,7 +34,7 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
       </label>
 
       {!upah && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <TombolPdf proyekId={proyek.id} minggu={m.no} />
           <TombolPdf proyekId={proyek.id} minggu={m.no} klien />
         </div>
@@ -138,10 +138,11 @@ function TombolPdf({ proyekId, minggu, klien = false }) {
 
   return (
     <>
-      <button type="button" className="btn" disabled={memuat} onClick={unduh}>
-        {memuat ? "Membuat PDF…" : klien ? `Unduh PDF klien minggu ${minggu}` : `Unduh PDF internal minggu ${minggu}`}
+      <button type="button" className="btn" style={{ minHeight: 42, fontSize: ".85rem", padding: "0 10px" }} disabled={memuat} onClick={unduh}
+        title={`Unduh PDF laporan minggu ${minggu} untuk ${klien ? "klien" : "internal"}`}>
+        {memuat ? "Membuat PDF…" : klien ? "PDF Klien" : "PDF Internal"}
       </button>
-      {galat && <p className="note b-bad" style={{ margin: 0 }}>{galat}</p>}
+      {galat && <p className="note b-bad" style={{ margin: 0, gridColumn: "1 / -1" }}>{galat}</p>}
     </>
   );
 }
