@@ -33,7 +33,12 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
         </select>
       </label>
 
-      {!upah && <TombolPdf proyekId={proyek.id} minggu={m.no} />}
+      {!upah && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <TombolPdf proyekId={proyek.id} minggu={m.no} />
+          <TombolPdf proyekId={proyek.id} minggu={m.no} klien />
+        </div>
+      )}
 
       {!upah && (
         <>
@@ -102,7 +107,8 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
 
 // Unduh PDF laporan mingguan untuk minggu terpilih. Pakai fetch (bukan link
 // langsung) supaya galat dari server tampil di sini, bukan halaman JSON.
-function TombolPdf({ proyekId, minggu }) {
+// klien = versi untuk klien: progres tanpa retensi (instalasi selesai = 100%).
+function TombolPdf({ proyekId, minggu, klien = false }) {
   const [memuat, setMemuat] = useState(false);
   const [galat, setGalat] = useState("");
 
@@ -110,7 +116,7 @@ function TombolPdf({ proyekId, minggu }) {
     setMemuat(true);
     setGalat("");
     try {
-      const res = await fetch(`/api/portal/laporan-mingguan/pdf?proyek_id=${proyekId}&minggu=${minggu}`);
+      const res = await fetch(`/api/portal/laporan-mingguan/pdf?proyek_id=${proyekId}&minggu=${minggu}${klien ? "&untuk=klien" : ""}`);
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || "Gagal membuat PDF.");
@@ -118,7 +124,7 @@ function TombolPdf({ proyekId, minggu }) {
       const url = URL.createObjectURL(await res.blob());
       const a = document.createElement("a");
       a.href = url;
-      a.download = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "")?.[1] || `Laporan Mingguan - Minggu ${minggu}.pdf`;
+      a.download = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "")?.[1] || `Laporan Mingguan - Minggu ${minggu}${klien ? " (Klien)" : ""}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -133,7 +139,7 @@ function TombolPdf({ proyekId, minggu }) {
   return (
     <>
       <button type="button" className="btn" disabled={memuat} onClick={unduh}>
-        {memuat ? "Membuat PDF…" : `Unduh PDF laporan minggu ${minggu}`}
+        {memuat ? "Membuat PDF…" : klien ? `Unduh PDF klien minggu ${minggu}` : `Unduh PDF internal minggu ${minggu}`}
       </button>
       {galat && <p className="note b-bad" style={{ margin: 0 }}>{galat}</p>}
     </>

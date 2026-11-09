@@ -6,7 +6,7 @@ import { ambilRiwayat } from "@/lib/portal/riwayat";
 import { ambilFotoProgres } from "@/lib/portal/progresFoto";
 import { hariIni } from "@/lib/portal/format";
 import { daftarMinggu, hitungMinggu, indeksRiwayat, keadaanSampai } from "@/lib/portal/mingguan";
-import { tahapItem, tahapBerikut, itemProgres } from "@/lib/portal/progresBoq";
+import { tahapItem, tahapBerikut, itemProgres, tanpaRetensi } from "@/lib/portal/progresBoq";
 import { buatPdfLaporanMingguan } from "@/lib/portal/mingguanPdf";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,9 @@ async function kecilkan(url) {
 }
 const tglJakarta = (iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-// GET /api/portal/laporan-mingguan/pdf?proyek_id=...&minggu=N
+// GET /api/portal/laporan-mingguan/pdf?proyek_id=...&minggu=N[&untuk=klien]
+// Versi internal (default) menghitung retensi. Versi klien (untuk=klien) tanpa retensi:
+// begitu instalasi selesai, progres item langsung 100%.
 // PDF laporan mingguan satu proyek tracker: progres sebelum/sesudah, tahap yang
 // dikerjakan, item yang bergerak, dan foto progres minggu itu. Admin (MASTER/FINANCE)
 // dan supervisor; tidak memuat nilai rupiah.
@@ -50,6 +52,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const proyekId = searchParams.get("proyek_id");
   const no = Number(searchParams.get("minggu"));
+  const untukKlien = searchParams.get("untuk") === "klien";
   if (!proyekId || !Number.isInteger(no) || no < 1)
     return NextResponse.json({ error: "proyek_id dan minggu wajib diisi." }, { status: 400 });
 
@@ -58,7 +61,7 @@ export async function GET(req) {
     if (!bolehProyek(staf, proyek)) return NextResponse.json({ error: "Proyek tidak ditemukan." }, { status: 404 });
 
     const hari = hariIni();
-    const [items, riwayat, fotoSemua, logo, spv] = await Promise.all([
+    const [itemsAsli, riwayat, fotoSemua, logo, spv] = await Promise.all([
       ambilItem([proyek]),
       ambilRiwayat(proyek.id),
       ambilFotoProgres(proyek.id).catch(() => []),
@@ -71,6 +74,7 @@ export async function GET(req) {
         : null,
     ]);
 
+    const items = untukKlien ? itemsAsli.map(tanpaRetensi) : itemsAsli;
     const minggu = daftarMinggu(proyek, items, riwayat, hari).find((m) => m.no === no);
     if (!minggu) return NextResponse.json({ error: "Minggu tidak ditemukan." }, { status: 404 });
     const h = hitungMinggu(items, indeksRiwayat(riwayat), minggu, hari);
@@ -144,7 +148,7 @@ export async function GET(req) {
       logo,
     });
 
-    const namaFile = `Laporan Mingguan - ${namaProyek} - Minggu ${no}.pdf`.replace(/[^\w .()-]/g, "").replace(/\s+/g, " ");
+    const namaFile = `Laporan Mingguan - ${namaProyek} - Minggu ${no}${untukKlien ? " (Klien)" : ""}.pdf`.replace(/[^\w .()-]/g, "").replace(/\s+/g, " ");
     return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",
