@@ -6,7 +6,7 @@ import { ambilRiwayat } from "@/lib/portal/riwayat";
 import { ambilFotoProgres } from "@/lib/portal/progresFoto";
 import { hariIni } from "@/lib/portal/format";
 import { daftarMinggu, hitungMinggu, indeksRiwayat, keadaanSampai } from "@/lib/portal/mingguan";
-import { tahapItem, tahapBerikut, itemProgres, tanpaRetensi } from "@/lib/portal/progresBoq";
+import { tahapItem, tahapBerikut, itemProgres, selesaiTanpaRetensi } from "@/lib/portal/progresBoq";
 import { buatPdfLaporanMingguan } from "@/lib/portal/mingguanPdf";
 
 export const dynamic = "force-dynamic";
@@ -40,8 +40,8 @@ async function kecilkan(url) {
 const tglJakarta = (iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
 // GET /api/portal/laporan-mingguan/pdf?proyek_id=...&minggu=N[&untuk=klien]
-// Versi internal (default) menghitung retensi. Versi klien (untuk=klien) tanpa retensi:
-// begitu instalasi selesai, progres item langsung 100%.
+// Versi internal (default) menghitung retensi. Versi klien (untuk=klien): item yang
+// instalasinya selesai langsung 100% (retensi tidak dihitung), item lain sama dengan internal.
 // PDF laporan mingguan satu proyek tracker: progres sebelum/sesudah, tahap yang
 // dikerjakan, item yang bergerak, dan foto progres minggu itu. Admin (MASTER/FINANCE)
 // dan supervisor; tidak memuat nilai rupiah.
@@ -74,10 +74,12 @@ export async function GET(req) {
         : null,
     ]);
 
-    const items = untukKlien ? itemsAsli.map(tanpaRetensi) : itemsAsli;
+    const items = itemsAsli;
     const minggu = daftarMinggu(proyek, items, riwayat, hari).find((m) => m.no === no);
     if (!minggu) return NextResponse.json({ error: "Minggu tidak ditemukan." }, { status: 404 });
-    const h = hitungMinggu(items, indeksRiwayat(riwayat), minggu, hari);
+    // Versi klien: item yang instalasinya selesai langsung 100% (retensi tidak dihitung);
+    // item lain sama dengan versi internal.
+    const h = hitungMinggu(items, indeksRiwayat(riwayat), minggu, hari, untukKlien ? selesaiTanpaRetensi : undefined);
 
     // Semua item yang ikut hitungan progres (termasuk yang masih 0%), sesuai urutan
     // di BoQ; PDF mengelompokkannya per area seperti contoh laporan.
