@@ -78,7 +78,20 @@ export async function GET(req) {
     // Semua item yang ikut hitungan progres (termasuk yang masih 0%), sesuai urutan
     // di BoQ; PDF mengelompokkannya per area seperti contoh laporan.
     const hitung = new Map(h.tim.flatMap((t) => t.item.map((i) => [i.id, i])));
-    const item = items.filter((i) => hitung.has(i.id)).map((i) => ({ ...hitung.get(i.id), kode: i.kode || "" }));
+    // Catatan per item = caption foto progres yang diunggah pada minggu itu (urut lama -> baru,
+    // tanpa duplikat). Item tanpa caption minggu itu memakai catatan otomatis di PDF (naik/turun).
+    const captionMinggu = new Map(); // item_id -> [caption]
+    for (const f of fotoSemua) {
+      const cap = String(f.caption || "").trim();
+      const tgl = tglJakarta(f.created_at);
+      if (!cap || tgl < minggu.mulai || tgl > minggu.akhir) continue;
+      const daftar = captionMinggu.get(f.item_id) || [];
+      if (!daftar.includes(cap)) daftar.push(cap);
+      captionMinggu.set(f.item_id, daftar);
+    }
+    const item = items
+      .filter((i) => hitung.has(i.id))
+      .map((i) => ({ ...hitung.get(i.id), kode: i.kode || "", catatan: (captionMinggu.get(i.id) || []).join("; ") }));
 
     // Rencana pekerjaan selanjutnya: tahap berikut dari tiap item yang belum selesai
     // pada akhir minggu itu, urutan BoQ. Tahap retensi bukan pekerjaan, jadi dilewati.
