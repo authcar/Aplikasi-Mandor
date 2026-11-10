@@ -124,9 +124,10 @@ function TombolHapusSemua({ proyekId, tanggal, nama, dapatDihapus, onTerhapus })
         onClick={hapus}
         disabled={memuat}
         aria-label="Hapus semua kegiatan proyek ini di hari ini"
-        className="ml-1.5 flex shrink-0 items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600 active:opacity-70 disabled:opacity-50"
+        title="Hapus semua kegiatan hari ini"
+        className="ml-1.5 flex shrink-0 items-center justify-center rounded-full bg-red-50 p-1.5 text-red-600 active:opacity-70 disabled:opacity-50"
       >
-        {memuat ? "Menghapus…" : "Hapus semua"}
+        <Icon name="trash-2" className={`h-3.5 w-3.5 ${memuat ? "animate-pulse" : ""}`} />
       </button>
       {galat && <p className="basis-full pb-1 text-[11px] text-red-600">{galat}</p>}
     </>
