@@ -89,6 +89,50 @@ function TombolPdf({ proyekId, tanggal }) {
   );
 }
 
+// Hapus semua kegiatan satu proyek pada satu hari. Hanya tampil kalau ada
+// kegiatan yang boleh dihapus pemakainya; server menyaring ulang izinnya.
+function TombolHapusSemua({ proyekId, tanggal, nama, dapatDihapus, onTerhapus }) {
+  const [memuat, setMemuat] = useState(false);
+  const [galat, setGalat] = useState(null);
+  if (!dapatDihapus.length) return null;
+
+  const hapus = async () => {
+    const n = dapatDihapus.length;
+    if (!confirm(`Hapus ${n} kegiatan ${nama} tanggal ${labelTanggal(tanggal)} beserta semua fotonya? Tindakan ini tidak bisa dibatalkan.`)) return;
+    setMemuat(true);
+    setGalat(null);
+    try {
+      const res = await fetch("/api/laporan-harian/hapus-hari", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proyek_id: proyekId, tanggal }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || "Gagal menghapus.");
+      onTerhapus(j.ids || []);
+    } catch (e) {
+      setGalat(e.message);
+    } finally {
+      setMemuat(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={hapus}
+        disabled={memuat}
+        aria-label="Hapus semua kegiatan proyek ini di hari ini"
+        className="ml-1.5 flex shrink-0 items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600 active:opacity-70 disabled:opacity-50"
+      >
+        {memuat ? "Menghapus…" : "Hapus semua"}
+      </button>
+      {galat && <p className="basis-full pb-1 text-[11px] text-red-600">{galat}</p>}
+    </>
+  );
+}
+
 // Riwayat Laporan Harian — dikelompokkan hari > dropdown proyek > baris
 // ringkas, ketuk baris untuk lihat detail (foto + deskripsi penuh).
 // `peran` + `userId` (opsional) mengaktifkan Edit/Hapus di detail untuk yang
@@ -178,6 +222,18 @@ export default function RiwayatLaporanHarianCard({ riwayat: riwayatAsli = [], pe
                           </span>
                         </button>
                         {p.proyekId && <TombolPdf proyekId={p.proyekId} tanggal={h.tanggal} />}
+                        {p.proyekId && (
+                          <TombolHapusSemua
+                            proyekId={p.proyekId}
+                            tanggal={h.tanggal}
+                            nama={p.nama}
+                            dapatDihapus={p.items.filter((it) => bolehKoreksiLaporan({ peran, userId, laporan: it }))}
+                            onTerhapus={(ids) => {
+                              setKoreksi((k) => ({ ...k, ...Object.fromEntries(ids.map((id) => [id, null])) }));
+                              router.refresh();
+                            }}
+                          />
+                        )}
                         </div>
 
                         {proyekTerbuka && (
