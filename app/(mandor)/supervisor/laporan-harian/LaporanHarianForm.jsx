@@ -5,6 +5,7 @@ import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
 import KameraModal from "@/components/KameraModal";
 import { kompresGambar } from "@/lib/gambar";
+import { MAKS_FOTO_KEGIATAN } from "@/lib/laporanFoto";
 import RiwayatLaporanHarianCard from "./RiwayatLaporanHarianCard";
 import ManpowerCard from "./ManpowerCard";
 
@@ -36,8 +37,7 @@ const ENTRI_KOSONG = () => ({
   key: crypto.randomUUID(),
   status: "ON_PROGRESS",
   deskripsi: "",
-  foto: null,
-  preview: null,
+  fotos: [], // [{ key, file, preview }] — satu kegiatan boleh banyak foto
 });
 
 // 1 proyek per submit, tapi bisa beberapa kegiatan sekaligus — tiap
@@ -63,15 +63,40 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
   // Foto dikompres SEBELUM masuk state, jadi preview dan file yang diupload
   // adalah objek yang sama — HP tidak perlu menyimpan versi 8 MB-nya sama
   // sekali. Kalau kompresinya gagal, kompresGambar mengembalikan file asli.
+  // Tambah foto ke kegiatan `key` (dibatasi MAKS_FOTO_KEGIATAN). Pakai updater
+  // fungsional karena beberapa foto dikompres berurutan.
+  const tambahFoto = (key, files) =>
+    setEntries((es) =>
+      es.map((en) => {
+        if (en.key !== key) return en;
+        const muat = files.slice(0, Math.max(0, MAKS_FOTO_KEGIATAN - en.fotos.length));
+        return {
+          ...en,
+          fotos: [...en.fotos, ...muat.map((file) => ({ key: crypto.randomUUID(), file, preview: URL.createObjectURL(file) }))],
+        };
+      })
+    );
+
+  const hapusFoto = (key, fotoKey) =>
+    setEntries((es) =>
+      es.map((en) => {
+        if (en.key !== key) return en;
+        en.fotos.filter((f) => f.key === fotoKey).forEach((f) => URL.revokeObjectURL(f.preview));
+        return { ...en, fotos: en.fotos.filter((f) => f.key !== fotoKey) };
+      })
+    );
+
   const pilihFoto = async (key, e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const kecil = await kompresGambar(file);
-    setEntri(key, { foto: kecil, preview: URL.createObjectURL(kecil) });
+    const files = Array.from(e.target.files || []);
+    e.target.value = ""; // supaya file yang sama bisa dipilih lagi
+    if (!files.length) return;
+    const kecil = [];
+    for (const f of files) kecil.push(await kompresGambar(f));
+    tambahFoto(key, kecil);
   };
 
   const pakaiFoto = (file) => {
-    setEntri(kameraFor, { foto: file, preview: URL.createObjectURL(file) });
+    tambahFoto(kameraFor, [file]);
     setKameraFor(null);
   };
 
@@ -93,11 +118,12 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
         fd.append("proyek_id", proyekId);
         fd.append("deskripsi", en.deskripsi);
         fd.append("status", en.status);
-        if (en.foto) fd.append("foto", en.foto);
+        en.fotos.forEach((f) => fd.append("foto", f.file));
         const res = await fetch("/api/laporan-harian", { method: "POST", body: fd });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error || "Gagal mengirim.");
-        berhasil.push({ ...json.data, proyek, fotoSignedUrl: en.preview });
+        const previews = en.fotos.map((f) => f.preview);
+        berhasil.push({ ...json.data, proyek, fotoPaths: json.data.foto_urls || [], fotoSignedUrls: previews, fotoSignedUrl: previews[0] || null });
       } catch (e) {
         sisa.push(en);
       }
@@ -213,36 +239,43 @@ export default function LaporanHarianForm({ proyekList = [], riwayat = [], sudah
                   />
                 </Field>
 
-                <Field label="Foto Dokumentasi">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setKameraFor(en.key)}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50"
-                    >
-                      <Icon name="camera" className="h-5 w-5 text-gray-400" />
-                      Kamera
-                    </button>
-                    <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50">
-                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3 21h18M6.75 6.75h.008v.008H6.75V6.75z" />
-                      </svg>
-                      Galeri
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => pilihFoto(en.key, e)} />
-                    </label>
-                  </div>
-                  {en.preview && (
-                    <div className="relative mt-2">
-                      <img src={en.preview} alt="preview dokumentasi" className="w-full max-h-52 rounded-xl border border-gray-200 object-cover" />
+                <Field label={`Foto Dokumentasi (${en.fotos.length}/${MAKS_FOTO_KEGIATAN})`}>
+                  {en.fotos.length < MAKS_FOTO_KEGIATAN && (
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setEntri(en.key, { foto: null, preview: null })}
-                        className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white"
+                        onClick={() => setKameraFor(en.key)}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50"
                       >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <Icon name="camera" className="h-5 w-5 text-gray-400" />
+                        Kamera
                       </button>
+                      <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white py-3 text-sm font-medium text-gray-500 active:bg-gray-50">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3 21h18M6.75 6.75h.008v.008H6.75V6.75z" />
+                        </svg>
+                        Galeri
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => pilihFoto(en.key, e)} />
+                      </label>
+                    </div>
+                  )}
+                  {en.fotos.length > 0 && (
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {en.fotos.map((f, n) => (
+                        <div key={f.key} className="relative">
+                          <img src={f.preview} alt={`foto dokumentasi ${n + 1}`} className="aspect-square w-full rounded-xl border border-gray-200 object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => hapusFoto(en.key, f.key)}
+                            className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white"
+                            title="Hapus foto"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </Field>

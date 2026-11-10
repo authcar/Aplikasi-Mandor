@@ -1,4 +1,5 @@
 import { getSessionProfile } from "@/lib/supabase/server";
+import { tambahUrlFoto } from "@/lib/laporanFoto";
 import ProyekDetail from "./ProyekDetail";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export default async function ProyekDetailFinancePage({ params }) {
     supabase.from("absensi_tim").select("tim, jumlah").eq("proyek_id", id).eq("tanggal", today),
     supabase
       .from("laporan_harian")
-      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at")
+      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, foto_urls, created_at")
       .eq("proyek_id", id)
       .order("tanggal", { ascending: false })
       .order("created_at", { ascending: false })
@@ -39,18 +40,9 @@ export default async function ProyekDetailFinancePage({ params }) {
   );
   const jumlahTim = new Set((absensiTim || []).map((r) => r.tim)).size;
 
-  const paths = (riwayatRows || []).filter((r) => r.foto_url).map((r) => r.foto_url);
-  const { data: signed } = paths.length
-    ? await supabase.storage.from("progres").createSignedUrls(paths, 3600)
-    : { data: [] };
-  const urlMap = Object.fromEntries(
-    (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
-  );
-
-  const riwayat = (riwayatRows || []).map((r) => ({
+  const riwayat = (await tambahUrlFoto(supabase, riwayatRows)).map((r) => ({
     ...r,
     proyek: { nama: proyek.nama },
-    fotoSignedUrl: r.foto_url ? urlMap[r.foto_url] || null : null,
   }));
 
   return (

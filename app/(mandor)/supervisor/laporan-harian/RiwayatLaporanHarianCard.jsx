@@ -11,6 +11,9 @@ const STATUS_BADGE = {
   PERBAIKAN: { label: "Perlu Perbaikan", cls: "bg-red-100 text-red-700" },
 };
 
+// Semua URL foto satu kegiatan (baris lama / halaman yang belum mengirim daftar: cuma fotoSignedUrl).
+const semuaFoto = (it) => (it.fotoSignedUrls?.length ? it.fotoSignedUrls : it.fotoSignedUrl ? [it.fotoSignedUrl] : []);
+
 const labelTanggal = (tgl) =>
   new Date(`${tgl}T00:00:00`).toLocaleDateString("id-ID", {
     weekday: "long",
@@ -189,7 +192,14 @@ export default function RiwayatLaporanHarianCard({ riwayat: riwayatAsli = [], pe
                                   className="flex w-full items-center gap-2 rounded-lg bg-white px-2.5 py-2 text-left active:bg-gray-100"
                                 >
                                   {it.fotoSignedUrl ? (
-                                    <img src={it.fotoSignedUrl} alt="" className="h-9 w-9 shrink-0 rounded-md border border-gray-200 object-cover" />
+                                    <span className="relative h-9 w-9 shrink-0">
+                                      <img src={it.fotoSignedUrl} alt="" className="h-9 w-9 rounded-md border border-gray-200 object-cover" />
+                                      {semuaFoto(it).length > 1 && (
+                                        <span className="absolute -bottom-1 -right-1 rounded-full bg-gray-700 px-1 text-[9px] font-bold leading-4 text-white">
+                                          {semuaFoto(it).length}
+                                        </span>
+                                      )}
+                                    </span>
                                   ) : (
                                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-300">
                                       <Icon name="camera" className="h-4 w-4" />
@@ -248,12 +258,19 @@ export default function RiwayatLaporanHarianCard({ riwayat: riwayatAsli = [], pe
                 <span className={`badge mb-3 w-fit ${(STATUS_BADGE[detail.status] || STATUS_BADGE.ON_PROGRESS).cls}`}>
                   {(STATUS_BADGE[detail.status] || STATUS_BADGE.ON_PROGRESS).label}
                 </span>
-                {detail.fotoSignedUrl && (
-                  <img
-                    src={detail.fotoSignedUrl}
-                    alt="dokumentasi"
-                    className="mb-3 max-h-[45vh] w-full rounded-xl border border-gray-200 object-contain"
-                  />
+                {semuaFoto(detail).length > 0 && (
+                  <div className={`mb-3 grid gap-2 overflow-y-auto ${semuaFoto(detail).length > 1 ? "max-h-[45vh] grid-cols-2" : ""}`}>
+                    {semuaFoto(detail).map((u, n) => (
+                      <img
+                        key={u}
+                        src={u}
+                        alt={`dokumentasi ${n + 1}`}
+                        className={`w-full rounded-xl border border-gray-200 ${
+                          semuaFoto(detail).length > 1 ? "aspect-square object-cover" : "max-h-[45vh] object-contain"
+                        }`}
+                      />
+                    ))}
+                  </div>
                 )}
                 <p className="overflow-y-auto text-sm text-gray-700">{detail.deskripsi}</p>
                 {galat && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{galat}</p>}

@@ -1,6 +1,7 @@
 import { getSessionProfile } from "@/lib/supabase/server";
 import BackButton from "@/components/BackButton";
 import RiwayatLaporanHarianCard from "@/app/(mandor)/supervisor/laporan-harian/RiwayatLaporanHarianCard";
+import { tambahUrlFoto } from "@/lib/laporanFoto";
 import StatusHariIniCard from "./StatusHariIniCard";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export default async function LaporanHarianFinancePage() {
       .order("nama"),
     supabase
       .from("laporan_harian")
-      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, created_at, dibaca_master, proyek:proyek_id(nama)")
+      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, foto_urls, created_at, dibaca_master, proyek:proyek_id(nama)")
       .order("tanggal", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(HALAMAN),
@@ -31,7 +32,7 @@ export default async function LaporanHarianFinancePage() {
   // Laporan hari ini per proyek aktif — dipakai buat "Status Hari Ini" di atas.
   const { data: rowsHariIni } = await supabase
     .from("laporan_harian")
-    .select("id, proyek_id, deskripsi, status, foto_url, created_at")
+    .select("id, proyek_id, deskripsi, status, foto_url, foto_urls, created_at")
     .eq("tanggal", todayStr)
     .in("proyek_id", (proyekAktif || []).map((p) => p.id).length ? (proyekAktif || []).map((p) => p.id) : [""]);
 
@@ -41,27 +42,12 @@ export default async function LaporanHarianFinancePage() {
     await supabase.from("laporan_harian").update({ dibaca_master: true }).in("id", belumDibaca);
   }
 
-  const paths = [
-    ...(rows || []).filter((r) => r.foto_url).map((r) => r.foto_url),
-    ...(rowsHariIni || []).filter((r) => r.foto_url).map((r) => r.foto_url),
-  ];
-  const { data: signed } = paths.length
-    ? await supabase.storage.from("progres").createSignedUrls(paths, 3600)
-    : { data: [] };
-  const urlMap = Object.fromEntries(
-    (signed || []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
-  );
-
-  const riwayat = (rows || []).map((r) => ({
-    ...r,
-    fotoSignedUrl: r.foto_url ? urlMap[r.foto_url] || null : null,
-  }));
+  const [riwayat, hariIni] = await Promise.all([tambahUrlFoto(supabase, rows), tambahUrlFoto(supabase, rowsHariIni)]);
 
   const itemsHariIniByProyek = new Map();
-  for (const r of rowsHariIni || []) {
-    const item = { ...r, fotoSignedUrl: r.foto_url ? urlMap[r.foto_url] || null : null };
-    if (!itemsHariIniByProyek.has(r.proyek_id)) itemsHariIniByProyek.set(r.proyek_id, []);
-    itemsHariIniByProyek.get(r.proyek_id).push(item);
+  for (const item of hariIni) {
+    if (!itemsHariIniByProyek.has(item.proyek_id)) itemsHariIniByProyek.set(item.proyek_id, []);
+    itemsHariIniByProyek.get(item.proyek_id).push(item);
   }
 
   const statusHariIni = (proyekAktif || []).map((p) => ({

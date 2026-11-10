@@ -4,6 +4,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { buatPdfLaporanHarian } from "@/lib/laporanHarianPdf";
 import { createTaracoClient } from "@/lib/supabase/taraco";
 import { identitasProyek } from "@/lib/laporanProyek";
+import { daftarFoto } from "@/lib/laporanFoto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -49,7 +50,7 @@ export async function GET(req) {
 
   const { data: rows, error } = await supabase
     .from("laporan_harian")
-    .select("id, deskripsi, status, foto_url, created_at, created_by, proyek:proyek_id(nama, lokasi, taraco_id, portal_id, supervisor:supervisor_id(name))")
+    .select("id, deskripsi, status, foto_url, foto_urls, created_at, created_by, proyek:proyek_id(nama, lokasi, taraco_id, portal_id, supervisor:supervisor_id(name))")
     .eq("proyek_id", proyekId)
     .eq("tanggal", tanggal)
     .order("created_at", { ascending: true });
@@ -61,13 +62,13 @@ export async function GET(req) {
   // diunduh/terlalu besar tetap dicatat di PDF sebagai "tidak dapat ditampilkan".
   const items = [];
   for (const r of rows) {
-    let foto = null;
-    if (r.foto_url) {
-      const { data: blob } = await supabase.storage.from("progres").download(r.foto_url);
-      if (blob && blob.size <= FOTO_MAKS_BYTE) foto = new Uint8Array(await blob.arrayBuffer());
-      else foto = new Uint8Array(1);
+    const fotos = [];
+    for (const path of daftarFoto(r)) {
+      const { data: blob } = await supabase.storage.from("progres").download(path);
+      if (blob && blob.size <= FOTO_MAKS_BYTE) fotos.push(new Uint8Array(await blob.arrayBuffer()));
+      else fotos.push(new Uint8Array(1));
     }
-    items.push({ status: r.status, deskripsi: r.deskripsi, foto });
+    items.push({ status: r.status, deskripsi: r.deskripsi, fotos });
   }
 
   // "Diajukan Oleh" = yang membuat laporan hari itu (bisa Supervisor atau Head of
