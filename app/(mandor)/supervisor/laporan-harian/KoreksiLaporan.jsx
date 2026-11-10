@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Icon from "@/components/Icon";
+import KameraModal from "@/components/KameraModal";
 import { kompresGambar } from "@/lib/gambar";
 import { MAKS_FOTO_KEGIATAN } from "@/lib/laporanFoto";
 
@@ -21,6 +23,7 @@ export default function KoreksiLaporan({ laporan, onSelesai, onBatal }) {
   const [dibuang, setDibuang] = useState([]); // path foto lama yang akan dibuang
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [kamera, setKamera] = useState(false);
 
   const urlLama = laporan.fotoSignedUrls?.length ? laporan.fotoSignedUrls : laporan.fotoSignedUrl ? [laporan.fotoSignedUrl] : [];
   // path sejajar dengan url; kosong (null) = tidak bisa dihapus satuan.
@@ -33,16 +36,24 @@ export default function KoreksiLaporan({ laporan, onSelesai, onBatal }) {
   refBaru.current = fotoBaru;
   useEffect(() => () => refBaru.current.forEach((f) => URL.revokeObjectURL(f.preview)), []);
 
+  const tambahBaru = (files) =>
+    setFotoBaru((cur) => {
+      const muat = files.slice(0, Math.max(0, MAKS_FOTO_KEGIATAN - jumlahLama - cur.length));
+      return [...cur, ...muat.map((file) => ({ key: crypto.randomUUID(), file, preview: URL.createObjectURL(file) }))];
+    });
+
   const pilihFoto = async (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
     const kecil = [];
     for (const f of files) kecil.push(await kompresGambar(f));
-    setFotoBaru((cur) => {
-      const muat = kecil.slice(0, Math.max(0, MAKS_FOTO_KEGIATAN - jumlahLama - cur.length));
-      return [...cur, ...muat.map((file) => ({ key: crypto.randomUUID(), file, preview: URL.createObjectURL(file) }))];
-    });
+    tambahBaru(kecil);
+  };
+
+  const pakaiKamera = (file) => {
+    tambahBaru([file]);
+    setKamera(false);
   };
 
   const buangBaru = (key) =>
@@ -90,6 +101,7 @@ export default function KoreksiLaporan({ laporan, onSelesai, onBatal }) {
 
   return (
     <div className="space-y-3 overflow-y-auto">
+      {kamera && <KameraModal title="Tambah Foto" onCapture={pakaiKamera} onClose={() => setKamera(false)} />}
       <div className="grid grid-cols-3 gap-2">
         {STATUS.map((s) => (
           <button
@@ -151,10 +163,20 @@ export default function KoreksiLaporan({ laporan, onSelesai, onBatal }) {
         )}
         <div className="flex gap-2">
           {total < MAKS_FOTO_KEGIATAN && (
-            <label className="flex flex-1 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm font-medium text-gray-500 active:bg-gray-50">
-              Tambah foto ({total}/{MAKS_FOTO_KEGIATAN})
-              <input type="file" accept="image/*" multiple className="hidden" onChange={pilihFoto} />
-            </label>
+            <>
+              <button
+                type="button"
+                onClick={() => setKamera(true)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm font-medium text-gray-500 active:bg-gray-50"
+              >
+                <Icon name="camera" className="h-4 w-4 text-gray-400" />
+                Kamera
+              </button>
+              <label className="flex flex-1 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-gray-300 py-2.5 text-sm font-medium text-gray-500 active:bg-gray-50">
+                Galeri ({total}/{MAKS_FOTO_KEGIATAN})
+                <input type="file" accept="image/*" multiple className="hidden" onChange={pilihFoto} />
+              </label>
+            </>
           )}
         </div>
         {dibuang.length > 0 && (
