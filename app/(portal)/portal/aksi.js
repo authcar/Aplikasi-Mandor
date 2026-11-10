@@ -119,6 +119,10 @@ export async function ubahProyek(id, patch) {
 // Hapus permanen, hanya master. Item, progres, termin, dan link klien ikut
 // terhapus (on delete cascade). Konfirmasi dilakukan di UI.
 async function hapusSatuProyek(id) {
+  // Proyek hasil tarikan Taraco: catat supaya sinkron tidak membuatnya lagi.
+  // Gagal (tabelnya belum dibuat) tidak boleh menghalangi penghapusan.
+  const taracoId = (await ambilProyek(id))?.taraco_id;
+  if (taracoId) await db().from("portal_taraco_lewat").upsert({ taraco_id: taracoId });
   const fotoItem = await hasil(db().from("portal_item").select("*").eq("proyek_id", id));
   await hapusFotoItem(fotoItem.flatMap((i) => i.foto || []));
   await hapusFotoItem((await hasil(db().from("portal_termin").select("*").eq("proyek_id", id))).map((t) => t.bukti));

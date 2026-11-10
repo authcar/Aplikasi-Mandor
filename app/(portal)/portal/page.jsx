@@ -3,6 +3,7 @@ import DaftarProyek from "./DaftarProyek";
 import { ambilStaf } from "@/lib/portal/server";
 import { ambilItem, ambilPengubahTerakhir, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
 import { hitungDefectBaru } from "@/lib/portal/defect";
+import { syncPortalDariTaraco } from "@/lib/portal/syncTaraco";
 import { persenProyek } from "@/lib/portal/progresBoq";
 import { hariIni, tambahHari, tglTh, pct, statusProyek, labelDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
 import ProyekBaru from "./ProyekBaru";
@@ -11,6 +12,8 @@ export default async function PortalBeranda() {
   const { staf } = await ambilStaf();
   const admin = staf.role === "ADMIN";
   const tukang = staf.role === "TUKANG";
+  // Proyek Taraco yang sudah masuk DP / SPK otomatis dibuatkan di Project Tracker.
+  if (!tukang) await syncPortalDariTaraco();
   const proyek = await ambilProyekStaf(staf);
   const [supervisors, defectBaru, pengubah] = await Promise.all([
     admin ? ambilSupervisor() : [],
