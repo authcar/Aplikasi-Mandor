@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { bukaXlsx } from "@/lib/portal/bacaXlsx";
 
-const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const SEMUA = "__semua__";
+const norm =(s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 // Pilih file BoQ (.xlsx), lalu sheet proyeknya. File dibaca di browser dan
 // tidak dikirim ke server. `petunjuk` = nama/kode proyek untuk menebak sheet.
@@ -15,6 +16,13 @@ export default function UnggahBoq({ petunjuk = [], onPilih, label = "File BoQ (.
 
   function pilihSheet(b, s) {
     setSheet(s);
+    if (s === SEMUA) {
+      // Beberapa sheet sekaligus (mis. satu sheet per tim tukang). Tiap sheet dibaca
+      // sendiri-sendiri (`bagian`) karena nomor baris gambar dan tim berlaku per sheet.
+      const bagian = b.sheets.map((n) => ({ sheet: n, rows: b.baca(n), gambar: b.gambar(n) }));
+      onPilih({ sheet: `${bagian.length} sheet`, rows: bagian.flatMap((x) => x.rows), gambar: [], bagian });
+      return;
+    }
     onPilih(s ? { sheet: s, rows: b.baca(s), gambar: b.gambar(s) } : null);
   }
 
@@ -53,6 +61,7 @@ export default function UnggahBoq({ petunjuk = [], onPilih, label = "File BoQ (.
           Sheet proyek ({buku.sheets.length} sheet)
           <select className="inp" value={sheet} onChange={(e) => pilihSheet(buku, e.target.value)}>
             <option value="">— Pilih sheet —</option>
+            <option value={SEMUA}>Semua sheet ({buku.sheets.length})</option>
             {buku.sheets.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </label>

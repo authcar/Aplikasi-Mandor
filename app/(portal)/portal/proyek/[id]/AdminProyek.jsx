@@ -754,7 +754,12 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
   const [mode, setMode] = useState(items.length ? "perbarui" : "tambah");
   const ganti = mode === "ganti", perbarui = mode === "perbarui";
   const [centang, setCentang] = useState({}); // { [n]: true/false } centang yang diubah admin
-  const preview = useMemo(() => (file ? bacaItemSheet(file.rows, urutan, file.gambar) : teks ? bacaBoq(teks, urutan) : []), [file, teks, urutan]);
+  // "Semua sheet": tiap sheet dibaca sendiri, urutannya disambung.
+  const preview = useMemo(() => {
+    if (!file) return teks ? bacaBoq(teks, urutan) : [];
+    if (!file.bagian) return bacaItemSheet(file.rows, urutan, file.gambar);
+    return file.bagian.reduce((acc, b) => [...acc, ...bacaItemSheet(b.rows, urutan + acc.length, b.gambar)], []);
+  }, [file, teks, urutan]);
   const sudahAda = useMemo(() => new Set(items.map(kunciItem)), [items]);
   // Baris Excel -> item proyek yang sama (area, nama, kode); tiap item dipakai sekali.
   const cocokan = useMemo(() => {
