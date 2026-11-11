@@ -44,7 +44,7 @@ async function muat(id) {
         {
           error:
             profile.role === "SUPERVISOR" || profile.role === "HEAD_OF_PRODUCTION"
-              ? "Hanya bisa mengubah laporan sendiri di hari yang sama."
+              ? "Hanya bisa mengubah laporan sendiri."
               : "Tidak diizinkan.",
         },
         { status: 403 }

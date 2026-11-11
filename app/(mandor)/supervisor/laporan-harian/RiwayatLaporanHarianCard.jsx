@@ -137,7 +137,7 @@ function TombolHapusSemua({ proyekId, tanggal, nama, dapatDihapus, onTerhapus })
 // Riwayat Laporan Harian — dikelompokkan hari > dropdown proyek > baris
 // ringkas, ketuk baris untuk lihat detail (foto + deskripsi penuh).
 // `peran` + `userId` (opsional) mengaktifkan Edit/Hapus di detail untuk yang
-// berhak: Master semua laporan, Supervisor hanya miliknya di hari yang sama
+// berhak: Master semua laporan, Supervisor hanya miliknya (kapan saja)
 // (aturan: lib/laporanKoreksi.js; izin sebenarnya dicek di server).
 export default function RiwayatLaporanHarianCard({ riwayat: riwayatAsli = [], peran = null, userId = null }) {
   const router = useRouter();

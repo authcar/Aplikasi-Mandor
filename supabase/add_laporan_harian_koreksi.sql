@@ -1,7 +1,6 @@
 -- Jalankan di Supabase Studio > SQL Editor.
 -- Koreksi laporan harian (edit & hapus kegiatan):
---   Supervisor -> hanya laporannya sendiri, dan hanya di hari yang sama
---                 (hari = tanggal WIB saat laporan dibuat).
+--   Supervisor -> hanya laporannya sendiri, kapan saja.
 --   Master     -> semua laporan, kapan saja.
 -- Policy UPDATE lama (laporan_harian_update: MASTER/FINANCE, dipakai untuk
 -- menandai dibaca_master) tidak diubah; policy di bawah ini ADDITIVE.
@@ -11,7 +10,6 @@ create policy laporan_harian_update_spv on laporan_harian for update
   using (
     my_role() = 'SUPERVISOR'
     and created_by = auth.uid()
-    and (created_at at time zone 'Asia/Jakarta')::date = (now() at time zone 'Asia/Jakarta')::date
   )
   with check (
     my_role() = 'SUPERVISOR'
@@ -31,6 +29,5 @@ create policy laporan_harian_delete on laporan_harian for delete
     or (
       my_role() = 'SUPERVISOR'
       and created_by = auth.uid()
-      and (created_at at time zone 'Asia/Jakarta')::date = (now() at time zone 'Asia/Jakarta')::date
     )
   );
