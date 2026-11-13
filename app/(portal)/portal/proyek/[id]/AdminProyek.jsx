@@ -7,7 +7,7 @@ import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
 import FotoItem from "../../../FotoItem";
-import FotoProgres, { FotoWajib } from "./FotoProgres";
+import FotoProgres, { FotoWajib, MAKS_FOTO } from "./FotoProgres";
 import Mingguan from "./Mingguan";
 import { unggahFotoItem } from "@/lib/portal/unggahFotoItem";
 import TabBar from "../../../TabBar";
@@ -251,7 +251,7 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
     <>
       {perlu && (
         <FotoWajib item={perlu.it} s={perlu.s} persen={perlu.persen} aksi={aksi} tutup={() => setPerlu(null)}
-          sisa={Math.max(0, 20 - fotoItem(perlu.it).length)} />
+          sisa={Math.max(0, MAKS_FOTO - fotoItem(perlu.it).length)} />
       )}
       {/* Pengingat deadline (hanya label; diubah admin di tab Info). */}
       <div className="card tglrow" style={{ padding: "12px 14px" }}>
