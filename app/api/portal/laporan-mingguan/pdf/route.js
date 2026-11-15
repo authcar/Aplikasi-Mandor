@@ -39,9 +39,10 @@ async function kecilkan(url) {
 }
 const tglJakarta = (iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-// GET /api/portal/laporan-mingguan/pdf?proyek_id=...&minggu=N[&untuk=klien]
+// GET /api/portal/laporan-mingguan/pdf?proyek_id=...&minggu=N[&untuk=klien|tukang]
 // Versi internal (default) menghitung retensi. Versi klien (untuk=klien): item yang
 // instalasinya selesai langsung 100% (retensi tidak dihitung), item lain sama dengan internal.
+// Versi tukang (untuk=tukang): hitungan sama dengan internal, tetapi tabel progres dikelompokkan per tim tukang.
 // PDF laporan mingguan satu proyek tracker: progres sebelum/sesudah, tahap yang
 // dikerjakan, item yang bergerak, dan foto progres minggu itu. Admin (MASTER/FINANCE)
 // dan supervisor; tidak memuat nilai rupiah.
@@ -53,6 +54,7 @@ export async function GET(req) {
   const proyekId = searchParams.get("proyek_id");
   const no = Number(searchParams.get("minggu"));
   const untukKlien = searchParams.get("untuk") === "klien";
+  const perTukang = searchParams.get("untuk") === "tukang"; // hitungan internal, item dikelompokkan per tim tukang
   if (!proyekId || !Number.isInteger(no) || no < 1)
     return NextResponse.json({ error: "proyek_id dan minggu wajib diisi." }, { status: 400 });
 
@@ -97,7 +99,7 @@ export async function GET(req) {
     }
     const item = items
       .filter((i) => hitung.has(i.id))
-      .map((i) => ({ ...hitung.get(i.id), kode: i.kode || "", catatan: (captionMinggu.get(i.id) || []).join("; ") }));
+      .map((i) => ({ ...hitung.get(i.id), kode: i.kode || "", tim: i.tim || "", catatan: (captionMinggu.get(i.id) || []).join("; ") }));
 
     // Rencana pekerjaan selanjutnya: tahap berikut dari tiap item yang belum selesai
     // pada akhir minggu itu, urutan BoQ. Tahap retensi bukan pekerjaan, jadi dilewati.
@@ -148,9 +150,10 @@ export async function GET(req) {
       foto,
       fotoLebih: dalamMinggu.length - dipilih.length + terbuang,
       logo,
+      perTukang,
     });
 
-    const namaFile = `Laporan Mingguan - ${namaProyek} - Minggu ${no}${untukKlien ? " (Klien)" : ""}.pdf`.replace(/[^\w .()-]/g, "").replace(/\s+/g, " ");
+    const namaFile = `Laporan Mingguan - ${namaProyek} - Minggu ${no}${untukKlien ? " (Klien)" : perTukang ? " (Per Tukang)" : ""}.pdf`.replace(/[^\w .()-]/g, "").replace(/\s+/g, " ");
     return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",
