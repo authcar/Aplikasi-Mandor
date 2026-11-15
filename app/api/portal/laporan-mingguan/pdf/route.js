@@ -39,10 +39,10 @@ async function kecilkan(url) {
 }
 const tglJakarta = (iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-// GET /api/portal/laporan-mingguan/pdf?proyek_id=...&minggu=N[&untuk=klien|tukang]
+// GET /api/portal/laporan-mingguan/pdf?proyek_id=...&minggu=N[&untuk=klien|&tim=NAMA_TIM]
 // Versi internal (default) menghitung retensi. Versi klien (untuk=klien): item yang
 // instalasinya selesai langsung 100% (retensi tidak dihitung), item lain sama dengan internal.
-// Versi tukang (untuk=tukang): hitungan sama dengan internal, tetapi tabel progres dikelompokkan per tim tukang.
+// Versi tukang (tim=NAMA): hitungan sama dengan internal, tetapi hanya item milik tim itu.
 // PDF laporan mingguan satu proyek tracker: progres sebelum/sesudah, tahap yang
 // dikerjakan, item yang bergerak, dan foto progres minggu itu. Admin (MASTER/FINANCE)
 // dan supervisor; tidak memuat nilai rupiah.
@@ -54,7 +54,7 @@ export async function GET(req) {
   const proyekId = searchParams.get("proyek_id");
   const no = Number(searchParams.get("minggu"));
   const untukKlien = searchParams.get("untuk") === "klien";
-  const perTukang = searchParams.get("untuk") === "tukang"; // hitungan internal, item dikelompokkan per tim tukang
+  const tukang = (searchParams.get("tim") || "").trim(); // laporan satu tukang: hitungan internal, hanya item timnya
   if (!proyekId || !Number.isInteger(no) || no < 1)
     return NextResponse.json({ error: "proyek_id dan minggu wajib diisi." }, { status: 400 });
 
@@ -76,8 +76,10 @@ export async function GET(req) {
         : null,
     ]);
 
-    const items = itemsAsli;
-    const minggu = daftarMinggu(proyek, items, riwayat, hari).find((m) => m.no === no);
+    const sama = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+    const items = tukang ? itemsAsli.filter((i) => sama(i.tim, tukang)) : itemsAsli;
+    if (tukang && !items.length) return NextResponse.json({ error: "Tidak ada item untuk tukang itu." }, { status: 404 });
+    const minggu = daftarMinggu(proyek, itemsAsli, riwayat, hari).find((m) => m.no === no);
     if (!minggu) return NextResponse.json({ error: "Minggu tidak ditemukan." }, { status: 404 });
     // Versi klien: item yang instalasinya selesai langsung 100% (retensi tidak dihitung);
     // item lain sama dengan versi internal.
@@ -139,8 +141,9 @@ export async function GET(req) {
     });
 
     const namaProyek = proyek.nama || "Proyek";
+    const judulProyek = tukang ? `${namaProyek} - ${tukang}` : namaProyek;
     const pdf = buatPdfLaporanMingguan({
-      proyek: namaProyek,
+      proyek: judulProyek,
       lokasi: proyek.lokasi || null,
       supervisor: spv?.name || (staf.role === "SUPERVISOR" ? staf.nama : null),
       minggu,
@@ -150,10 +153,9 @@ export async function GET(req) {
       foto,
       fotoLebih: dalamMinggu.length - dipilih.length + terbuang,
       logo,
-      perTukang,
     });
 
-    const namaFile = `Laporan Mingguan - ${namaProyek} - Minggu ${no}${untukKlien ? " (Klien)" : perTukang ? " (Per Tukang)" : ""}.pdf`.replace(/[^\w .()-]/g, "").replace(/\s+/g, " ");
+    const namaFile = `Laporan Mingguan - ${namaProyek} - Minggu ${no}${untukKlien ? " (Klien)" : tukang ? ` (${tukang})` : ""}.pdf`.replace(/[^\w .()-]/g, "").replace(/\s+/g, " ");
     return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",

@@ -23,6 +23,8 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
     () => minggu.map((x) => ({ x, h: hitungMinggu(items, idx, x, hari) })).reverse(),
     [minggu, items, idx, hari]
   );
+  const daftarTim = useMemo(() => [...new Set(items.map((i) => i.tim?.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [items]);
+  const [timPilih, setTimPilih] = useState("");
   const totalUpah = h.tim.reduce((a, t) => a + t.upah, 0);
 
   return (
@@ -34,10 +36,21 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
       </label>
 
       {!upah && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <TombolPdf proyekId={proyek.id} minggu={m.no} />
           <TombolPdf proyekId={proyek.id} minggu={m.no} untuk="klien" />
-          <TombolPdf proyekId={proyek.id} minggu={m.no} untuk="tukang" />
+        </div>
+      )}
+
+      {!upah && daftarTim.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "end" }}>
+          <label className="lbl" style={{ margin: 0 }}>PDF per tukang
+            <select className="inp" value={timPilih} onChange={(e) => setTimPilih(e.target.value)}>
+              <option value="">Pilih tukang…</option>
+              {daftarTim.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </label>
+          <TombolPdf proyekId={proyek.id} minggu={m.no} tim={timPilih} porTukang />
         </div>
       )}
 
@@ -108,9 +121,9 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
 
 // Unduh PDF laporan mingguan untuk minggu terpilih. Pakai fetch (bukan link
 // langsung) supaya galat dari server tampil di sini, bukan halaman JSON.
-// untuk="klien": progres tanpa retensi (instalasi selesai = 100%); "tukang": internal, item dikelompokkan per tim tukang.
-function TombolPdf({ proyekId, minggu, untuk = "" }) {
-  const klien = untuk === "klien", tukang = untuk === "tukang";
+// untuk="klien": progres tanpa retensi (instalasi selesai = 100%); tim: laporan internal satu tukang (hanya item timnya).
+function TombolPdf({ proyekId, minggu, untuk = "", tim = "", porTukang = false }) {
+  const klien = untuk === "klien", tukang = !!tim;
   const [memuat, setMemuat] = useState(false);
   const [galat, setGalat] = useState("");
 
@@ -118,7 +131,7 @@ function TombolPdf({ proyekId, minggu, untuk = "" }) {
     setMemuat(true);
     setGalat("");
     try {
-      const res = await fetch(`/api/portal/laporan-mingguan/pdf?proyek_id=${proyekId}&minggu=${minggu}${untuk ? `&untuk=${untuk}` : ""}`);
+      const res = await fetch(`/api/portal/laporan-mingguan/pdf?proyek_id=${proyekId}&minggu=${minggu}${untuk ? `&untuk=${untuk}` : ""}${tim ? `&tim=${encodeURIComponent(tim)}` : ""}`);
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || "Gagal membuat PDF.");
@@ -126,7 +139,7 @@ function TombolPdf({ proyekId, minggu, untuk = "" }) {
       const url = URL.createObjectURL(await res.blob());
       const a = document.createElement("a");
       a.href = url;
-      a.download = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "")?.[1] || `Laporan Mingguan - Minggu ${minggu}${klien ? " (Klien)" : tukang ? " (Per Tukang)" : ""}.pdf`;
+      a.download = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "")?.[1] || `Laporan Mingguan - Minggu ${minggu}${klien ? " (Klien)" : tukang ? ` (${tim})` : ""}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -140,9 +153,9 @@ function TombolPdf({ proyekId, minggu, untuk = "" }) {
 
   return (
     <>
-      <button type="button" className="btn" style={{ minHeight: 42, fontSize: ".85rem", padding: "0 10px" }} disabled={memuat} onClick={unduh}
-        title={`Unduh PDF laporan minggu ${minggu} untuk ${klien ? "klien" : tukang ? "internal, dikelompokkan per tukang" : "internal"}`}>
-        {memuat ? "Membuat PDF…" : klien ? "PDF Klien" : tukang ? "PDF Per Tukang" : "PDF Internal"}
+      <button type="button" className="btn" style={{ minHeight: 42, fontSize: ".85rem", padding: "0 10px" }} disabled={memuat || (porTukang && !tim)} onClick={unduh}
+        title={`Unduh PDF laporan minggu ${minggu} untuk ${klien ? "klien" : tukang ? `${tim} (internal)` : "internal"}`}>
+        {memuat ? "Membuat PDF…" : klien ? "PDF Klien" : tukang ? "Unduh" : "PDF Internal"}
       </button>
       {galat && <p className="note b-bad" style={{ margin: 0, gridColumn: "1 / -1" }}>{galat}</p>}
     </>
