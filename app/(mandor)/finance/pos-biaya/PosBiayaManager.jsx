@@ -60,7 +60,7 @@ export default function PosBiayaManager({ initialPos = [] }) {
             <input
               value={nama}
               onChange={(e) => setNama(e.target.value)}
-              placeholder="mis. Beli Bahan, Jasa Tukang, Transport"
+              placeholder="mis. Beli Bahan, Jasa Pekerja, Transport"
               className="input text-lg"
               autoFocus
               required

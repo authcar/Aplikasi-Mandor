@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/supabase/server";
 
-// Pos Biaya = kategori pengeluaran proyek (Beli Bahan, Jasa Tukang,
+// Pos Biaya = kategori pengeluaran proyek (Beli Bahan, Jasa Pekerja,
 // Transport, dll), dikelola Finance. Dipakai saat input biaya proyek —
 // lihat app/api/biaya-proyek/route.js & supabase/add_biaya_proyek.sql.
 export async function GET() {

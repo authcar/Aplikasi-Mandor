@@ -3,11 +3,11 @@ import { getSessionProfile } from "@/lib/supabase/server";
 
 // Kolom proyek yang boleh diinput manual Finance lewat endpoint ini.
 const EDITABLE_FIELDS = {
-  nilai_proyek: "Nilai jasa tukang",
+  nilai_proyek: "Nilai jasa pekerja",
   sisa_budget: "Sisa budget",
 };
 
-// PATCH /api/proyek — Finance mengubah nilai_proyek (Nilai Jasa Tukang) atau
+// PATCH /api/proyek — Finance mengubah nilai_proyek (Nilai Jasa Pekerja) atau
 // sisa_budget (Sisa Budget) proyek. Keduanya field manual, tidak disinkron
 // dari Taraco — lihat lib/supabase/syncProyek.js. Khusus role FINANCE —
 // Master TIDAK lagi boleh mengubah field ini (dipisah sejak role FINANCE

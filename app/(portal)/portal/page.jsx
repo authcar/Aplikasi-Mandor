@@ -57,7 +57,7 @@ export default async function PortalBeranda() {
     <main className="wrap">
       <DaftarProyek
         admin={admin}
-        label={admin ? "Admin" : tukang ? "Tukang" : "Supervisor"}
+        label={admin ? "Admin" : tukang ? "Pekerja" : "Supervisor"}
         tautan={admin && (
           <Link href="/portal/bobot" className="act" aria-label="Bobot tahap" title="Bobot tahap" style={{ width: 48, padding: 0, flex: "none" }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -66,7 +66,7 @@ export default async function PortalBeranda() {
           </Link>
         )}
         kartu={kartu}
-        kosong={admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim tukang “${staf.nama}”.` : "Belum ada proyek."}
+        kosong={admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim pekerja “${staf.nama}”.` : "Belum ada proyek."}
       >
         {admin && <ProyekBaru supervisors={supervisors} />}
       </DaftarProyek>

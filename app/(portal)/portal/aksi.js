@@ -23,7 +23,7 @@ async function jalan(fn, { admin = true } = {}) {
   try {
     const { staf } = await ambilStaf();
     if (!staf) throw new Error("Bukan staf.");
-    if (staf.role === "TUKANG") throw new Error("akun tukang hanya bisa melihat.");
+    if (staf.role === "TUKANG") throw new Error("akun pekerja hanya bisa melihat.");
     if (admin && staf.role !== "ADMIN") throw new Error("Hanya admin.");
     return (await fn(staf)) || {};
   } catch (e) {

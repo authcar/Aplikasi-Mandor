@@ -5,7 +5,7 @@ import PosBiayaManager from "./PosBiayaManager";
 export const dynamic = "force-dynamic";
 
 // Finance mengelola daftar Pos Biaya (kategori pengeluaran proyek — Beli
-// Bahan, Jasa Tukang, Transport, dll) dari sini. Dipakai saat input biaya
+// Bahan, Jasa Pekerja, Transport, dll) dari sini. Dipakai saat input biaya
 // di app/finance/proyek/[id]/biaya.
 export default async function PosBiayaPage() {
   const { supabase } = await getSessionProfile();
@@ -20,7 +20,7 @@ export default async function PosBiayaPage() {
       <BackButton href="/finance" />
       <header className="mb-4">
         <h1 className="text-lg font-bold tracking-tight">Pos Biaya</h1>
-        <p className="text-sm text-gray-500">Kategori pengeluaran proyek (beli bahan, jasa tukang, transport, dll)</p>
+        <p className="text-sm text-gray-500">Kategori pengeluaran proyek (beli bahan, jasa pekerja, transport, dll)</p>
       </header>
 
       <PosBiayaManager initialPos={pos || []} />

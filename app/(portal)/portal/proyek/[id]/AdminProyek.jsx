@@ -546,7 +546,7 @@ function TabItem({ proyek, items, aksi }) {
                           onSimpan={(v) => ubah(it.id, { harga: v }, v ? `Total jasa ${it.nama} disimpan: ${rp(v)}` : `Total jasa ${it.nama} dikosongkan.`)} />
                       </label>
                     </div>
-                    <Isian label="Tim tukang" nilai={it.tim} list="daftar-tim" placeholder="mis. Mas Alan"
+                    <Isian label="Tim pekerja" nilai={it.tim} list="daftar-tim" placeholder="mis. Mas Alan"
                       onSimpan={(v) => ubah(it.id, { tim: v || null }, v ? `${it.nama} dikerjakan tim ${v}.` : `Tim ${it.nama} dikosongkan.`)} />
                     <label className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <input type="checkbox" checked={!!it.hanya_jasa} disabled={aksi.sibuk}
@@ -735,7 +735,7 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
             <InputRupiah nilai={f.harga} onSimpan={(v) => setF((x) => ({ ...x, harga: v }))} />
           </label>
         </div>
-        <label className="lbl">Tim tukang<input className="inp" list="daftar-tim" value={f.tim} onChange={set("tim")} placeholder="mis. Mas Alan" /></label>
+        <label className="lbl">Tim pekerja<input className="inp" list="daftar-tim" value={f.tim} onChange={set("tim")} placeholder="mis. Mas Alan" /></label>
         <label className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input type="checkbox" checked={f.hanya_jasa} onChange={(e) => setF({ ...f, hanya_jasa: e.target.checked })} />
           Hanya jasa pekerja (aksesoris, LED strip; tidak tampil di klien &amp; progres)

@@ -19,7 +19,7 @@ const labelTanggal = (tgl) =>
   });
 
 // Sebagian besar data proyek datang dari Taraco (satu-satunya sumber) dan
-// read-only di sini — kecuali nilai_proyek (Nilai Jasa Tukang) & sisa_budget
+// read-only di sini — kecuali nilai_proyek (Nilai Jasa Pekerja) & sisa_budget
 // (Sisa Budget) yang bisa diinput manual oleh Finance lewat EditableAngkaField.
 // `riwayat` dari laporan_harian (laporan manual Supervisor), terurut terbaru dulu.
 export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riwayat = [] }) {
@@ -54,7 +54,7 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
       </div>
 
       <div className="card p-4 mb-5 space-y-3">
-        <EditableAngkaField proyekId={proyek.id} field="nilai_proyek" label="Nilai Jasa Tukang" nilaiAwal={proyek.nilai_proyek} />
+        <EditableAngkaField proyekId={proyek.id} field="nilai_proyek" label="Nilai Jasa Pekerja" nilaiAwal={proyek.nilai_proyek} />
         <EditableAngkaField proyekId={proyek.id} field="sisa_budget" label="Sisa Budget" nilaiAwal={proyek.sisa_budget} />
         <div>
           <p className="label">Supervisor</p>

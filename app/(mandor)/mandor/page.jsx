@@ -91,7 +91,7 @@ export default async function DashboardMandor({ searchParams }) {
     { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru },
     { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru },
     { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
-    // Project Tracker: hanya melihat item & jasa tukang timnya (lihat lib/portal/server.js).
+    // Project Tracker: hanya melihat item & jasa pekerja timnya (lihat lib/portal/server.js).
     { href: "/portal", label: "Project Tracker", icon: "share", tile: "bg-amber-100 text-amber-700" },
   ];
 
@@ -171,7 +171,7 @@ export default async function DashboardMandor({ searchParams }) {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2.5">
-              <Stat big={proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"} label="Nilai Jasa Tukang" />
+              <Stat big={proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"} label="Nilai Jasa Pekerja" />
               <Stat big={proyek.sisa_budget != null ? rupiah(proyek.sisa_budget) : "—"} label="Sisa Budget" />
             </div>
           </div>

@@ -78,7 +78,7 @@ export async function GET(req) {
 
     const sama = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
     const items = tukang ? itemsAsli.filter((i) => sama(i.tim, tukang)) : itemsAsli;
-    if (tukang && !items.length) return NextResponse.json({ error: "Tidak ada item untuk tukang itu." }, { status: 404 });
+    if (tukang && !items.length) return NextResponse.json({ error: "Tidak ada item untuk pekerja itu." }, { status: 404 });
     const minggu = daftarMinggu(proyek, itemsAsli, riwayat, hari).find((m) => m.no === no);
     if (!minggu) return NextResponse.json({ error: "Minggu tidak ditemukan." }, { status: 404 });
     // Versi klien: item yang instalasinya selesai langsung 100% (retensi tidak dihitung);

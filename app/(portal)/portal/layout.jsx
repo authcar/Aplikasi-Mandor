@@ -8,7 +8,7 @@ import Sidebar from "../Sidebar";
 
 export const dynamic = "force-dynamic";
 
-const PERAN = { ADMIN: "Admin", TUKANG: "Tukang" };
+const PERAN = { ADMIN: "Admin", TUKANG: "Pekerja" };
 
 // Pemberitahuan di lonceng: deadline yang tinggal 7 hari atau sudah lewat, dan
 // defect baru dari klien (kalau fiturnya aktif). Hanya proyek yang masih aktif.

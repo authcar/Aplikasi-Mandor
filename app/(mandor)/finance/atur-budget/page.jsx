@@ -6,7 +6,7 @@ import BudgetRow from "./BudgetRow";
 
 export const dynamic = "force-dynamic";
 
-// Finance mengatur Nilai Jasa Tukang & Sisa Budget semua proyek aktif dari
+// Finance mengatur Nilai Jasa Pekerja & Sisa Budget semua proyek aktif dari
 // satu daftar ringkas, tanpa perlu buka detail proyek satu-satu. Field ini
 // manual (tidak disinkron dari Taraco) — lihat app/api/proyek/route.js.
 export default async function AturBudgetPage() {
@@ -27,7 +27,7 @@ export default async function AturBudgetPage() {
       <BackButton href="/finance" />
       <header className="mb-4">
         <h1 className="text-lg font-bold tracking-tight">Atur Budget</h1>
-        <p className="text-sm text-gray-500">Nilai jasa tukang & sisa budget per proyek</p>
+        <p className="text-sm text-gray-500">Nilai jasa pekerja & sisa budget per proyek</p>
       </header>
 
       <div className="card mb-4 flex items-center gap-3 p-3.5">

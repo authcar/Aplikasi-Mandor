@@ -79,7 +79,7 @@ export default function BudgetRow({ proyek }) {
       {edit && (
         <div className="mt-3 space-y-2.5 border-t border-gray-100 pt-3">
           <div>
-            <label className="mb-1 block text-[11px] font-semibold text-gray-500">Nilai Jasa Tukang</label>
+            <label className="mb-1 block text-[11px] font-semibold text-gray-500">Nilai Jasa Pekerja</label>
             <input
               type="number"
               min="0"

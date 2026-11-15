@@ -17,7 +17,7 @@ export default function UnggahBoq({ petunjuk = [], onPilih, label = "File BoQ (.
   function pilihSheet(b, s) {
     setSheet(s);
     if (s === SEMUA) {
-      // Beberapa sheet sekaligus (mis. satu sheet per tim tukang). Tiap sheet dibaca
+      // Beberapa sheet sekaligus (mis. satu sheet per tim pekerja). Tiap sheet dibaca
       // sendiri-sendiri (`bagian`) karena nomor baris gambar dan tim berlaku per sheet.
       const bagian = b.sheets.map((n) => ({ sheet: n, rows: b.baca(n), gambar: b.gambar(n) }));
       onPilih({ sheet: `${bagian.length} sheet`, rows: bagian.flatMap((x) => x.rows), gambar: [], bagian });

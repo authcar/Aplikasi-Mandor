@@ -22,7 +22,7 @@ export default async function DompetFinancePage() {
   return (
     <main className="p-4 pb-8">
       <BackButton href="/finance" />
-      <h1 className="text-xl font-bold tracking-tight">Nilai Jasa Tukang</h1>
+      <h1 className="text-xl font-bold tracking-tight">Nilai Jasa Pekerja</h1>
       <p className="mb-4 text-sm text-gray-500">{proyek?.length || 0} proyek aktif</p>
 
       {/* Total Budget Card */}

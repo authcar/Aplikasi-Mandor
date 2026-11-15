@@ -58,7 +58,7 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
 
       <div className="card p-4 mb-5 space-y-3">
         <div>
-          <p className="label">Nilai Jasa Tukang</p>
+          <p className="label">Nilai Jasa Pekerja</p>
           <p className="text-lg font-semibold">
             {proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"}
           </p>

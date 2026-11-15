@@ -145,7 +145,7 @@ export default function ProyekBaru({ supervisors }) {
           {!boq.items.length
             ? `Tidak ada item yang terbaca di sheet yang dicentang. Proyek tetap bisa dibuat tanpa item.`
             : `${boq.items.length} item di ${new Set(boq.items.map((i) => i.area)).size} area dari ${boq.sheets.length} sheet akan ikut diimpor.` +
-              (boq.items.some((i) => i.tim) ? ` Harga satuan, total jasa, dan tim tukang ikut terisi.` : "") +
+              (boq.items.some((i) => i.tim) ? ` Harga satuan, total jasa, dan tim pekerja ikut terisi.` : "") +
               (boq.items.some((i) => i._gambar?.length) ? ` ${boq.items.reduce((a, i) => a + (i._gambar?.length || 0), 0)} foto item ikut diunggah.` : "") +
               (boq.tebakan ? " Ada sheet tanpa nomor item, jadi item ditebak dari baris yang punya dimensi; periksa hasilnya setelah proyek dibuat." : "")}
         </p>
