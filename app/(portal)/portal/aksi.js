@@ -41,7 +41,7 @@ function cekItem(r) {
   if ("nama" in r && !String(r.nama || "").trim()) throw new Error("Nama item wajib.");
   if ("area" in r && !String(r.area || "").trim()) throw new Error("Area wajib.");
   if ("qty" in r && !(Number(r.qty) > 0)) throw new Error("Qty harus > 0.");
-  if (r.harga != null && !(Number(r.harga) >= 0)) throw new Error("Total jasa tukang tidak valid.");
+  if (r.harga != null && !(Number(r.harga) >= 0)) throw new Error("Total jasa pekerja tidak valid.");
   if (r.harga_satuan != null && !(Number(r.harga_satuan) >= 0)) throw new Error("Harga satuan tidak valid.");
   if ("foto" in r && (!Array.isArray(r.foto) || r.foto.length > 5 || r.foto.some((p) => typeof p !== "string")))
     throw new Error("foto item tidak valid.");
@@ -282,7 +282,7 @@ export async function gantiItem(proyekId, rows) {
   });
 }
 
-// Isi jasa tukang beberapa item sekaligus (hasil impor Excel Hitungan Jasa
+// Isi jasa pekerja beberapa item sekaligus (hasil impor Excel Hitungan Jasa
 // Pekerjaan; mode Perbarui di impor BOQ, progres tidak tersentuh).
 // rows = [{ id, harga_satuan, harga, tim, foto }]; hanya item proyek ini.
 export async function simpanJasaTukang(proyekId, rows) {

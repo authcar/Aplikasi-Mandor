@@ -67,7 +67,7 @@ export default function ProyekBaru({ supervisors }) {
       const b = bukaXlsx(await file.arrayBuffer());
       if (!b.sheets.length) throw new Error();
       setBuku(b);
-      // File kecil (mis. jasa tukang per tim): semua sheet berisi item langsung dicentang.
+      // File kecil (mis. jasa pekerja per tim): semua sheet berisi item langsung dicentang.
       // File BoQ besar (puluhan sheet): hanya sheet yang namanya mirip proyek.
       const cache = {};
       let awal = [];
@@ -106,12 +106,12 @@ export default function ProyekBaru({ supervisors }) {
       return setMsg(`Gagal: ${hasil?.error || "proyek tidak tersimpan."}`);
     }
     if (boq?.items.length) {
-      // Proyek sudah jadi; kalau itemnya gagal, admin bisa mengimpor ulang di tab Jasa tukang.
+      // Proyek sudah jadi; kalau itemnya gagal, admin bisa mengimpor ulang di tab Jasa pekerja.
       const { items: siap, gagal, pesan } = await unggahFotoItem(hasil.id, boq.items, (n, t) => setLangkah(`Mengunggah foto ${n}/${t}…`));
       setLangkah("Menyimpan item…");
       if (gagal) alert(`${gagal} foto gagal diunggah (${pesan}); item tetap diimpor tanpa foto itu.`);
       const r = await tambahItem(hasil.id, siap).catch(() => ({ error: "tidak tersambung ke server" }));
-      if (r?.error) alert(`Proyek dibuat, tetapi item BOQ gagal diimpor (${r.error}). Impor ulang dari tab Jasa tukang.`);
+      if (r?.error) alert(`Proyek dibuat, tetapi item BOQ gagal diimpor (${r.error}). Impor ulang dari tab Jasa pekerja.`);
     }
     router.push(`/portal/proyek/${hasil.id}`);
   }
@@ -133,7 +133,7 @@ export default function ProyekBaru({ supervisors }) {
               <label key={s} className="cek">
                 <input type="checkbox" checked={pilih.includes(s)} onChange={(e) => centang(buku, s, e.target.checked)} />
                 <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {s}{dibaca[s] && pilih.includes(s) ? ` · ${itemSheet(dibaca[s], 0).length} item${dibaca[s].jasa ? " + jasa tukang" : ""}` : ""}
+                  {s}{dibaca[s] && pilih.includes(s) ? ` · ${itemSheet(dibaca[s], 0).length} item${dibaca[s].jasa ? " + jasa pekerja" : ""}` : ""}
                 </span>
               </label>
             ))}

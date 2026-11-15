@@ -53,7 +53,7 @@ export default async function PortalProyekPage({ params }) {
   // Proyek yang tersambung ke Aplikasi Mandor: defect klien dikelola di Defect List Mandor.
   const mandor = pm ? { nama: pm.nama, path: PATH_DEFECT_MANDOR[staf.peran] || null } : null;
 
-  // Supervisor mencatat progres dan menanggapi defect: nilai jasa tukang, nilai
+  // Supervisor mencatat progres dan menanggapi defect: nilai jasa pekerja, nilai
   // proyek, dan termin tidak ikut dikirim ke browser sama sekali (bukan sekadar disembunyikan).
   if (!admin) {
     const { nilai_proyek, nilai_perancangan, ...p2 } = proyek;

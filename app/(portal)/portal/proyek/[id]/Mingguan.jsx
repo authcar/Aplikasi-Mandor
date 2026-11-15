@@ -9,7 +9,7 @@ const labelMinggu = (m) => `Minggu ${m.no} · ${rentang(m)}`;
 
 // Satu proyek per minggu. tampil="laporan" (supervisor): progres sebelum/sesudah per
 // 7 hari. tampil="upah" (admin dan tukang):
-// upah jasa tukang per tim; supervisor tidak menerima nilai rupiah dari server.
+// upah jasa pekerja per tim; supervisor tidak menerima nilai rupiah dari server.
 export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", lihatTim }) {
   const upah = tampil === "upah";
   const hari = hariIni();
@@ -44,9 +44,9 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
 
       {!upah && daftarTim.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "end" }}>
-          <label className="lbl" style={{ margin: 0 }}>PDF per tukang
+          <label className="lbl" style={{ margin: 0 }}>PDF per pekerja
             <select className="inp" value={timPilih} onChange={(e) => setTimPilih(e.target.value)}>
-              <option value="">Pilih tukang…</option>
+              <option value="">Pilih pekerja…</option>
               {daftarTim.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </label>
@@ -86,7 +86,7 @@ export default function Mingguan({ proyek, items, riwayat, tampil = "laporan", l
             {h.tim.length > 1 && <b className="num">{rp(totalUpah)}</b>}
           </div>
           <p className="small" style={{ margin: 0 }}>
-            Upah = kenaikan % progres minggu ini × jasa tukang tiap item.
+            Upah = kenaikan % progres minggu ini × jasa pekerja tiap item.
           </p>
           {h.tim.length === 0 && <p className="small" style={{ margin: 0 }}>Belum ada item.</p>}
           {h.tim.map((t) => <KartuTim key={t.tim} t={t} />)}

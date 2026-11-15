@@ -25,9 +25,9 @@ import { kompresBanyakGambar, kompresGambar } from "@/lib/gambar";
 
 const WARNA = { produksi: "var(--ph1)", pengiriman: "var(--ph2)", instalasi: "var(--ph3)", retensi: "var(--ph4)" };
 const tanpaDefect = (tabs) => (DEFECT_AKTIF ? tabs : tabs.filter(([k]) => k !== "defect"));
-const TABS = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["item", "Jasa tukang"], ["termin", "Termin"], ["info", "Info"]]);
+const TABS = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["item", "Jasa pekerja"], ["termin", "Termin"], ["info", "Info"]]);
 const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["defect", "Defect"]]);
-const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa tukang"]];
+const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa pekerja"]];
 
 export default function AdminProyek({ proyek, items, termin, addon = [], klien, supervisors, defect = [], mandor = null, staf, fotoProgres = [], riwayat = [] }) {
   const admin = staf.role === "ADMIN";
@@ -80,7 +80,7 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
           <div className="eb">Nilai proyek</div>
           <div className="v num" style={{ fontSize: "clamp(.95rem,4.3vw,1.05rem)" }}>{nilaiProyek ? rp(nilaiProyek) : "—"}</div>
           <div className="s">
-            {nilaiProyek ? (totalAddon ? `termasuk addon ${rp(totalAddon)}` : nilai ? `jasa tukang ${rp(nilai)}` : "diisi di tab Termin") : "isi di tab Termin"}
+            {nilaiProyek ? (totalAddon ? `termasuk addon ${rp(totalAddon)}` : nilai ? `jasa pekerja ${rp(nilai)}` : "diisi di tab Termin") : "isi di tab Termin"}
           </div>
         </div>}
       </div>
@@ -169,7 +169,7 @@ function TabProgres({ proyek, items: itemsAsli, aksi, admin, lihat, fotoProgres 
   const areas = [...new Set(diTim.map((i) => i.area))];
   const tampil = diTim.filter((i) => !area || i.area === area);
 
-  if (!items.length) return <div className="card small">Belum ada item. Admin perlu mengimpor item di tab Jasa tukang.</div>;
+  if (!items.length) return <div className="card small">Belum ada item. Admin perlu mengimpor item di tab Jasa pekerja.</div>;
 
   // persen 0 = batal, 100 = selesai, di antaranya = baru sebagian.
   async function catat(it, s, persen) {
@@ -441,7 +441,7 @@ function TahapItem({ it, aksi, admin, kunci, busy, toggle, catat, foto, lihat })
   );
 }
 
-/* ---------- Jasa tukang (item BOQ): edit, tambah, impor ---------- */
+/* ---------- Jasa pekerja (item BOQ): edit, tambah, impor ---------- */
 const teksQty = (i) => `${Number(i.qty).toLocaleString("id-ID")} ${i.satuan || ""}`.trim();
 // Item dianggap sama kalau area, nama, dan kodenya sama.
 const kunciItem = (i) => [i.area, i.nama, i.kode].map((x) => (x || "").toLowerCase().replace(/\s+/g, " ").trim()).join("|");
@@ -466,7 +466,7 @@ function Isian({ label, nilai, onSimpan, akhiran, ...rest }) {
   );
 }
 
-// Satu dropdown per area di tab Jasa tukang: nama area, jumlah item, dan total jasanya.
+// Satu dropdown per area di tab Jasa pekerja: nama area, jumlah item, dan total jasanya.
 function AreaJasa({ area, items, children, terbuka, onToggle }) {
   const its = items.filter((i) => i.area === area);
   const total = its.reduce((a, i) => a + (Number(i.harga) || 0), 0);
@@ -551,9 +551,9 @@ function TabItem({ proyek, items, aksi }) {
                     <label className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <input type="checkbox" checked={!!it.hanya_jasa} disabled={aksi.sibuk}
                         onChange={(e) => ubah(it.id, { hanya_jasa: e.target.checked }, e.target.checked
-                          ? `${it.nama} hanya untuk jasa tukang (tidak tampil di klien & progres).`
+                          ? `${it.nama} hanya untuk jasa pekerja (tidak tampil di klien & progres).`
                           : `${it.nama} kembali ikut progres & tampil di klien.`)} />
-                      Hanya jasa tukang (tidak tampil di klien &amp; progres)
+                      Hanya jasa pekerja (tidak tampil di klien &amp; progres)
                     </label>
                     <button type="button" className="act bahaya" disabled={aksi.sibuk}
                       onClick={() => confirm(`Hapus "${it.nama}" beserta progresnya?`) && aksi.jalankan(() => A.hapusItem(it.id), `${it.nama} dihapus.`)}>
@@ -572,11 +572,11 @@ function TabItem({ proyek, items, aksi }) {
   );
 }
 
-// Upah jasa tukang per minggu dan per tim (laporan di Mingguan.jsx), dilipat di tab Jasa tukang.
+// Upah jasa pekerja per minggu dan per tim (laporan di Mingguan.jsx), dilipat di tab Jasa pekerja.
 function UpahMingguan({ proyek, items, riwayat, lihatTim }) {
   return (
     <details className="lipat">
-      <summary><b>Upah jasa tukang per minggu</b></summary>
+      <summary><b>Upah jasa pekerja per minggu</b></summary>
       <div className="lipat-b" style={{ gap: 12 }}>
         <Mingguan proyek={proyek} items={items} riwayat={riwayat} tampil="upah" lihatTim={lihatTim} />
       </div>
@@ -584,7 +584,7 @@ function UpahMingguan({ proyek, items, riwayat, lihatTim }) {
   );
 }
 
-// Total jasa tukang semua item, dipecah per tim.
+// Total jasa pekerja semua item, dipecah per tim.
 function RingkasJasa({ items }) {
   const total = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
   const perTim = {};
@@ -595,7 +595,7 @@ function RingkasJasa({ items }) {
   return (
     <div className="card stack" style={{ gap: 8 }}>
       <div className="row" style={{ alignItems: "center" }}>
-        <h3>Total jasa tukang{tim.length === 1 && <span className="small" style={{ fontWeight: 400 }}> ({tim[0]})</span>}</h3>
+        <h3>Total jasa pekerja{tim.length === 1 && <span className="small" style={{ fontWeight: 400 }}> ({tim[0]})</span>}</h3>
         <b className="num">{total ? rp(total) : "—"}</b>
       </div>
       {total > 0 && (
@@ -608,7 +608,7 @@ function RingkasJasa({ items }) {
   );
 }
 
-// Jasa tukang untuk tukang: hanya total per item (harga satuan tidak dikirim
+// Jasa pekerja untuk tukang: hanya total per item (harga satuan tidak dikirim
 // dari server), tanpa isian apa pun.
 function JasaTukangLihat({ items, proyek, riwayat }) {
   const areas = [...new Set(items.map((i) => i.area))];
@@ -658,7 +658,7 @@ function DuaTombol({ pilihan, buka, setBuka }) {
   );
 }
 
-// Total jasa tukang di kartu atas (tampilan tukang), dengan tombol mata untuk menyembunyikan
+// Total jasa pekerja di kartu atas (tampilan tukang), dengan tombol mata untuk menyembunyikan
 // nominal seperti saldo di aplikasi bank. Awalnya tersembunyi.
 function KartuJasaSaya({ items }) {
   const total = items.reduce((a, i) => a + (Number(i.harga) || 0), 0);
@@ -738,7 +738,7 @@ function TambahItem({ proyek, areas, urutan, aksi }) {
         <label className="lbl">Tim tukang<input className="inp" list="daftar-tim" value={f.tim} onChange={set("tim")} placeholder="mis. Mas Alan" /></label>
         <label className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input type="checkbox" checked={f.hanya_jasa} onChange={(e) => setF({ ...f, hanya_jasa: e.target.checked })} />
-          Hanya jasa tukang (aksesoris, LED strip; tidak tampil di klien &amp; progres)
+          Hanya jasa pekerja (aksesoris, LED strip; tidak tampil di klien &amp; progres)
         </label>
         <button className="btn" disabled={aksi.sibuk || !f.nama.trim() || !f.area.trim()}>Tambah item</button>
       </form>
@@ -945,7 +945,7 @@ function UploadItem({ proyek, items, areas, urutan, aksi }) {
 }
 
 /* ---------- Termin ---------- */
-// Termin jasa produksi, dari nilai proyek (terpisah dari nilai jasa tukang). Persennya berjumlah 100%.
+// Termin jasa produksi, dari nilai proyek (terpisah dari nilai jasa pekerja). Persennya berjumlah 100%.
 function TabTermin({ proyek, items, termin, addon, nilai, aksi }) {
   const totalAddon = addon.reduce((a, x) => a + x.nilai, 0);
   const masukAddon = addon.reduce((a, x) => a + (x.lunas_tgl ? x.nilai : 0), 0);
@@ -1060,7 +1060,7 @@ function KelompokTermin({ jenis, judul, proyek, progres, termin, nilai, aksi }) 
         <h2>{judul}</h2>
         <span className="small num">progres {pct(progres)}</span>
       </div>
-      {/* Nilai proyek ke klien: dasar tagihan tiap termin, terpisah dari nilai jasa tukang. */}
+      {/* Nilai proyek ke klien: dasar tagihan tiap termin, terpisah dari nilai jasa pekerja. */}
       <label className="lbl">Nilai proyek
         <InputRupiah nilai={proyek.nilai_proyek}
           onSimpan={(v) => aksi.jalankan(() => A.ubahProyek(proyek.id, { nilai_proyek: v }),
