@@ -9,7 +9,7 @@ import { BUCKET_PROGRES, MAKS_FOTO_PROGRES, MAKS_CAPTION } from "@/lib/portal/pr
 export const dynamic = "force-dynamic";
 
 const MAKS_BYTE_FOTO = 8 * 1024 * 1024; // foto sudah dikompres di browser (lib/gambar.js)
-const MAKS_PER_UNGGAH = 10;
+const MAKS_PER_UNGGAH = 10; // per permintaan; browser mengirim bertahap (PER_KIRIM di FotoProgres.jsx)
 const gagal = (error, status = 400) => NextResponse.json({ error }, { status });
 
 // POST /api/portal/progres-foto — admin/supervisor menambah foto progres satu

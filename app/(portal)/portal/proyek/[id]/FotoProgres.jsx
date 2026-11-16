@@ -6,20 +6,34 @@ import { kompresBanyakGambar } from "@/lib/gambar";
 import { tahapItem, tahapTerakhir } from "@/lib/portal/progresBoq";
 import * as A from "../../aksi";
 
-const MAKS_PER_UNGGAH = 10; // sama dengan app/api/portal/progres-foto
+const MAKS_PER_UNGGAH = 30; // foto yang boleh dipilih sekali unggah; dikirim bertahap (PER_KIRIM per permintaan)
+const PER_KIRIM = 4; // harus <= batas per permintaan di app/api/portal/progres-foto (batas body serverless ~4,5 MB)
 export const MAKS_FOTO = 50; // sama dengan MAKS_FOTO_PROGRES di lib/portal/progresFoto.js
 const tglJkt = (ts) => new Date(ts).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short" });
 const berhenti = (e) => e.stopPropagation();
 
 // Unggah foto progres satu item (opsional per tahap) lewat route; dipakai form galeri dan FotoWajib.
-export async function kirimFoto(itemId, tahap, files, caption = "") {
-  const fd = new FormData();
-  fd.set("item_id", itemId);
-  if (tahap) fd.set("tahap", tahap);
-  if (caption.trim()) fd.set("caption", caption.trim());
-  for (const f of await kompresBanyakGambar(files)) fd.append("foto", f);
-  const r = await fetch("/api/portal/progres-foto", { method: "POST", body: fd });
-  return r.ok ? {} : { error: (await r.json().catch(() => ({}))).error || "foto gagal diunggah." };
+// Dikirim bertahap (PER_KIRIM foto per permintaan) supaya tiap permintaan tetap kecil.
+// onKirim(terkirim, total) dipanggil tiap bagian berhasil; kalau gagal, error memuat
+// jumlah yang sudah masuk (terkirim) dan bagian sebelumnya tidak dibatalkan.
+export async function kirimFoto(itemId, tahap, files, caption = "", onKirim) {
+  let terkirim = 0;
+  onKirim?.(0, files.length);
+  for (let n = 0; n < files.length; n += PER_KIRIM) {
+    const fd = new FormData();
+    fd.set("item_id", itemId);
+    if (tahap) fd.set("tahap", tahap);
+    if (caption.trim()) fd.set("caption", caption.trim());
+    for (const f of await kompresBanyakGambar(files.slice(n, n + PER_KIRIM))) fd.append("foto", f);
+    const r = await fetch("/api/portal/progres-foto", { method: "POST", body: fd });
+    if (!r.ok) {
+      const msg = (await r.json().catch(() => ({}))).error || "foto gagal diunggah.";
+      return { error: terkirim ? `${msg} (${terkirim} dari ${files.length} foto sudah terunggah)` : msg, terkirim };
+    }
+    terkirim += Math.min(PER_KIRIM, files.length - n);
+    onKirim?.(terkirim, files.length);
+  }
+  return {};
 }
 
 // Pop up foto WAJIB: tahap baru boleh dicatat setelah minimal 1 foto diunggah (boleh banyak).
@@ -27,6 +41,7 @@ export async function kirimFoto(itemId, tahap, files, caption = "") {
 export function FotoWajib({ item, s, persen, sisa, aksi, tutup }) {
   const [files, setFiles] = useState([]);
   const [caption, setCaption] = useState("");
+  const [maju, setMaju] = useState(null); // "terkirim/total" selagi mengunggah
   const input = useRef(null);
   const pratinjau = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => pratinjau.forEach((u) => URL.revokeObjectURL(u)), [pratinjau]);
@@ -37,9 +52,11 @@ export function FotoWajib({ item, s, persen, sisa, aksi, tutup }) {
   };
   async function simpan() {
     const ok = await aksi.jalankan(async () => {
-      const r = await kirimFoto(item.id, s.k, files, caption);
+      const r = await kirimFoto(item.id, s.k, files, caption, (a, b) => setMaju(`${a}/${b}`));
+      if (r.error && r.terkirim) setFiles((lama) => lama.slice(r.terkirim)); // yang sudah masuk jangan terkirim dua kali
       return r.error ? r : A.setProgres(item.id, s.k, persen);
     }, `${s.label} ${persen >= 100 ? "✓" : `${persen}%`} · ${item.nama} · ${files.length} foto`);
+    setMaju(null);
     if (ok) tutup();
   }
   return createPortal(
@@ -71,7 +88,7 @@ export function FotoWajib({ item, s, persen, sisa, aksi, tutup }) {
             <input className="inp" type="text" maxLength={200} value={caption} onChange={(e) => setCaption(e.target.value)}
               placeholder="Caption foto (wajib)" aria-label="Caption foto" required />
             <button type="button" className="btn" disabled={aksi.sibuk || !files.length || !caption.trim()} onClick={simpan}>
-              {!files.length ? "Pilih foto dulu" : !caption.trim() ? "Isi caption dulu" : `Unggah ${files.length} foto & catat ${s.label}`}
+              {maju ? `Mengunggah ${maju}…` : !files.length ? "Pilih foto dulu" : !caption.trim() ? "Isi caption dulu" : `Unggah ${files.length} foto & catat ${s.label}`}
             </button>
           </div>
         </div>
@@ -149,6 +166,7 @@ function PopupFoto({ item, foto, aksi, lihat, tutup }) {
   const pilih = tahapTerakhir(item)?.k || ""; // tahap foto = tahap terakhir item; "" = umum (tanpa tahap)
   const input = useRef(null);
   const [caption, setCaption] = useState(""); // caption untuk foto yang akan diunggah
+  const [maju, setMaju] = useState(null); // "terkirim/total" selagi mengunggah
   const sisa = MAKS_FOTO - foto.length;
 
   useEffect(() => {
@@ -168,9 +186,10 @@ function PopupFoto({ item, foto, aksi, lihat, tutup }) {
     e.target.value = "";
     if (!files.length) return;
     const ok = await aksi.jalankan(
-      () => kirimFoto(item.id, pilih, files, caption),
+      () => kirimFoto(item.id, pilih, files, caption, (a, b) => setMaju(`${a}/${b}`)),
       `${files.length} foto ${pilih ? tahap.find((s) => s.k === pilih).label.toLowerCase() : "progres"} diunggah · ${item.nama}`
     );
+    setMaju(null);
     if (ok) setCaption("");
   }
 
@@ -210,7 +229,7 @@ function PopupFoto({ item, foto, aksi, lihat, tutup }) {
               <input className="inp" type="text" maxLength={200} value={caption} onChange={(e) => setCaption(e.target.value)}
                 placeholder="Caption untuk foto yang diunggah (wajib)" aria-label="Caption foto" required />
               <button type="button" className="btn" disabled={aksi.sibuk || sisa <= 0 || !caption.trim()} onClick={() => input.current?.click()}>
-                {aksi.sibuk ? "Mengunggah…" : !caption.trim() ? "Isi caption dulu" : "+ Pilih foto"}
+                {aksi.sibuk ? `Mengunggah${maju ? ` ${maju}` : ""}…` : !caption.trim() ? "Isi caption dulu" : "+ Pilih foto"}
               </button>
               <input ref={input} type="file" accept="image/*" multiple hidden onChange={pilihFile} />
               <p className="small" style={{ margin: 0 }}>Maks. {MAKS_PER_UNGGAH} foto sekali unggah, {MAKS_FOTO} per item (sudah {foto.length}).</p>
