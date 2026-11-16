@@ -5,7 +5,7 @@ import { kompresBanyakGambar } from "@/lib/gambar";
 import { tgl, tglTh, STATUS_DEFECT } from "@/lib/portal/format";
 import { Memuat } from "../../portal/Pesan";
 
-const MAKS_FOTO = 5; // sama dengan MAKS_FOTO_DEFECT di lib/portal/defect.js
+const MAKS_FOTO = 10; // sama dengan MAKS_FOTO_DEFECT di lib/portal/defect.js
 // Timestamp -> "YYYY-MM-DD" waktu Jakarta.
 const tglJkt = (ts) => new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
@@ -45,9 +45,10 @@ export default function Defect({ items, defect }) {
     if (!files.length) return;
     const sisa = MAKS_FOTO - (baris.find((b) => b.id === id)?.foto.length || 0);
     if (files.length > sisa) setPesan([`Maksimal ${MAKS_FOTO} foto per laporan. ${files.length - sisa} foto tidak ditambahkan.`, "b-warn"]);
-    // Dikompres di HP dulu (1600px) supaya cepat terkirim lewat sinyal lemah.
+    // Dikompres di HP dulu (1280px) supaya cepat terkirim lewat sinyal lemah; semua foto satu laporan
+    // dikirim dalam satu permintaan (batas ~4,5 MB), jadi sedikit lebih kecil dari foto progres.
     setBusy("Menyiapkan foto…");
-    const siap = await kompresBanyakGambar(files.slice(0, Math.max(0, sisa)));
+    const siap = await kompresBanyakGambar(files.slice(0, Math.max(0, sisa)), { sisiMaks: 1280, kualitas: 0.6 });
     setBusy("");
     setBaris((bs) => bs.map((b) => (b.id === id ? { ...b, foto: [...b.foto, ...siap.map((file) => ({ file, url: URL.createObjectURL(file) }))] } : b)));
   }

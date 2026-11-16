@@ -14,7 +14,7 @@ const MAKS_BYTE_FOTO = 8 * 1024 * 1024; // foto sudah dikompres di HP (lib/gamba
 const gagal = (error, status = 400) => NextResponse.json({ error }, { status });
 
 // POST /api/portal/defect — klien mengirim defect dari link /k/[token] (tanpa
-// login). multipart: token, keterangan, area (opsional), foto (0..5 file).
+// login). multipart: token, keterangan, area (opsional), foto (0..10 file).
 // Tidak ikut kunci deadline: keluhan justru sering datang setelah serah terima.
 // Simpan baris portal_defect. Kolom `area` belum ada (add_portal_defect_area.sql
 // belum dijalankan) -> area dimasukkan ke awal keterangan supaya tidak hilang.
