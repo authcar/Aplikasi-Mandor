@@ -113,11 +113,21 @@ export async function GET(req) {
       if (s && s.fase !== "retensi") rencana.push({ nama: i.nama, kode: i.kode || "", tahap: untukKlien ? gabungTahap(s.label) : s.label });
     }
 
-    // Dokumentasi: foto progres TERAKHIR tiap item BoQ (sampai akhir minggu itu), urutan
-    // BoQ. Item tanpa foto tidak ikut. Diunduh dengan batas ukuran supaya respons tidak kebesaran.
-    const terakhir = new Map(); // item_id -> foto terbaru (fotoSemua urut lama -> baru)
-    for (const f of fotoSemua) if (tglJakarta(f.created_at) <= minggu.akhir) terakhir.set(f.item_id, f);
-    const dalamMinggu = items.filter((i) => itemProgres(i) && terakhir.has(i.id)).map((i) => terakhir.get(i.id));
+    // Dokumentasi, urutan BoQ: SEMUA foto item yang diunggah pada minggu itu; item yang
+    // tidak punya foto minggu itu memakai foto terakhirnya (sampai akhir minggu). Item tanpa
+    // foto tidak ikut. Diunduh dengan batas ukuran supaya respons tidak kebesaran.
+    const fotoItem = new Map(); // item_id -> { minggu: [foto], terakhir: foto } (fotoSemua urut lama -> baru)
+    for (const f of fotoSemua) {
+      const tgl = tglJakarta(f.created_at);
+      if (tgl > minggu.akhir) continue;
+      const e = fotoItem.get(f.item_id) || { minggu: [], terakhir: null };
+      e.terakhir = f;
+      if (tgl >= minggu.mulai) e.minggu.push(f);
+      fotoItem.set(f.item_id, e);
+    }
+    const dalamMinggu = items
+      .filter((i) => itemProgres(i) && fotoItem.has(i.id))
+      .flatMap((i) => { const e = fotoItem.get(i.id); return e.minggu.length ? e.minggu : [e.terakhir]; });
     const dipilih = dalamMinggu.slice(0, MAKS_FOTO);
     const infoItem = new Map(items.map((i) => [i.id, i]));
     // Diunduh dan dikompres per kelompok (SERENTAK foto) supaya cepat tapi memori tetap terkendali.
