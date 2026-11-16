@@ -31,6 +31,7 @@ export async function POST(req) {
   const foto = form.getAll("foto").filter((f) => f && typeof f === "object" && f.size > 0);
   if (!UUID.test(itemId)) return gagal("item tidak valid.");
   if (!foto.length) return gagal("pilih fotonya dulu.");
+  if (!caption) return gagal("caption foto wajib diisi.");
   if (foto.length > MAKS_PER_UNGGAH) return gagal(`maksimal ${MAKS_PER_UNGGAH} foto sekali unggah.`);
   if (foto.some((f) => !String(f.type).startsWith("image/"))) return gagal("lampiran harus berupa foto.");
   if (foto.some((f) => f.size > MAKS_BYTE_FOTO)) return gagal("ukuran foto terlalu besar.");

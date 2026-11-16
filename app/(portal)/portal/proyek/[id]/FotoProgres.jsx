@@ -69,9 +69,9 @@ export function FotoWajib({ item, s, persen, sisa, aksi, tutup }) {
               </div>
             )}
             <input className="inp" type="text" maxLength={200} value={caption} onChange={(e) => setCaption(e.target.value)}
-              placeholder="Caption foto (opsional)" aria-label="Caption foto" />
-            <button type="button" className="btn" disabled={aksi.sibuk || !files.length} onClick={simpan}>
-              {files.length ? `Unggah ${files.length} foto & catat ${s.label}` : "Pilih foto dulu"}
+              placeholder="Caption foto (wajib)" aria-label="Caption foto" required />
+            <button type="button" className="btn" disabled={aksi.sibuk || !files.length || !caption.trim()} onClick={simpan}>
+              {!files.length ? "Pilih foto dulu" : !caption.trim() ? "Isi caption dulu" : `Unggah ${files.length} foto & catat ${s.label}`}
             </button>
           </div>
         </div>
@@ -208,9 +208,9 @@ function PopupFoto({ item, foto, aksi, lihat, tutup }) {
             <div className="fprog-form">
               <div className="fl" style={{ margin: 0 }}>Tambah foto</div>
               <input className="inp" type="text" maxLength={200} value={caption} onChange={(e) => setCaption(e.target.value)}
-                placeholder="Caption untuk foto yang diunggah (opsional)" aria-label="Caption foto" />
-              <button type="button" className="btn" disabled={aksi.sibuk || sisa <= 0} onClick={() => input.current?.click()}>
-                {aksi.sibuk ? "Mengunggah…" : "+ Pilih foto"}
+                placeholder="Caption untuk foto yang diunggah (wajib)" aria-label="Caption foto" required />
+              <button type="button" className="btn" disabled={aksi.sibuk || sisa <= 0 || !caption.trim()} onClick={() => input.current?.click()}>
+                {aksi.sibuk ? "Mengunggah…" : !caption.trim() ? "Isi caption dulu" : "+ Pilih foto"}
               </button>
               <input ref={input} type="file" accept="image/*" multiple hidden onChange={pilihFile} />
               <p className="small" style={{ margin: 0 }}>Maks. {MAKS_PER_UNGGAH} foto sekali unggah, {MAKS_FOTO} per item (sudah {foto.length}).</p>
