@@ -129,7 +129,8 @@ export async function GET(req) {
     let terbuang = 0; // foto yang tidak muat di batas total
     dipilih.forEach((f, i) => {
       const it = infoItem.get(f.item_id);
-      const tahap = it ? tahapItem(it).find((s) => s.k === f.tahap)?.label : null;
+      const label = it ? tahapItem(it).find((s) => s.k === f.tahap)?.label : null;
+      const tahap = untukKlien && label ? gabungTahap(label) : label;
       // Caption yang ditulis staf dipakai apa adanya; tanpa caption: nama item - tahap.
       const keterangan = f.caption || [it?.nama || "Item", tahap].filter(Boolean).join(" - ");
       let data = kecil[i];
