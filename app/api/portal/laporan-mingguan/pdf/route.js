@@ -94,7 +94,7 @@ export async function GET(req) {
     for (const f of fotoSemua) {
       const cap = String(f.caption || "").trim();
       const tgl = tglJakarta(f.created_at);
-      if (!cap || tgl < minggu.mulai || tgl > minggu.akhir) continue;
+      if (!cap || tgl < minggu.dari || tgl > minggu.akhir) continue;
       const daftar = captionMinggu.get(f.item_id) || [];
       if (!daftar.includes(cap)) daftar.push(cap);
       captionMinggu.set(f.item_id, daftar);
@@ -122,7 +122,7 @@ export async function GET(req) {
       if (tgl > minggu.akhir) continue;
       const e = fotoItem.get(f.item_id) || { minggu: [], terakhir: null };
       e.terakhir = f;
-      if (tgl >= minggu.mulai) e.minggu.push(f);
+      if (tgl >= minggu.dari) e.minggu.push(f);
       fotoItem.set(f.item_id, e);
     }
     const dalamMinggu = items
