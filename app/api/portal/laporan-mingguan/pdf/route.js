@@ -6,7 +6,7 @@ import { ambilRiwayat } from "@/lib/portal/riwayat";
 import { ambilFotoProgres } from "@/lib/portal/progresFoto";
 import { hariIni } from "@/lib/portal/format";
 import { daftarMinggu, hitungMinggu, indeksRiwayat, keadaanSampai } from "@/lib/portal/mingguan";
-import { tahapItem, tahapBerikut, itemProgres, selesaiTanpaRetensi } from "@/lib/portal/progresBoq";
+import { tahapItem, tahapBerikut, itemProgres, selesaiTanpaRetensi, gabungTahap } from "@/lib/portal/progresBoq";
 import { buatPdfLaporanMingguan } from "@/lib/portal/mingguanPdf";
 
 export const dynamic = "force-dynamic";
@@ -83,7 +83,7 @@ export async function GET(req) {
     if (!minggu) return NextResponse.json({ error: "Minggu tidak ditemukan." }, { status: 404 });
     // Versi klien: item yang instalasinya selesai langsung 100% (retensi tidak dihitung);
     // item lain sama dengan versi internal.
-    const h = hitungMinggu(items, indeksRiwayat(riwayat), minggu, hari, untukKlien ? selesaiTanpaRetensi : undefined);
+    const h = hitungMinggu(items, indeksRiwayat(riwayat), minggu, hari, untukKlien ? selesaiTanpaRetensi : undefined, untukKlien ? gabungTahap : undefined);
 
     // Semua item yang ikut hitungan progres (termasuk yang masih 0%), sesuai urutan
     // di BoQ; PDF mengelompokkannya per area seperti contoh laporan.
@@ -110,7 +110,7 @@ export async function GET(req) {
     const rencana = [];
     for (const i of items.filter(itemProgres)) {
       const s = tahapBerikut(keadaanSampai(i, idx, sampai));
-      if (s && s.fase !== "retensi") rencana.push({ nama: i.nama, kode: i.kode || "", tahap: s.label });
+      if (s && s.fase !== "retensi") rencana.push({ nama: i.nama, kode: i.kode || "", tahap: untukKlien ? gabungTahap(s.label) : s.label });
     }
 
     // Dokumentasi: foto progres TERAKHIR tiap item BoQ (sampai akhir minggu itu), urutan
