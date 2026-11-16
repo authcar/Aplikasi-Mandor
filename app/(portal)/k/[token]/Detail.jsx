@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { persenItem, persenProyek, areaProgres } from "@/lib/portal/progresBoq";
+import { persenItem, persenProyek, areaProgres, selesaiTanpaRetensi } from "@/lib/portal/progresBoq";
 import {
   hariIni, tambahHari, tgl, tglTh, rp, pct, tagihanTermin, dibayarTermin, totalDibayar, statusProyek,
   JENIS_TERMIN, jenisTermin, nilaiTermin, totalNilai, labelDeadline, judulTermin, keteranganTermin,
-  persenKlien, SPREAD_KLIEN, DEFECT_AKTIF,
+  persenKlien, SPREAD_KLIEN, DEFECT_AKTIF, lewatDeadline,
 } from "@/lib/portal/format";
 import TabBar from "../../TabBar";
 import Defect from "./Defect";
@@ -65,12 +65,14 @@ export default function Detail({ P }) {
   const [tab, setTab] = useState("progres");
   const [bukaArea, setBukaArea] = useState(null); // satu area terbuka sekaligus
   const lalu = tambahHari(hariIni(), -7);
-  const items = P.items.filter((i) => !i.hanya_jasa); // baris tanpa nomor hanya untuk Jasa pekerja
+  // Baris tanpa nomor hanya untuk Jasa pekerja. Retensi tidak dihitung untuk klien: item yang
+  // instalasinya selesai langsung 100% (sama seperti laporan PDF versi klien).
+  const items = P.items.filter((i) => !i.hanya_jasa).map(selesaiTanpaRetensi);
   // Semua angka progres di halaman ini sudah termasuk persiapan & material
   // (persenKlien, lihat lib/portal/format.js); keterangannya tampil di bawah lingkaran.
   const p = persenKlien(persenProyek(items));
   const naik = p - persenKlien(persenProyek(items, lalu));
-  const [st, cls] = statusProyek(P);
+  const [st, cls] = statusProyek({ ...P, items }); // tanpa retensi: selesai = "Selesai", bukan "Masa retensi"
   const [sisa, kelasSisa] = P.deadline ? labelDeadline(P.deadline) : [];
   const areas = [...new Set(items.map((i) => i.area))];
   const nilaiT = nilaiTermin(P);
@@ -97,7 +99,7 @@ export default function Detail({ P }) {
           )}
           {P.deadline && (
             <div className="small" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-              Deadline {tglTh(P.deadline)} <span className={`badge ${kelasSisa}`}>{sisa}</span>
+              Deadline {tglTh(P.deadline)} {!lewatDeadline(P) && <span className={`badge ${kelasSisa}`}>{sisa}</span>}
             </div>
           )}
         </div>
