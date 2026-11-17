@@ -4,7 +4,7 @@ import { db, UUID } from "@/lib/portal/db";
 import { ambilProyek } from "@/lib/portal/data";
 import { BUCKET_ITEM } from "@/lib/portal/fotoItem";
 import { tambahItemProyek, gantiItemProyek } from "@/lib/portal/itemProyek";
-import { anggotaDariToken, pastikanProyekTaraco, dorongProgres } from "@/lib/portal/tautTaraco";
+import { anggotaDariToken, pastikanProyekTaraco, dorongProgres, dorongProgresKetat } from "@/lib/portal/tautTaraco";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,8 @@ export const dynamic = "force-dynamic";
 //
 //   POST application/json  { aksi: "siapkan", taraco_id }
 //        -> { proyek_id, baru, nama, jumlah_item }   proyek tracker dibuat / ditautkan
+//   POST application/json  { aksi: "kandidat" }                  -> { proyek: [...] } yang belum tertaut
+//   POST application/json  { aksi: "tautkan", proyek_id, taraco_id } -> { ok, progres, peringatan? }
 //   POST multipart         proyek_id, foto
 //        -> { path }                                 satu foto item (gambar kolom C)
 //   POST application/json  { aksi: "simpan", proyek_id, items, mode: "tambah" | "ganti" }
@@ -77,6 +79,31 @@ export async function POST(req) {
       if (!UUID.test(b.taraco_id || "")) return gagal("proyek tidak valid.");
       const p = await pastikanProyekTaraco(b.taraco_id);
       return balas({ proyek_id: p.id, baru: p.baru, nama: p.nama, jumlah_item: p.jumlahItem });
+    }
+
+    // Proyek tracker yang belum tertaut ke kartu Taraco -> { proyek: [{ id, nama, kode }] }
+    if (b.aksi === "kandidat") {
+      const { data, error } = await db().from("portal_proyek").select("id, nama, kode").is("taraco_id", null);
+      if (error) return gagal("daftar proyek tracker tidak terbaca.", 500);
+      return balas({ proyek: data || [] });
+    }
+
+    // Tautkan proyek tracker ke kartu Taraco (dikonfirmasi manual di Taraco), lalu dorong progresnya.
+    if (b.aksi === "tautkan") {
+      if (!UUID.test(b.proyek_id || "") || !UUID.test(b.taraco_id || "")) return gagal("data tidak valid.");
+      const { data: ada } = await db().from("portal_proyek").select("id, taraco_id").eq("id", b.proyek_id).maybeSingle();
+      if (!ada) return gagal("proyek tracker tidak ditemukan.", 404);
+      if (ada.taraco_id) return gagal("proyek tracker ini sudah tertaut.", 409);
+      const { data: dipakai } = await db().from("portal_proyek").select("id").eq("taraco_id", b.taraco_id).maybeSingle();
+      if (dipakai) return gagal("kartu Taraco ini sudah tertaut ke proyek tracker lain.", 409);
+      const { error } = await db().from("portal_proyek").update({ taraco_id: b.taraco_id }).eq("id", b.proyek_id).is("taraco_id", null);
+      if (error) return gagal(`gagal menautkan (${error.message}).`, 500);
+      try {
+        const r = await dorongProgresKetat(b.proyek_id);
+        return balas({ ok: true, progres: r ? r.persen : null, item: r ? r.n : null });
+      } catch (e) {
+        return balas({ ok: true, progres: null, peringatan: e.message });
+      }
     }
 
     if (b.aksi === "simpan") {
