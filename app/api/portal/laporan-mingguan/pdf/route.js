@@ -162,13 +162,13 @@ export async function GET(req) {
       const tahap = untukKlien && label ? gabungTahap(label) : label;
       // Caption yang ditulis staf dipakai apa adanya; tanpa caption: nama item - tahap.
       const isi = f.caption || [it?.nama || "Item", tahap].filter(Boolean).join(" - ");
-      const keterangan = untukKlien && it?.kode ? `${it.kode} ${isi}` : isi;
+      const keterangan = isi;
       let data = kecil[i];
       if (data && total + data.length > MAKS_BYTE_TOTAL) {
         data = null;
         terbuang++;
       } else if (data) total += data.length;
-      foto.push({ data, keterangan });
+      foto.push({ data, keterangan, kode: untukKlien ? it?.kode || "" : "" });
     });
 
     const namaProyek = proyek.nama || "Proyek";
