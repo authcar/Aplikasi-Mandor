@@ -1,12 +1,11 @@
 import Link from "next/link";
 import DaftarProyek from "./DaftarProyek";
 import { ambilStaf } from "@/lib/portal/server";
-import { ambilItem, ambilPengubahTerakhir, ambilProyekStaf, ambilSupervisor, timSaya } from "@/lib/portal/data";
+import { ambilItem, ambilPengubahTerakhir, ambilProyekStaf, timSaya } from "@/lib/portal/data";
 import { hitungDefectBaru } from "@/lib/portal/defect";
 import { syncPortalDariTaraco } from "@/lib/portal/syncTaraco";
 import { persenProyek } from "@/lib/portal/progresBoq";
 import { hariIni, tambahHari, tglTh, pct, statusProyek, labelDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
-import ProyekBaru from "./ProyekBaru";
 
 export default async function PortalBeranda() {
   const { staf } = await ambilStaf();
@@ -15,8 +14,7 @@ export default async function PortalBeranda() {
   // Proyek Taraco yang sudah masuk DP / SPK otomatis dibuatkan di Project Tracker.
   if (!tukang) await syncPortalDariTaraco();
   const proyek = await ambilProyekStaf(staf);
-  const [supervisors, defectBaru, pengubah] = await Promise.all([
-    admin ? ambilSupervisor() : [],
+  const [defectBaru, pengubah] = await Promise.all([
     tukang || admin || !DEFECT_AKTIF ? {} : hitungDefectBaru(),
     staf.peran === "MASTER" ? ambilPengubahTerakhir(proyek) : {},
   ]);
@@ -66,10 +64,8 @@ export default async function PortalBeranda() {
           </Link>
         )}
         kartu={kartu}
-        kosong={admin ? "Belum ada proyek. Ketuk “+ Proyek baru” di atas untuk membuat yang pertama." : tukang ? `Belum ada item dengan tim pekerja “${staf.nama}”.` : "Belum ada proyek."}
-      >
-        {admin && <ProyekBaru supervisors={supervisors} />}
-      </DaftarProyek>
+        kosong={admin ? "Belum ada proyek. Proyek muncul di sini otomatis begitu BoQ-nya diunggah dari website Taraco Project Management." : tukang ? `Belum ada item dengan tim pekerja “${staf.nama}”.` : "Belum ada proyek."}
+      />
     </main>
   );
 }
