@@ -136,8 +136,19 @@ export async function GET(req) {
     const dalamMinggu = items
       .filter((i) => itemProgres(i) && fotoItem.has(i.id))
       .flatMap((i) => { const e = fotoItem.get(i.id); return untukKlien ? [e.terakhir] : e.minggu.length ? e.minggu : [e.terakhir]; }); // klien: 1 foto (step terakhir) per item
-    const dipilih = dalamMinggu.slice(0, MAKS_FOTO);
     const infoItem = new Map(items.map((i) => [i.id, i]));
+    // Klien: item sekelompok (kode sama, mis. Kabinet Atas & Bawah IF 5) yang fotonya
+    // diunggah dengan caption + tahap yang sama hanya ditampilkan sekali.
+    const sudah = new Set();
+    const unik = untukKlien
+      ? dalamMinggu.filter((f) => {
+          const kode = infoItem.get(f.item_id)?.kode;
+          if (!kode || !f.caption) return true;
+          const kunci = `${kode}|${f.tahap}|${f.caption.trim().toLowerCase()}`;
+          return sudah.has(kunci) ? false : (sudah.add(kunci), true);
+        })
+      : dalamMinggu;
+    const dipilih = unik.slice(0, MAKS_FOTO);
     // Diunduh dan dikompres per kelompok (SERENTAK foto) supaya cepat tapi memori tetap terkendali.
     const kecil = [];
     for (let n = 0; n < dipilih.length; n += SERENTAK)
@@ -172,7 +183,7 @@ export async function GET(req) {
       rencana,
       tanpaRencana: untukKlien,
       foto,
-      fotoLebih: dalamMinggu.length - dipilih.length + terbuang,
+      fotoLebih: unik.length - dipilih.length + terbuang,
       logo,
     });
 
