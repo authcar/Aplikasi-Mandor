@@ -81,23 +81,35 @@ export async function POST(req) {
       return balas({ proyek_id: p.id, baru: p.baru, nama: p.nama, jumlah_item: p.jumlahItem });
     }
 
-    // Proyek tracker yang belum tertaut ke kartu Taraco -> { proyek: [{ id, nama, kode }] }
+    // Semua proyek tracker + kartu Taraco yang sudah menerima progresnya
+    // -> { proyek: [{ id, nama, kode, taraco_id }], tambahan: [{ proyek_id, taraco_id }] }
     if (b.aksi === "kandidat") {
-      const { data, error } = await db().from("portal_proyek").select("id, nama, kode").is("taraco_id", null);
+      const { data, error } = await db().from("portal_proyek").select("id, nama, kode, taraco_id");
       if (error) return gagal("daftar proyek tracker tidak terbaca.", 500);
-      return balas({ proyek: data || [] });
+      const { data: tambahan } = await db().from("portal_taraco_tambahan").select("proyek_id, taraco_id");
+      return balas({ proyek: data || [], tambahan: tambahan || [] });
     }
 
     // Tautkan proyek tracker ke kartu Taraco (dikonfirmasi manual di Taraco), lalu dorong progresnya.
+    // Kartu pertama jadi kartu utama (taraco_id); kartu berikutnya dicatat sebagai tambahan.
     if (b.aksi === "tautkan") {
       if (!UUID.test(b.proyek_id || "") || !UUID.test(b.taraco_id || "")) return gagal("data tidak valid.");
       const { data: ada } = await db().from("portal_proyek").select("id, taraco_id").eq("id", b.proyek_id).maybeSingle();
       if (!ada) return gagal("proyek tracker tidak ditemukan.", 404);
-      if (ada.taraco_id) return gagal("proyek tracker ini sudah tertaut.", 409);
+      if (ada.taraco_id === b.taraco_id) return gagal("kartu ini sudah tertaut.", 409);
       const { data: dipakai } = await db().from("portal_proyek").select("id").eq("taraco_id", b.taraco_id).maybeSingle();
       if (dipakai) return gagal("kartu Taraco ini sudah tertaut ke proyek tracker lain.", 409);
-      const { error } = await db().from("portal_proyek").update({ taraco_id: b.taraco_id }).eq("id", b.proyek_id).is("taraco_id", null);
-      if (error) return gagal(`gagal menautkan (${error.message}).`, 500);
+      if (!ada.taraco_id) {
+        const { error } = await db().from("portal_proyek").update({ taraco_id: b.taraco_id }).eq("id", b.proyek_id).is("taraco_id", null);
+        if (error) return gagal(`gagal menautkan (${error.message}).`, 500);
+      } else {
+        const { error } = await db().from("portal_taraco_tambahan").upsert({ taraco_id: b.taraco_id, proyek_id: b.proyek_id });
+        if (error) {
+          if (/portal_taraco_tambahan|does not exist|schema cache/i.test(error.message))
+            return gagal("jalankan supabase/add_portal_taraco_tambahan.sql di Supabase Tracker dulu.", 503);
+          return gagal(`gagal menautkan (${error.message}).`, 500);
+        }
+      }
       try {
         const r = await dorongProgresKetat(b.proyek_id);
         return balas({ ok: true, progres: r ? r.persen : null, item: r ? r.n : null });
