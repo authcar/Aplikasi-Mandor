@@ -135,7 +135,7 @@ export async function GET(req) {
     }
     const dalamMinggu = items
       .filter((i) => itemProgres(i) && fotoItem.has(i.id))
-      .map((i) => fotoItem.get(i.id).terakhir); // 1 foto (step terakhir) per item
+      .flatMap((i) => { const e = fotoItem.get(i.id); return untukKlien ? [e.terakhir] : e.minggu.length ? e.minggu : [e.terakhir]; }); // klien: 1 foto (step terakhir) per item
     const dipilih = dalamMinggu.slice(0, MAKS_FOTO);
     const infoItem = new Map(items.map((i) => [i.id, i]));
     // Diunduh dan dikompres per kelompok (SERENTAK foto) supaya cepat tapi memori tetap terkendali.
@@ -151,7 +151,7 @@ export async function GET(req) {
       const tahap = untukKlien && label ? gabungTahap(label) : label;
       // Caption yang ditulis staf dipakai apa adanya; tanpa caption: nama item - tahap.
       const isi = f.caption || [it?.nama || "Item", tahap].filter(Boolean).join(" - ");
-      const keterangan = it?.kode ? `${it.kode} ${isi}` : isi;
+      const keterangan = untukKlien && it?.kode ? `${it.kode} ${isi}` : isi;
       let data = kecil[i];
       if (data && total + data.length > MAKS_BYTE_TOTAL) {
         data = null;
@@ -170,6 +170,7 @@ export async function GET(req) {
       hasil: h,
       item,
       rencana,
+      tanpaRencana: untukKlien,
       foto,
       fotoLebih: dalamMinggu.length - dipilih.length + terbuang,
       logo,
