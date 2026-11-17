@@ -135,7 +135,7 @@ export async function GET(req) {
     }
     const dalamMinggu = items
       .filter((i) => itemProgres(i) && fotoItem.has(i.id))
-      .flatMap((i) => { const e = fotoItem.get(i.id); return e.minggu.length ? e.minggu : [e.terakhir]; });
+      .map((i) => fotoItem.get(i.id).terakhir); // 1 foto (step terakhir) per item
     const dipilih = dalamMinggu.slice(0, MAKS_FOTO);
     const infoItem = new Map(items.map((i) => [i.id, i]));
     // Diunduh dan dikompres per kelompok (SERENTAK foto) supaya cepat tapi memori tetap terkendali.
@@ -150,7 +150,8 @@ export async function GET(req) {
       const label = it ? tahapItem(it).find((s) => s.k === f.tahap)?.label : null;
       const tahap = untukKlien && label ? gabungTahap(label) : label;
       // Caption yang ditulis staf dipakai apa adanya; tanpa caption: nama item - tahap.
-      const keterangan = f.caption || [it?.nama || "Item", tahap].filter(Boolean).join(" - ");
+      const isi = f.caption || [it?.nama || "Item", tahap].filter(Boolean).join(" - ");
+      const keterangan = it?.kode ? `${it.kode} ${isi}` : isi;
       let data = kecil[i];
       if (data && total + data.length > MAKS_BYTE_TOTAL) {
         data = null;
