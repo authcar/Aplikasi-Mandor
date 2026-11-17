@@ -4,7 +4,7 @@ import { ambilStaf, bolehProyek } from "@/lib/portal/server";
 import { ambilItem, ambilProyek } from "@/lib/portal/data";
 import { ambilRiwayat } from "@/lib/portal/riwayat";
 import { ambilFotoProgres } from "@/lib/portal/progresFoto";
-import { hariIni } from "@/lib/portal/format";
+import { hariIni, persenKlien } from "@/lib/portal/format";
 import { daftarMinggu, hitungMinggu, indeksRiwayat, keadaanSampai } from "@/lib/portal/mingguan";
 import { tahapItem, tahapBerikut, itemProgres, selesaiTanpaRetensi, gabungTahap } from "@/lib/portal/progresBoq";
 import { buatPdfLaporanMingguan } from "@/lib/portal/mingguanPdf";
@@ -37,11 +37,16 @@ async function kecilkan(url) {
     return null;
   }
 }
-const tglJakarta = (iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+const spreadKlien = (x) => {
+  const sebelum = persenKlien(x.sebelum), sesudah = persenKlien(x.sesudah);
+  return { ...x, sebelum, sesudah, naik: sesudah - sebelum };
+};
+const tglJakarta =(iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
 // GET /api/portal/laporan-mingguan/pdf?proyek_id=...&minggu=N[&untuk=klien|&tim=NAMA_TIM]
 // Versi internal (default) menghitung retensi. Versi klien (untuk=klien): item yang
-// instalasinya selesai langsung 100% (retensi tidak dihitung), item lain sama dengan internal.
+// instalasinya selesai langsung 100% (retensi tidak dihitung), lalu persentase diberi spread +10%
+// (persenKlien: 0% tetap 0, paling tinggi 99% sampai benar-benar selesai), sama seperti link klien.
 // Versi tukang (tim=NAMA): hitungan sama dengan internal, tetapi hanya item milik tim itu.
 // PDF laporan mingguan satu proyek tracker: progres sebelum/sesudah, tahap yang
 // dikerjakan, item yang bergerak, dan foto progres minggu itu. Admin (MASTER/FINANCE)
@@ -101,7 +106,10 @@ export async function GET(req) {
     }
     const item = items
       .filter((i) => hitung.has(i.id))
-      .map((i) => ({ ...hitung.get(i.id), kode: i.kode || "", tim: i.tim || "", catatan: (captionMinggu.get(i.id) || []).join("; ") }));
+      .map((i) => ({ ...hitung.get(i.id), kode: i.kode || "", tim: i.tim || "", catatan: (captionMinggu.get(i.id) || []).join("; ") }))
+      .map((i) => (untukKlien ? spreadKlien(i) : i));
+    // Versi klien: persentase ditampilkan dengan spread +10% (persenKlien), sama seperti halaman link klien.
+    if (untukKlien) Object.assign(h, spreadKlien(h));
 
     // Rencana pekerjaan selanjutnya: tahap berikut dari tiap item yang belum selesai
     // pada akhir minggu itu, urutan BoQ. Tahap retensi bukan pekerjaan, jadi dilewati.
