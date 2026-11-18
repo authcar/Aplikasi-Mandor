@@ -12,8 +12,8 @@ const PERAN = { ADMIN: "Admin", TUKANG: "Pekerja" };
 
 // Pemberitahuan di lonceng: deadline yang tinggal 7 hari atau sudah lewat, dan
 // defect baru dari klien (kalau fiturnya aktif). Hanya proyek yang masih aktif.
-async function ambilNotif(staf, proyek) {
-  const defect = staf.role === "TUKANG" || staf.role === "ADMIN" || !DEFECT_AKTIF ? {} : await hitungDefectBaru();
+async function ambilNotif(staf, proyek, defectP) {
+  const defect = await defectP;
   const notif = [];
   for (const p of proyek.filter((x) => x.aktif)) {
     const href = `/portal/proyek/${p.id}`;
@@ -33,8 +33,10 @@ async function ambilNotif(staf, proyek) {
 export default async function StafLayout({ children }) {
   const { staf } = await ambilStaf();
   if (!staf) redirect("/");
+  // Proyek dan hitungan defect tidak saling bergantung: diminta berbarengan.
+  const defectP = staf.role === "TUKANG" || staf.role === "ADMIN" || !DEFECT_AKTIF ? Promise.resolve({}) : hitungDefectBaru().catch(() => ({}));
   const proyek = await ambilProyekStaf(staf).catch(() => []);
-  const notif = await ambilNotif(staf, proyek).catch(() => []);
+  const notif = await ambilNotif(staf, proyek, defectP).catch(() => []);
   return (
     <>
       <Header kembali label={`Project Tracker · ${staf.nama}`} notif={notif} />

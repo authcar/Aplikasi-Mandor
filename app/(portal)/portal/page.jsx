@@ -12,14 +12,17 @@ export default async function PortalBeranda() {
   const admin = staf.role === "ADMIN";
   const tukang = staf.role === "TUKANG";
   // Proyek Taraco yang sudah masuk DP / SPK otomatis dibuatkan di Project Tracker.
-  if (!tukang) await syncPortalDariTaraco();
+  // Tidak ditunggu: sinkron ke Taraco (jaringan ke database lain) dulu memperlambat
+  // tiap load per menit. Proyek baru muncul di load berikutnya; galat ditelan di dalamnya.
+  if (!tukang) syncPortalDariTaraco().catch(() => {});
   const proyek = await ambilProyekStaf(staf);
-  const [defectBaru, pengubah] = await Promise.all([
+  const [defectBaru, pengubah, semuaItem] = await Promise.all([
     tukang || admin || !DEFECT_AKTIF ? {} : hitungDefectBaru(),
     staf.peran === "MASTER" ? ambilPengubahTerakhir(proyek) : {},
+    ambilItem(proyek),
   ]);
   // Tukang: jumlah item dan progres dihitung dari item timnya saja.
-  const items = (await ambilItem(proyek)).filter((i) => !tukang || timSaya(staf, i));
+  const items = semuaItem.filter((i) => !tukang || timSaya(staf, i));
 
   const hari = hariIni();
   const seninDari = (d) => tambahHari(d, -((new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7));
