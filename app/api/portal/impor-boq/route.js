@@ -4,7 +4,8 @@ import { db, UUID } from "@/lib/portal/db";
 import { ambilProyek } from "@/lib/portal/data";
 import { BUCKET_ITEM } from "@/lib/portal/fotoItem";
 import { tambahItemProyek, gantiItemProyek } from "@/lib/portal/itemProyek";
-import { anggotaDariToken, pastikanProyekTaraco, dorongProgres, dorongProgresKetat } from "@/lib/portal/tautTaraco";
+import { anggotaDariToken, pastikanProyekTaraco, dorongProgres, dorongProgresKetat, lepasTautanTaraco } from "@/lib/portal/tautTaraco";
+import { hapusSatuProyek } from "@/lib/portal/hapusProyek";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 //        -> { proyek_id, baru, nama, jumlah_item }   proyek tracker dibuat / ditautkan
 //   POST application/json  { aksi: "kandidat" }                  -> { proyek: [...] } yang belum tertaut
 //   POST application/json  { aksi: "tautkan", proyek_id, taraco_id } -> { ok, progres, peringatan? }
+//   POST application/json  { aksi: "hapus", taraco_id }           -> { ok, ada }  BoQ + proyek tracker dihapus
 //   POST multipart         proyek_id, foto
 //        -> { path }                                 satu foto item (gambar kolom C)
 //   POST application/json  { aksi: "simpan", proyek_id, items, mode: "tambah" | "ganti" }
@@ -116,6 +118,26 @@ export async function POST(req) {
       } catch (e) {
         return balas({ ok: true, progres: null, peringatan: e.message });
       }
+    }
+
+    // Hapus BoQ dari kartu Taraco ini: proyek tracker-nya ikut terhapus (item, progres, foto),
+    // dan progres di kartu dikosongkan. Kartu yang hanya "tambahan" cukup dilepas dari proyek bersama.
+    // -> { ok, ada }
+    if (b.aksi === "hapus") {
+      if (!UUID.test(b.taraco_id || "")) return gagal("proyek tidak valid.");
+      const utama = await db().from("portal_proyek").select("id").eq("taraco_id", b.taraco_id).maybeSingle();
+      if (utama.data) {
+        await hapusSatuProyek(utama.data.id);
+        return balas({ ok: true, ada: true });
+      }
+      const tambah = await db().from("portal_taraco_tambahan").select("proyek_id").eq("taraco_id", b.taraco_id);
+      if (tambah.data?.length) {
+        await db().from("portal_taraco_tambahan").delete().eq("taraco_id", b.taraco_id);
+        await lepasTautanTaraco(b.taraco_id);
+        return balas({ ok: true, ada: true });
+      }
+      await lepasTautanTaraco(b.taraco_id);
+      return balas({ ok: true, ada: false });
     }
 
     if (b.aksi === "simpan") {

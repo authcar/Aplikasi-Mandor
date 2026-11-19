@@ -9,12 +9,13 @@ import { ambilProyek, ambilBobotTahap, bacaProgres } from "@/lib/portal/data";
 import { hapusFotoItem } from "@/lib/portal/fotoItem";
 import { BUCKET_PROGRES, hapusFotoProgres } from "@/lib/portal/progresFoto";
 import { catatRiwayat } from "@/lib/portal/riwayat";
-import { BUCKET_DEFECT, hapusFotoDefect } from "@/lib/portal/defect";
+import { BUCKET_DEFECT } from "@/lib/portal/defect";
 import { FASE, JENIS, TAHAP, tahapItem, faseMenghalangi } from "@/lib/portal/progresBoq";
 import { JENIS_TERMIN, terminStandar, hariIni } from "@/lib/portal/format";
 
 import { pilih, F_ITEM, cekItem, cekFoto, tambahItemProyek, gantiItemProyek } from "@/lib/portal/itemProyek";
-import { dorongProgres, lepasTautanTaraco } from "@/lib/portal/tautTaraco";
+import { dorongProgres } from "@/lib/portal/tautTaraco";
+import { hapusSatuProyek } from "@/lib/portal/hapusProyek";
 
 const F_PROYEK = ["nama", "kode", "klien_nama", "lokasi", "mulai", "deadline", "tanggal_kirim", "supervisor_id", "aktif", "timbang_harga", "nilai_proyek"];
 const F_TERMIN = ["urutan", "jenis", "label", "persen", "jatuh_tempo", "lunas_tgl", "dibayar", "bukti"];
@@ -94,24 +95,7 @@ export async function ubahProyek(id, patch) {
   });
 }
 
-// Hapus permanen, hanya master. Item, progres, termin, dan link klien ikut
-// terhapus (on delete cascade). Konfirmasi dilakukan di UI.
-async function hapusSatuProyek(id) {
-  // Proyek hasil tarikan Taraco: catat supaya sinkron tidak membuatnya lagi.
-  // Gagal (tabelnya belum dibuat) tidak boleh menghalangi penghapusan.
-  const taracoId = (await ambilProyek(id))?.taraco_id;
-  if (taracoId) {
-    await db().from("portal_taraco_lewat").upsert({ taraco_id: taracoId });
-    await lepasTautanTaraco(taracoId); // kartu di Taraco kembali tanpa progres tracker
-  }
-  const fotoItem = await hasil(db().from("portal_item").select("*").eq("proyek_id", id));
-  await hapusFotoItem(fotoItem.flatMap((i) => i.foto || []));
-  await hapusFotoItem((await hasil(db().from("portal_termin").select("*").eq("proyek_id", id))).map((t) => t.bukti));
-  await hapusFotoDefect(id); // baris defect ikut terhapus (cascade), fotonya tidak
-  await hapusFotoProgres({ proyekId: id });
-  await hapus("portal_proyek", id);
-}
-
+// Hapus permanen, hanya master. Isinya: lib/portal/hapusProyek.js. Konfirmasi dilakukan di UI.
 export async function hapusProyek(id) {
   return jalan(async () => {
     if (!(await ambilProyek(id))) throw new Error("Proyek tidak ditemukan.");
