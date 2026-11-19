@@ -134,12 +134,14 @@ export async function setProgres(itemId, tahap, persen) {
     if (!(persen >= 0 && persen <= 100)) throw new Error("persen tahap harus 0–100.");
     // Foto tahap ini dicek bersamaan dengan pengambilan item (hanya dipakai kalau persen > 0).
     const fotoTahap = persen > 0 ? jumlahFotoTahap(itemId, tahap) : Promise.resolve(null);
-    const row = await hasil(db().from("portal_item").select("*, portal_progres(*)").eq("id", itemId).maybeSingle());
+    // Item, proyeknya (embed), dan bobot bawaan diambil dalam satu putaran (dulu tiga berurutan).
+    const [row, bobotBawaan] = await Promise.all([
+      hasil(db().from("portal_item").select("*, portal_progres(*), proyek:portal_proyek(id)").eq("id", itemId).maybeSingle()),
+      ambilBobotTahap(),
+    ]);
     if (!row) throw new Error("Item tidak ditemukan.");
-    // Proyek dan bobot bawaan diambil bersamaan (bobot hanya perlu kalau item tidak punya bobot sendiri).
-    const [p, bobotBawaan] = await Promise.all([ambilProyek(row.proyek_id), row.bobot_tahap ? null : ambilBobotTahap()]);
-    if (!bolehProyek(staf, p)) throw new Error("Tidak punya akses ke proyek ini.");
-    const { portal_progres, ...i } = row;
+    if (!bolehProyek(staf, row.proyek)) throw new Error("Tidak punya akses ke proyek ini.");
+    const { portal_progres, proyek: _p, ...i } = row;
     const item = { ...i, bobot_tahap: i.bobot_tahap || bobotBawaan?.[i.jenis] || null, ...bacaProgres(portal_progres) };
     const s = tahapItem(item).find((x) => x.k === tahap);
     if (!s) throw new Error("Tahap tidak valid.");
@@ -160,7 +162,9 @@ export async function setProgres(itemId, tahap, persen) {
     // Simpan progres dan catat riwayat bersamaan (saling tidak bergantung).
     if (!persen) {
       await Promise.all([hasil(db().from("portal_progres").delete().eq("item_id", itemId).eq("tahap", tahap)), riwayat()]);
-      await dorongProgres(row.proyek_id);
+      // Ke kartu Taraco tidak ditunggu (tiga bolak-balik ke database); jaring pengaman
+      // dorongSemuaProgres (lib/portal/syncTaraco.js) menyamakan kalau ada yang terlewat.
+      dorongProgres(row.proyek_id);
       return;
     }
     // Tanggal selalu hari ini (tanggal terakhir progres tahap ini diubah).
@@ -176,7 +180,7 @@ export async function setProgres(itemId, tahap, persen) {
       }
     };
     await Promise.all([simpan(), riwayat()]);
-    await dorongProgres(row.proyek_id);
+    dorongProgres(row.proyek_id);
   }, { admin: false });
 }
 

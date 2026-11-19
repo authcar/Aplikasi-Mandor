@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ambilStaf, bolehProyek } from "@/lib/portal/server";
-import { ambilItem, ambilProyek, ambilTermin, ambilAddon, ambilKlien, ambilSupervisor, timSaya } from "@/lib/portal/data";
+import { ambilBobotTahap, ambilItem, ambilItemMentah, ambilProyek, susunItem, ambilTermin, ambilAddon, ambilKlien, ambilSupervisor, timSaya } from "@/lib/portal/data";
+import { UUID } from "@/lib/portal/db";
 import { ambilDefect } from "@/lib/portal/defect";
 import { cariProyekMandor, PATH_DEFECT_MANDOR } from "@/lib/portal/mandor";
 import { urlFotoItem } from "@/lib/portal/fotoItem";
@@ -16,8 +17,16 @@ async function urlkanFoto(items) {
 }
 
 export default async function PortalProyekPage({ params }) {
-  // Staf dan proyek diambil bersamaan (saling tidak bergantung).
-  const [{ staf }, p] = await Promise.all([ambilStaf(), ambilProyek(params.id)]);
+  // Staf, proyek, dan item diambil bersamaan (saling tidak bergantung; hak akses dicek sesudahnya,
+  // data tidak dikirim ke siapa pun sebelum itu). Id yang bukan UUID tidak diteruskan ke database.
+  const idOk = UUID.test(params.id || "");
+  const [{ staf }, p, mentah, bobot] = await Promise.all([
+    ambilStaf(), ambilProyek(params.id),
+    idOk ? ambilItemMentah([params.id]).catch(() => null) : null,
+    idOk ? ambilBobotTahap().catch(() => null) : null,
+  ]);
+  // Item siap pakai untuk proyek ini (jatuh ke pengambilan biasa kalau salah satunya gagal).
+  const itemProyek = async (pr) => (mentah && bobot ? susunItem([pr], mentah, bobot) : ambilItem([pr]));
   const tukang = staf?.role === "TUKANG";
   if (!tukang && !bolehProyek(staf, p)) notFound();
   if (tukang && !p) notFound();
@@ -27,7 +36,7 @@ export default async function PortalProyekPage({ params }) {
   // satuan tidak dikirim ke browser). Tidak ada item timnya = bukan proyeknya.
   if (tukang) {
     const { nilai_proyek, nilai_perancangan, ...p2 } = proyek;
-    const [semua, fotoSemua, riwayatSemua] = await Promise.all([ambilItem([proyek]), ambilFotoProgres(proyek.id), ambilRiwayat(proyek.id)]);
+    const [semua, fotoSemua, riwayatSemua] = await Promise.all([itemProyek(proyek), ambilFotoProgres(proyek.id), ambilRiwayat(proyek.id)]);
     const items = await urlkanFoto(semua.filter((i) => timSaya(staf, i)).map(({ harga_satuan, ...i }) => i));
     if (!items.length) notFound();
     const milik = new Set(items.map((i) => i.id));
@@ -39,7 +48,7 @@ export default async function PortalProyekPage({ params }) {
 
   const admin = staf.role === "ADMIN";
   const [items, termin, addon, klien, supervisors, defect, pm, fotoProgres, riwayat] = await Promise.all([
-    ambilItem([proyek]).then(urlkanFoto),
+    itemProyek(proyek).then(urlkanFoto),
     admin ? ambilTermin(proyek.id) : [],
     admin ? ambilAddon(proyek.id) : [],
     admin ? ambilKlien(proyek.id) : [],

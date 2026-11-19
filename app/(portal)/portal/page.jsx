@@ -1,7 +1,7 @@
 import Link from "next/link";
 import DaftarProyek from "./DaftarProyek";
 import { ambilStaf } from "@/lib/portal/server";
-import { ambilItem, ambilPengubahTerakhir, ambilProyekStaf, timSaya } from "@/lib/portal/data";
+import { ambilBobotTahap, ambilItem, ambilItemMentah, ambilPengubahTerakhir, ambilProyekStaf, susunItem, timSaya } from "@/lib/portal/data";
 import { hitungDefectBaru } from "@/lib/portal/defect";
 import { syncPortalDariTaraco } from "@/lib/portal/syncTaraco";
 import { persenProyek } from "@/lib/portal/progresBoq";
@@ -15,12 +15,19 @@ export default async function PortalBeranda() {
   // Tidak ditunggu: sinkron ke Taraco (jaringan ke database lain) dulu memperlambat
   // tiap load per menit. Proyek baru muncul di load berikutnya; galat ditelan di dalamnya.
   if (!tukang) syncPortalDariTaraco().catch(() => {});
-  const proyek = await ambilProyekStaf(staf);
-  const [defectBaru, pengubah, semuaItem] = await Promise.all([
+  // Admin/supervisor melihat semua proyek, jadi item semua proyek diminta berbarengan dengan
+  // daftar proyeknya (satu bolak-balik ke database lebih sedikit). Tukang dan Head of Production
+  // hanya sebagian proyek: item baru diambil sesudah daftarnya tahu.
+  const berurutan = tukang || staf.peran === "HEAD_OF_PRODUCTION";
+  const [proyek, mentah, bobot, defectBaru, pengubahSemua] = await Promise.all([
+    ambilProyekStaf(staf),
+    berurutan ? null : ambilItemMentah(null),
+    berurutan ? null : ambilBobotTahap(),
     tukang || admin || !DEFECT_AKTIF ? {} : hitungDefectBaru(),
-    staf.peran === "MASTER" ? ambilPengubahTerakhir(proyek) : {},
-    ambilItem(proyek),
+    staf.peran === "MASTER" ? ambilPengubahTerakhir() : {},
   ]);
+  const pengubah = pengubahSemua;
+  const semuaItem = mentah ? susunItem(proyek, mentah, bobot) : await ambilItem(proyek);
   // Tukang: jumlah item dan progres dihitung dari item timnya saja.
   const items = semuaItem.filter((i) => !tukang || timSaya(staf, i));
 

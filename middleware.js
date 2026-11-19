@@ -23,7 +23,11 @@ export async function middleware(request) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // getSession() membaca cookie secara lokal (tanpa bolak-balik ke server auth; token kedaluwarsa
+  // tetap diperbarui). Keaslian token dijamin query `profiles` di bawah: PostgREST menolak token
+  // palsu sehingga role kosong dan diarahkan ke login. Halaman memverifikasi lagi lewat getUser().
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   const path = request.nextUrl.pathname;
 
   const isProtected =
