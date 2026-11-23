@@ -29,6 +29,41 @@ const TABS = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan
 const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["defect", "Defect"]]);
 const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa pekerja"]];
 
+// Unduh daftar BoQ proyek sebagai file Excel. Pakai fetch (bukan link langsung)
+// supaya galat dari server tampil di sini, bukan halaman JSON.
+function TombolBoq({ proyekId }) {
+  const [memuat, setMemuat] = useState(false);
+  const [galat, setGalat] = useState("");
+  async function unduh() {
+    setMemuat(true);
+    setGalat("");
+    try {
+      const res = await fetch(`/api/portal/boq-excel?proyek_id=${proyekId}`);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Gagal membuat file Excel.");
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "")?.[1] || "BoQ.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+      setGalat(e.message || "Gagal membuat file Excel.");
+    } finally {
+      setMemuat(false);
+    }
+  }
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button type="button" className="btn" style={{ minHeight: 40, fontSize: ".85rem", padding: "0 12px" }} disabled={memuat} onClick={unduh} title="Unduh daftar BoQ proyek ini (Excel)">
+        {memuat ? "Membuat file…" : "Unduh BoQ (Excel)"}
+      </button>
+      {galat && <p className="note b-bad" style={{ margin: "6px 0 0" }}>{galat}</p>}
+    </div>
+  );
+}
+
 export default function AdminProyek({ proyek, items, termin, addon = [], klien, supervisors, defect = [], mandor = null, staf, fotoProgres = [], riwayat = [] }) {
   const admin = staf.role === "ADMIN";
   // Tukang (akun MANDOR): hanya melihat item timnya, tanpa bisa mengubah apa pun.
@@ -66,6 +101,7 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
             <span className="small">Pengiriman belum ditentukan</span>
           ) : null}
         </div>
+        {!tukang && <TombolBoq proyekId={proyek.id} />}
       </div>
       {/* Nilai kontrak hanya untuk master; supervisor cukup melihat progres. */}
       <div className="grid2" style={{ gridTemplateColumns: admin || tukang ? "minmax(0,5fr) minmax(0,7fr)" : "1fr" }}>
