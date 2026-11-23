@@ -5,25 +5,26 @@ import { bukaXlsx } from "@/lib/portal/bacaXlsx";
 const SEMUA = "__semua__";
 const norm =(s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
-// Pilih file BoQ (.xlsx), lalu sheet proyeknya. File dibaca di browser dan
-// tidak dikirim ke server. `petunjuk` = nama/kode proyek untuk menebak sheet.
-// onPilih({ sheet, rows }) tiap sheet dipilih; onPilih(null) kalau batal.
+// Pilih file BoQ (.xlsx), lalu sheet proyeknya. File dibaca di browser; `berkas` (File asli)
+// diteruskan supaya pemanggil bisa menyimpannya. `petunjuk` = nama/kode proyek untuk menebak sheet.
+// onPilih({ sheet, rows, berkas }) tiap sheet dipilih; onPilih(null) kalau batal.
 export default function UnggahBoq({ petunjuk = [], onPilih, label = "File BoQ (.xlsx)" }) {
   const [buku, setBuku] = useState(null);
+  const [berkas, setBerkas] = useState(null);
   const [sheet, setSheet] = useState("");
   const [galat, setGalat] = useState("");
   const [memuat, setMemuat] = useState(false);
 
-  function pilihSheet(b, s) {
+  function pilihSheet(b, s, berkas) {
     setSheet(s);
     if (s === SEMUA) {
       // Beberapa sheet sekaligus (mis. satu sheet per tim pekerja). Tiap sheet dibaca
       // sendiri-sendiri (`bagian`) karena nomor baris gambar dan tim berlaku per sheet.
       const bagian = b.sheets.map((n) => ({ sheet: n, rows: b.baca(n), gambar: b.gambar(n) }));
-      onPilih({ sheet: `${bagian.length} sheet`, rows: bagian.flatMap((x) => x.rows), gambar: [], bagian });
+      onPilih({ sheet: `${bagian.length} sheet`, rows: bagian.flatMap((x) => x.rows), gambar: [], bagian, berkas });
       return;
     }
-    onPilih(s ? { sheet: s, rows: b.baca(s), gambar: b.gambar(s) } : null);
+    onPilih(s ? { sheet: s, rows: b.baca(s), gambar: b.gambar(s), berkas } : null);
   }
 
   async function pilihFile(e) {
@@ -38,9 +39,10 @@ export default function UnggahBoq({ petunjuk = [], onPilih, label = "File BoQ (.
       const b = bukaXlsx(await file.arrayBuffer());
       if (!b.sheets.length) throw new Error();
       setBuku(b);
+      setBerkas(file);
       const kunci = petunjuk.map(norm).filter((k) => k.length >= 3);
       const cocok = b.sheets.length === 1 ? b.sheets[0] : b.sheets.find((s) => kunci.some((k) => norm(s).includes(k)));
-      pilihSheet(b, cocok || "");
+      pilihSheet(b, cocok || "", file);
     } catch {
       setGalat("File tidak bisa dibaca. Pastikan formatnya Excel .xlsx (bukan .xls atau PDF).");
     }
@@ -59,7 +61,7 @@ export default function UnggahBoq({ petunjuk = [], onPilih, label = "File BoQ (.
       {buku && buku.sheets.length > 1 && (
         <label className="lbl">
           Sheet proyek ({buku.sheets.length} sheet)
-          <select className="inp" value={sheet} onChange={(e) => pilihSheet(buku, e.target.value)}>
+          <select className="inp" value={sheet} onChange={(e) => pilihSheet(buku, e.target.value, berkas)}>
             <option value="">— Pilih sheet —</option>
             <option value={SEMUA}>Semua sheet ({buku.sheets.length})</option>
             {buku.sheets.map((s) => <option key={s} value={s}>{s}</option>)}

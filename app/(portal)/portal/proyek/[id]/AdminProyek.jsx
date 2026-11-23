@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAksi } from "../../useAksi";
 import Pesan from "../../Pesan";
 import UnggahBoq from "../../UnggahBoq";
+import { createClient } from "@/lib/supabase/client";
 import FotoItem from "../../../FotoItem";
 import FotoProgres, { FotoWajib, MAKS_FOTO } from "./FotoProgres";
 import Mingguan from "./Mingguan";
@@ -29,36 +30,95 @@ const TABS = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan
 const TABS_SPV = tanpaDefect([["progres", "Progres"], ["mingguan", "Laporan mingguan"], ["defect", "Defect"]]);
 const TABS_TUKANG = [["progres", "Progres"], ["item", "Jasa pekerja"]];
 
-// Unduh daftar BoQ proyek sebagai file Excel. Pakai fetch (bukan link langsung)
-// supaya galat dari server tampil di sini, bukan halaman JSON.
-function TombolBoq({ proyekId }) {
-  const [memuat, setMemuat] = useState(false);
+// Menyimpan file BoQ asli (Excel) di proyek: izin dari server, unggah langsung ke storage
+// (file berisi foto bisa >4,5 MB, melebihi batas body route), lalu dicatat di proyek.
+// Melempar Error berisi pesan yang bisa ditampilkan.
+async function simpanBerkasBoq(proyekId, berkas) {
+  const kirim = async (body) => {
+    const res = await fetch("/api/portal/boq-file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(j.error || "Gagal menyimpan file BoQ.");
+    return j;
+  };
+  const { path, token } = await kirim({ aksi: "url", proyek_id: proyekId, nama: berkas.name });
+  const { error } = await createClient().storage.from("portal-boq").uploadToSignedUrl(path, token, berkas, {
+    contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  if (error) throw new Error(error.message || "File gagal diunggah.");
+  await kirim({ aksi: "simpan", proyek_id: proyekId, path, nama: berkas.name });
+}
+
+// Unduh BoQ. Admin: file asli yang diunggah saat impor (kalau ada; bisa memuat harga) dan,
+// kalau belum ada, bisa mengunggahnya di sini. Semua staf: versi portal yang dibuat dari data item
+// (tanpa harga untuk supervisor). Pakai fetch supaya galat tampil di sini, bukan halaman JSON.
+function TombolBoq({ proyek, admin }) {
+  const router = useRouter();
+  const [memuat, setMemuat] = useState("");
   const [galat, setGalat] = useState("");
-  async function unduh() {
-    setMemuat(true);
+  const proyekId = proyek.id;
+  const klik = { width: "auto", minHeight: 40, fontSize: ".85rem", padding: "0 12px" };
+
+  const simpanBlob = (blob, nama) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nama;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
+  async function jalan(kunci, fn) {
+    setMemuat(kunci);
     setGalat("");
     try {
-      const res = await fetch(`/api/portal/boq-excel?proyek_id=${proyekId}`);
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Gagal membuat file Excel.");
-      const url = URL.createObjectURL(await res.blob());
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "")?.[1] || "BoQ.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      await fn();
     } catch (e) {
-      setGalat(e.message || "Gagal membuat file Excel.");
+      setGalat(e.message || "Gagal.");
     } finally {
-      setMemuat(false);
+      setMemuat("");
     }
   }
+  const unduhPortal = () =>
+    jalan("portal", async () => {
+      const res = await fetch(`/api/portal/boq-excel?proyek_id=${proyekId}`);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Gagal membuat file Excel.");
+      simpanBlob(await res.blob(), /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "")?.[1] || "BoQ.xlsx");
+    });
+  const unduhAsli = () =>
+    jalan("asli", async () => {
+      const res = await fetch(`/api/portal/boq-file?proyek_id=${proyekId}`);
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.url) throw new Error(j.error || "Gagal mengambil file.");
+      window.location.assign(j.url); // storage membalas dengan Content-Disposition: attachment
+    });
+  const unggah = (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (f) jalan("unggah", async () => { await simpanBerkasBoq(proyekId, f); router.refresh(); });
+  };
+
   return (
     <div style={{ marginTop: 10 }}>
-      <button type="button" className="btn" style={{ minHeight: 40, fontSize: ".85rem", padding: "0 12px" }} disabled={memuat} onClick={unduh} title="Unduh daftar BoQ proyek ini (Excel)">
-        {memuat ? "Membuat file…" : "Unduh BoQ (Excel)"}
-      </button>
+      <div className="row" style={{ justifyContent: "flex-start", gap: 8, flexWrap: "wrap" }}>
+        {admin && proyek.boq_file_nama && (
+          <button type="button" className="btn" style={klik} disabled={!!memuat} onClick={unduhAsli} title={`File asli: ${proyek.boq_file_nama}`}>
+            {memuat === "asli" ? "Mengambil…" : "Unduh BoQ asli"}
+          </button>
+        )}
+        <button type="button" className={admin && proyek.boq_file_nama ? "btn2" : "btn"} style={klik} disabled={!!memuat} onClick={unduhPortal}
+          title="Daftar BoQ yang dibuat dari data item di portal">
+          {memuat === "portal" ? "Membuat file…" : admin && proyek.boq_file_nama ? "Versi portal (Excel)" : "Unduh BoQ (Excel)"}
+        </button>
+        {admin && (
+          <label className="btn2" style={{ ...klik, display: "inline-flex", alignItems: "center", cursor: memuat ? "default" : "pointer" }}>
+            {memuat === "unggah" ? "Mengunggah…" : proyek.boq_file_nama ? "Ganti file asli" : "Unggah file BoQ asli"}
+            <input type="file" hidden disabled={!!memuat} onChange={unggah}
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+          </label>
+        )}
+      </div>
+      {admin && proyek.boq_file_nama && <p className="small" style={{ margin: "6px 0 0" }}>File asli: {proyek.boq_file_nama}</p>}
       {galat && <p className="note b-bad" style={{ margin: "6px 0 0" }}>{galat}</p>}
     </div>
   );
@@ -101,7 +161,7 @@ export default function AdminProyek({ proyek, items, termin, addon = [], klien, 
             <span className="small">Pengiriman belum ditentukan</span>
           ) : null}
         </div>
-        {!tukang && <TombolBoq proyekId={proyek.id} />}
+        {!tukang && <TombolBoq proyek={proyek} admin={admin} />}
       </div>
       {/* Nilai kontrak hanya untuk master; supervisor cukup melihat progres. */}
       <div className="grid2" style={{ gridTemplateColumns: admin || tukang ? "minmax(0,5fr) minmax(0,7fr)" : "1fr" }}>
@@ -846,6 +906,14 @@ function ImporBoq({ proyek, items, urutan, aksi }) {
           if (r?.error) return r;
         }
         if (gagalFoto) alert(`${gagalFoto} foto gagal diunggah (${pesanFoto}); itemnya tetap tersimpan.`);
+        // File Excel aslinya ikut disimpan (gagal tidak membatalkan impor).
+        if (file?.berkas) {
+          try {
+            await simpanBerkasBoq(proyek.id, file.berkas);
+          } catch (e) {
+            alert(`File Excel asli gagal disimpan (${e.message}); itemnya tetap tersimpan.`);
+          }
+        }
         return {};
       },
       ganti ? `BOQ diganti dengan ${terpilih.length} item.`
