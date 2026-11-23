@@ -96,9 +96,11 @@ export async function GET(req) {
     // Catatan per item = caption foto progres yang diunggah pada minggu itu (urut lama -> baru,
     // tanpa duplikat). Item tanpa caption minggu itu memakai catatan otomatis di PDF (naik/turun).
     const captionMinggu = new Map(); // item_id -> [caption]
+    const captionTerakhir = new Map(); // item_id -> caption foto terakhir (sampai akhir minggu); dipakai kalau minggu itu tidak ada foto baru
     for (const f of fotoSemua) {
       const cap = String(f.caption || "").trim();
       const tgl = tglJakarta(f.created_at);
+      if (cap && tgl <= minggu.akhir) captionTerakhir.set(f.item_id, cap);
       if (!cap || tgl < minggu.dari || tgl > minggu.akhir) continue;
       const daftar = captionMinggu.get(f.item_id) || [];
       if (!daftar.includes(cap)) daftar.push(cap);
@@ -106,7 +108,7 @@ export async function GET(req) {
     }
     const item = items
       .filter((i) => hitung.has(i.id))
-      .map((i) => ({ ...hitung.get(i.id), kode: i.kode || "", tim: i.tim || "", catatan: (captionMinggu.get(i.id) || []).join("; ") }))
+      .map((i) => ({ ...hitung.get(i.id), kode: i.kode || "", tim: i.tim || "", catatan: (captionMinggu.get(i.id) || []).join("; ") || captionTerakhir.get(i.id) || "" }))
       .map((i) => (untukKlien ? spreadKlien(i) : i));
     // Versi klien: persentase ditampilkan dengan spread +10% (persenKlien), sama seperti halaman link klien.
     if (untukKlien) Object.assign(h, spreadKlien(h));
