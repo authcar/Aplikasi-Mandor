@@ -158,15 +158,15 @@ export async function GET(req) {
       const it = infoItem.get(f.item_id);
       const label = it ? tahapItem(it).find((s) => s.k === f.tahap)?.label : null;
       const tahap = untukKlien && label ? gabungTahap(label) : label;
-      // Caption yang ditulis staf dipakai apa adanya; tanpa caption: nama item - tahap.
-      const isi = f.caption || [it?.nama || "Item", tahap].filter(Boolean).join(" - ");
+      // Nama item tampil tebal di atas; di bawahnya caption staf apa adanya, tanpa caption: nama tahap.
+      const isi = f.caption || tahap || "";
       const keterangan = isi;
       let data = kecil[i];
       if (data && total + data.length > MAKS_BYTE_TOTAL) {
         data = null;
         terbuang++;
       } else if (data) total += data.length;
-      foto.push({ data, keterangan, kode: it?.kode || "" });
+      foto.push({ data, keterangan, nama: it?.nama || "Item", kode: it?.kode || "", area: it?.area || "" });
     });
 
     const namaProyek = proyek.nama || "Proyek";
