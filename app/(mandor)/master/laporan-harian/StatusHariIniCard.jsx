@@ -14,24 +14,37 @@ const FILTERS = [
   { key: "sudah", label: "Sudah" },
 ];
 
+// Berapa chip yang tampil sebelum dipotong "+N lainnya".
+const BATAS_CHIP = 8;
+
 const jamnya = (ts) =>
   new Date(ts).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 
-// Status laporan harian hari ini per proyek — grid 2 kolom biar padat (banyak
-// proyek gak perlu scroll panjang), default nyaring ke yang "Belum" karena
-// itu yang paling perlu ditindaklanjuti Master. Ketuk kartu hijau untuk lihat
-// detail laporan (modal), kartu merah cuma penanda belum ada laporan.
+// Status laporan harian hari ini per proyek — chip kecil yang dibungkus (satu
+// proyek = satu chip, titik merah/hijau + nama) supaya banyak proyek tidak
+// memanjangkan halaman. Default menyaring ke yang "Belum" karena itu yang
+// paling perlu ditindaklanjuti Master. Hanya BATAS_CHIP chip pertama yang
+// tampil, sisanya lewat tombol "+N lainnya". Ketuk chip untuk lihat detail:
+// laporan bila sudah lapor, atau nama Supervisor bila belum.
 export default function StatusHariIniCard({ proyekList = [] }) {
   const belum = proyekList.filter((p) => p.items.length === 0);
   const sudah = proyekList.filter((p) => p.items.length > 0);
 
   const [filter, setFilter] = useState(belum.length > 0 ? "belum" : "semua");
+  const [semuaTerbuka, setSemuaTerbuka] = useState(false);
   const [detail, setDetail] = useState(null);
 
   if (!proyekList.length) return null;
 
   const shown = filter === "belum" ? belum : filter === "sudah" ? sudah : proyekList;
+  const terlihat = semuaTerbuka ? shown : shown.slice(0, BATAS_CHIP);
+  const sisa = shown.length - terlihat.length;
   const persen = proyekList.length ? Math.round((sudah.length / proyekList.length) * 100) : 0;
+
+  const pilihFilter = (key) => {
+    setFilter(key);
+    setSemuaTerbuka(false);
+  };
 
   return (
     <section className="mb-6">
@@ -53,7 +66,7 @@ export default function StatusHariIniCard({ proyekList = [] }) {
             <button
               key={f.key}
               type="button"
-              onClick={() => setFilter(f.key)}
+              onClick={() => pilihFilter(f.key)}
               className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${
                 filter === f.key ? "bg-white text-brand shadow-sm" : "text-gray-500"
               }`}
@@ -72,32 +85,44 @@ export default function StatusHariIniCard({ proyekList = [] }) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
-          {shown.map((p) => {
+        <div className="flex flex-wrap gap-1.5">
+          {terlihat.map((p) => {
             const ada = p.items.length > 0;
             return (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => ada && setDetail(p)}
-                className={`card flex flex-col gap-1 p-3 text-left ${ada ? "active:bg-gray-50" : ""}`}
+                onClick={() => setDetail(p)}
+                className={`flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-left text-xs font-semibold active:opacity-70 ${
+                  ada ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-800"
+                }`}
               >
-                <div className="flex items-center justify-between gap-1">
-                  <Icon
-                    name={ada ? "check-circle" : "x-circle"}
-                    className={`h-4 w-4 shrink-0 ${ada ? "text-green-500" : "text-red-500"}`}
-                  />
-                  {ada && p.items.length > 1 && (
-                    <span className="shrink-0 rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-bold text-brand">
-                      {p.items.length} kegiatan
-                    </span>
-                  )}
-                </div>
-                <p className="line-clamp-2 text-xs font-semibold leading-tight text-gray-700">{p.nama}</p>
-                <p className="truncate text-[10px] text-gray-400">{p.supervisorNama || "—"}</p>
+                <span className={`h-2 w-2 shrink-0 rounded-full ${ada ? "bg-green-500" : "bg-red-500"}`} />
+                <span className="truncate">{p.nama}</span>
+                {ada && p.items.length > 1 && (
+                  <span className="shrink-0 rounded-full bg-white/70 px-1.5 text-[10px] font-bold">{p.items.length}</span>
+                )}
               </button>
             );
           })}
+          {sisa > 0 && (
+            <button
+              type="button"
+              onClick={() => setSemuaTerbuka(true)}
+              className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-brand active:opacity-70"
+            >
+              +{sisa} lainnya
+            </button>
+          )}
+          {semuaTerbuka && shown.length > BATAS_CHIP && (
+            <button
+              type="button"
+              onClick={() => setSemuaTerbuka(false)}
+              className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-500 active:opacity-70"
+            >
+              Ringkas
+            </button>
+          )}
         </div>
       )}
 
@@ -111,32 +136,42 @@ export default function StatusHariIniCard({ proyekList = [] }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-start justify-between gap-2">
-              <p className="font-semibold text-gray-800">{detail.nama}</p>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-800">{detail.nama}</p>
+                <p className="text-xs text-gray-400">Supervisor: {detail.supervisorNama || "belum ditetapkan"}</p>
+              </div>
               <button onClick={() => setDetail(null)} className="shrink-0 px-1 text-2xl leading-none text-gray-400">
                 ×
               </button>
             </div>
-            <div className="space-y-3 overflow-y-auto">
-              {detail.items.map((it) => {
-                const badge = STATUS_BADGE[it.status] || STATUS_BADGE.ON_PROGRESS;
-                return (
-                  <div key={it.id} className="rounded-xl border border-gray-100 p-3">
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <span className={`badge ${badge.cls}`}>{badge.label}</span>
-                      <span className="text-xs text-gray-400">{jamnya(it.created_at)}</span>
+            {detail.items.length === 0 ? (
+              <p className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-3 text-sm font-semibold text-red-700">
+                <Icon name="x-circle" className="h-4 w-4 shrink-0" />
+                Belum ada laporan hari ini.
+              </p>
+            ) : (
+              <div className="space-y-3 overflow-y-auto">
+                {detail.items.map((it) => {
+                  const badge = STATUS_BADGE[it.status] || STATUS_BADGE.ON_PROGRESS;
+                  return (
+                    <div key={it.id} className="rounded-xl border border-gray-100 p-3">
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <span className={`badge ${badge.cls}`}>{badge.label}</span>
+                        <span className="text-xs text-gray-400">{jamnya(it.created_at)}</span>
+                      </div>
+                      {it.fotoSignedUrl && (
+                        <img
+                          src={it.fotoSignedUrl}
+                          alt="dokumentasi"
+                          className="mb-2 max-h-52 w-full rounded-lg border border-gray-200 object-cover"
+                        />
+                      )}
+                      <p className="text-sm text-gray-700">{it.deskripsi}</p>
                     </div>
-                    {it.fotoSignedUrl && (
-                      <img
-                        src={it.fotoSignedUrl}
-                        alt="dokumentasi"
-                        className="mb-2 max-h-52 w-full rounded-lg border border-gray-200 object-cover"
-                      />
-                    )}
-                    <p className="text-sm text-gray-700">{it.deskripsi}</p>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
