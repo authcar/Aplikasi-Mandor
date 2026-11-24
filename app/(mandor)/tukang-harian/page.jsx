@@ -140,13 +140,15 @@ export default async function DashboardTukangHarian() {
         <LogoutButton />
       </header>
 
-      <AbsensiSayaCard
+      {fiturAktif("absensiSaya") && (
+<AbsensiSayaCard
         chatId={chatId}
         sudahCheckin={sudahCheckin}
         sudahCheckout={sudahCheckout}
         checkinAt={checkinHari?.checkin_at || null}
         checkoutAt={checkinHari?.checkout_at || null}
       />
+)}
 
       {!proyek ? (
         <div className="card flex items-start gap-3 border-amber-200 bg-amber-50 p-4 text-amber-800">

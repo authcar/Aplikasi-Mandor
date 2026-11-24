@@ -199,7 +199,9 @@ export default async function DashboardFinance() {
         </Link>
       </div>
 
-      <ProyekSayaCard proyek={proyek || []} basePath="/finance/proyek" />
+      {fiturAktif("daftarProyek") && (
+<ProyekSayaCard proyek={proyek || []} basePath="/finance/proyek" />
+)}
     </main>
   );
 }

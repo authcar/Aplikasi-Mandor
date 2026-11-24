@@ -272,7 +272,8 @@ export default async function DashboardSupervisor() {
       </div>
 
       {/* Streak widget */}
-      <div className="shrink-0">
+      {fiturAktif("streak") && (
+<div className="shrink-0">
         <StreakWidget
           potongan={potongan || []}
           checkin={checkin || []}
@@ -280,6 +281,7 @@ export default async function DashboardSupervisor() {
           totalProyek={totalProyekAktif}
         />
       </div>
+)}
 
       {/* Absensi kunjungan ke proyek */}
       {fiturAktif("kunjungan") && (
@@ -291,7 +293,9 @@ export default async function DashboardSupervisor() {
 )}
 
       {/* Proyek */}
-      <ProyekSayaCard proyek={proyek || []} basePath="/supervisor/proyek" />
+      {fiturAktif("daftarProyek") && (
+<ProyekSayaCard proyek={proyek || []} basePath="/supervisor/proyek" />
+)}
     </main>
   );
 }

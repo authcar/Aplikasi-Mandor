@@ -171,10 +171,12 @@ export default async function DashboardMandor({ searchParams }) {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
+            {fiturAktif("nilaiProyek") && (
+<div className="grid grid-cols-2 gap-2.5">
               <Stat big={proyek.nilai_proyek ? rupiah(proyek.nilai_proyek) : "—"} label="Nilai Jasa Pekerja" />
               <Stat big={proyek.sisa_budget != null ? rupiah(proyek.sisa_budget) : "—"} label="Sisa Budget" />
             </div>
+)}
           </div>
 
           <div className="grid grid-cols-4 gap-y-4">

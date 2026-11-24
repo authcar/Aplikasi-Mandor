@@ -206,7 +206,9 @@ export default async function DashboardMaster() {
         </Link>
       </div>
 
-      <ProyekSayaCard proyek={proyek || []} basePath="/master/proyek" />
+      {fiturAktif("daftarProyek") && (
+<ProyekSayaCard proyek={proyek || []} basePath="/master/proyek" />
+)}
     </main>
   );
 }
