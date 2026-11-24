@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { fiturAktif } from "@/lib/fitur";
 
-const TABS = [
+const SEMUA_TABS = [
   {
     href: "/supervisor",
     label: "Home",
@@ -15,6 +16,7 @@ const TABS = [
   },
   {
     href: "/supervisor/persetujuan",
+    fitur: "persetujuan",
     label: "Laporan",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
@@ -29,6 +31,7 @@ const TABS = [
   },
   {
     href: "/supervisor/gaji",
+    fitur: "gaji",
     label: "Dompet",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
@@ -50,6 +53,9 @@ const TABS = [
   },
 ];
 
+// Tab yang fiturnya dimatikan di lib/fitur.js disembunyikan.
+const TABS = SEMUA_TABS.filter((tab) => !tab.fitur || fiturAktif(tab.fitur));
+
 export default function SupervisorNavbar() {
   const pathname = usePathname();
 
@@ -64,7 +70,7 @@ export default function SupervisorNavbar() {
   return (
     <nav className="tabbar" style={{ "--n": TABS.length, "--i": Math.max(idx, 0), "--on": idx >= 0 ? 1 : 0 }}>
       <span className="tabbar-pil" aria-hidden="true" />
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>
         {TABS.map((tab) => {
           const active = isActive(tab.href);
           return (
@@ -77,7 +83,8 @@ export default function SupervisorNavbar() {
               {tab.icon}
               <span className="tabbar-label">
                 {tab.label}
-              </span>
+              </span>
+
             </Link>
           );
         })}

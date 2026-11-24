@@ -4,6 +4,7 @@ import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import LogoutButton from "@/components/LogoutButton";
 import AbsensiPegawaiSlot from "@/components/AbsensiPegawaiSlot";
 import Icon from "@/components/Icon";
+import { fiturAktif } from "@/lib/fitur";
 import StreakWidget from "@/components/StreakWidget";
 import ProyekSayaCard from "@/components/ProyekSayaCard";
 import KunjunganCard from "@/components/KunjunganCard";
@@ -139,7 +140,8 @@ export default async function DashboardSupervisor() {
       <AbsensiPegawaiSlot supabase={supabase} profile={profile} />
 
       {/* Hero: menunggu persetujuan */}
-      <Link
+      {fiturAktif("persetujuan") && (
+<Link
         href="/supervisor/persetujuan"
         className="shrink-0 flex items-center gap-3 rounded-2xl bg-gray-100 py-3 px-4 active:bg-gray-200"
       >
@@ -151,6 +153,7 @@ export default async function DashboardSupervisor() {
           <p className="text-sm font-semibold text-gray-700">Lihat pengajuan</p>
         </div>
       </Link>
+)}
 
       {/* Aksi Cepat */}
       <div className="shrink-0">
@@ -172,7 +175,8 @@ export default async function DashboardSupervisor() {
             </p>
           </Link>
 
-          <Link
+          {fiturAktif("kunjungan") && (
+<Link
             href="/supervisor/kunjungan"
             className="relative flex flex-col items-center gap-1 active:opacity-70"
           >
@@ -183,6 +187,7 @@ export default async function DashboardSupervisor() {
               Riwayat Kunjungan
             </p>
           </Link>
+)}
 
           <Link
             href="/supervisor/laporan-harian"
@@ -196,7 +201,8 @@ export default async function DashboardSupervisor() {
             </p>
           </Link>
 
-          <Link
+          {fiturAktif("absensiTim") && (
+<Link
             href="/supervisor/absensi"
             className="relative flex flex-col items-center gap-1 active:opacity-70"
           >
@@ -207,8 +213,10 @@ export default async function DashboardSupervisor() {
               Absensi Tukang
             </p>
           </Link>
+)}
 
-          <Link
+          {fiturAktif("kurangMaterial") && (
+<Link
             href="/supervisor/masalah"
             className="relative flex flex-col items-center gap-1 active:opacity-70"
           >
@@ -219,8 +227,10 @@ export default async function DashboardSupervisor() {
               Kurang Material
             </p>
           </Link>
+)}
 
-          <Link
+          {fiturAktif("gaji") && (
+<Link
             href="/supervisor/gaji"
             className="relative flex flex-col items-center gap-1 active:opacity-70"
           >
@@ -231,8 +241,10 @@ export default async function DashboardSupervisor() {
               Rekap Gaji
             </p>
           </Link>
+)}
 
-          <Link
+          {fiturAktif("kasbon") && (
+<Link
             href="/supervisor/kasbon"
             className="relative flex flex-col items-center gap-1 active:opacity-70"
           >
@@ -243,6 +255,7 @@ export default async function DashboardSupervisor() {
               Kasbon
             </p>
           </Link>
+)}
 
           <Link
             href="/portal"
@@ -269,11 +282,13 @@ export default async function DashboardSupervisor() {
       </div>
 
       {/* Absensi kunjungan ke proyek */}
-      <KunjunganCard
+      {fiturAktif("kunjungan") && (
+<KunjunganCard
         proyeks={proyek || []}
         kunjunganBerjalan={kunjunganBerjalan || null}
         spotcheckTertunda={spotcheckTertunda || null}
       />
+)}
 
       {/* Proyek */}
       <ProyekSayaCard proyek={proyek || []} basePath="/supervisor/proyek" />

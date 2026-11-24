@@ -4,6 +4,7 @@ import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import { tglID } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
 import Icon from "@/components/Icon";
+import { fiturAktif } from "@/lib/fitur";
 import AbsensiSayaCard from "@/components/AbsensiSayaCard";
 
 export const dynamic = "force-dynamic";
@@ -86,18 +87,21 @@ export default async function DashboardTukangHarian() {
     {
       href: `/tukang-harian/absensi${q}`,
       label: "Absensi",
+      fitur: "absensiTim",
       icon: "users",
       tile: "bg-green-100 text-green-600",
     },
     {
       href: `/tukang-harian/lembur${q}`,
       label: "Lembur",
+      fitur: "lembur",
       icon: "clock",
       tile: "bg-indigo-100 text-indigo-600",
     },
     {
       href: `/tukang-harian/reimburse${q}`,
       label: "Reimburse",
+      fitur: "reimburse",
       icon: "receipt",
       tile: "bg-purple-100 text-purple-600",
       badge: reimburseBaru,
@@ -105,6 +109,7 @@ export default async function DashboardTukangHarian() {
     {
       href: `/tukang-harian/masalah${q}`,
       label: "Kurang Material",
+      fitur: "kurangMaterial",
       icon: "alert-triangle",
       tile: "bg-amber-100 text-amber-600",
       badge: masalahBaru,
@@ -112,6 +117,7 @@ export default async function DashboardTukangHarian() {
     {
       href: `/tukang-harian/perbaikan${q}`,
       label: "Perbaikan",
+      fitur: "defectList",
       icon: "wrench",
       tile: "bg-rose-100 text-rose-600",
       badge: perbaikanBaru,
@@ -119,10 +125,11 @@ export default async function DashboardTukangHarian() {
     {
       href: `/tukang-harian/gaji${q}`,
       label: "Dompet Saya",
+      fitur: "gaji",
       icon: "wallet",
       tile: "bg-emerald-100 text-emerald-600",
     },
-  ];
+  ].filter((a) => fiturAktif(a.fitur));
 
   return (
     <main className="p-4 pb-8">
@@ -189,7 +196,7 @@ export default async function DashboardTukangHarian() {
             ))}
           </div>
 
-          {pendingApr > 0 && (
+          {fiturAktif("persetujuan") && pendingApr > 0 && (
             <p className="mt-4 text-center text-sm text-gray-500">
               {pendingApr} pengajuan menunggu persetujuan Supervisor
             </p>

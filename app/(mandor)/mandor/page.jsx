@@ -7,6 +7,7 @@ import LogoutButton from "@/components/LogoutButton";
 import AbsensiPegawaiSlot from "@/components/AbsensiPegawaiSlot";
 import ProyekSwitcher from "./ProyekSwitcher";
 import Icon from "@/components/Icon";
+import { fiturAktif } from "@/lib/fitur";
 
 export const dynamic = "force-dynamic";
 
@@ -87,13 +88,13 @@ export default async function DashboardMandor({ searchParams }) {
 
   const q = proyek ? `?proyek=${proyek.id}` : "";
   const actions = [
-    { href: "/mandor/perbaikan", label: "Perbaikan", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
-    { href: `/mandor/reimburse${q}`, label: "Reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru },
-    { href: `/mandor/kasbon${q}`, label: "Kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru },
-    { href: `/mandor/masalah${q}`, label: "Kurang Material", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
+    { href: "/mandor/perbaikan", label: "Perbaikan", fitur: "defectList", icon: "wrench", tile: "bg-rose-100 text-rose-600", badge: perbaikanBaru },
+    { href: `/mandor/reimburse${q}`, label: "Reimburse", fitur: "reimburse", icon: "receipt", tile: "bg-purple-100 text-purple-600", badge: reimburseBaru },
+    { href: `/mandor/kasbon${q}`, label: "Kasbon", fitur: "kasbon", icon: "wallet", tile: "bg-orange-100 text-orange-600", badge: kasbonBaru },
+    { href: `/mandor/masalah${q}`, label: "Kurang Material", fitur: "kurangMaterial", icon: "alert-triangle", tile: "bg-amber-100 text-amber-600", badge: masalahBaru },
     // Project Tracker: hanya melihat item & jasa pekerja timnya (lihat lib/portal/server.js).
-    { href: "/portal", label: "Project Tracker", icon: "share", tile: "bg-amber-100 text-amber-700" },
-  ];
+    { href: "/portal", label: "Project Tracker", fitur: "projectTracker", icon: "share", tile: "bg-amber-100 text-amber-700" },
+  ].filter((a) => fiturAktif(a.fitur));
 
   return (
     <main className="p-4 pb-8">

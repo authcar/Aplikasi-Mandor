@@ -4,6 +4,7 @@ import { syncProyekFromTaraco } from "@/lib/supabase/syncProyek";
 import LogoutButton from "@/components/LogoutButton";
 import AbsensiPegawaiSlot from "@/components/AbsensiPegawaiSlot";
 import Icon from "@/components/Icon";
+import { fiturAktif } from "@/lib/fitur";
 import ProyekSayaCard from "@/components/ProyekSayaCard";
 
 export const dynamic = "force-dynamic";
@@ -71,13 +72,13 @@ export default async function DashboardFinance() {
   const proyekSudahLaporSet = new Set((laporanHariIniRows || []).map((r) => r.proyek_id));
   const proyekSudahAbsenSet = new Set((absensiHariIniRows || []).map((r) => r.proyek_id));
   const proyekBelumLapor = (proyek || []).filter((p) => !proyekSudahLaporSet.has(p.id));
-  const proyekBelumAbsen = (proyek || []).filter((p) => !proyekSudahAbsenSet.has(p.id));
+  const proyekBelumAbsen = fiturAktif("absensiTim") ? (proyek || []).filter((p) => !proyekSudahAbsenSet.has(p.id)) : [];
   // Proyek yang mandor_id-nya NULL — biasanya karena nama mandor di Taraco
   // tidak cocok persis dengan nama akun MANDOR di sini (lihat
   // lib/supabase/syncProyek.js). Selama begini, hampir semua fitur berbasis
   // proyek (absensi, checklist perbaikan, dll) tidak akan muncul ke Mandor
   // manapun untuk proyek ini.
-  const proyekTanpaMandor = (proyek || []).filter((p) => !p.mandor);
+  const proyekTanpaMandor = fiturAktif("proyekTanpaMandor") ? (proyek || []).filter((p) => !p.mandor) : [];
 
   return (
     <main className="flex min-h-dvh flex-col p-4 gap-3">
@@ -125,7 +126,8 @@ export default async function DashboardFinance() {
         </div>
       )}
 
-      <Link href="/finance/persetujuan" className="hero shrink-0 flex items-center gap-3 py-3 px-4">
+      {fiturAktif("persetujuan") && (
+<Link href="/finance/persetujuan" className="hero shrink-0 flex items-center gap-3 py-3 px-4">
         <span className="relative icon-tile bg-white/15 text-white">
           <Icon name="inbox" />
           {kasbonBaruCount > 0 && (
@@ -140,14 +142,17 @@ export default async function DashboardFinance() {
         </div>
         <Icon name="chevron-right" className="h-5 w-5 text-white/70" />
       </Link>
+)}
 
       <div className="shrink-0 grid grid-cols-2 gap-2">
-        <Link href="/finance/absensi"
+        {fiturAktif("absensiTim") && (
+<Link href="/finance/absensi"
           className="card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-sky-100 text-sky-600 !w-8 !h-8"><Icon name="users" /></span>
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Lihat Absensi</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
+)}
         <Link href="/finance/laporan-harian" className="relative card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-rose-100 text-rose-600 !w-8 !h-8"><Icon name="clipboard" /></span>
           {laporanBaruCount > 0 && (
@@ -168,22 +173,26 @@ export default async function DashboardFinance() {
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Defect List</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
-        <Link href="/finance/atur-budget" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+        {fiturAktif("aturBudget") && (
+<Link href="/finance/atur-budget" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-emerald-100 text-emerald-600 !w-8 !h-8"><Icon name="wallet" /></span>
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Atur Budget</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
-        <Link href="/finance/biaya-proyek" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
+)}
+        {fiturAktif("biayaProyek") && (
+<Link href="/finance/biaya-proyek" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-emerald-100 text-emerald-600 !w-8 !h-8"><Icon name="receipt" /></span>
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Biaya Proyek</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
+)}
         <Link href="/finance/absensi-pegawai" className="card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-teal-100 text-teal-600 !w-8 !h-8"><Icon name="clock" /></span>
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Absensi Pegawai</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
         </Link>
-        <Link href="/portal" className="col-span-2 card-tap flex flex-col items-center justify-center gap-1 p-3">
+        <Link href="/portal" className="last:odd:col-span-2 card-tap flex flex-col items-center justify-center gap-1 p-3">
           <span className="icon-tile bg-amber-100 text-amber-700 !w-8 !h-8"><Icon name="share" /></span>
           <p className="text-[11px] font-semibold text-gray-600 text-center leading-tight">Project Tracker</p>
           <Icon name="chevron-right" className="h-3 w-3 text-gray-300" />
