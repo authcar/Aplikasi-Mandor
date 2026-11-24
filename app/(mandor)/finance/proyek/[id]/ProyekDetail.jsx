@@ -1,7 +1,6 @@
 import Link from "next/link";
 import BackButton from "@/components/BackButton";
 import Icon from "@/components/Icon";
-import { fiturAktif } from "@/lib/fitur";
 import RiwayatLaporanHarianCard from "@/app/(mandor)/supervisor/laporan-harian/RiwayatLaporanHarianCard";
 import EditableAngkaField from "./EditableAngkaField";
 
@@ -67,8 +66,7 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
         </div>
       </div>
 
-      {fiturAktif("biayaProyek") && (
-<Link
+      <Link
         href={`/finance/proyek/${proyek.id}/biaya`}
         className="card-tap mb-5 flex items-center gap-3 p-4"
       >
@@ -81,7 +79,6 @@ export default function ProyekDetail({ proyek, jumlahHadir, jumlahTim = 0, riway
         </div>
         <Icon name="chevron-right" className="h-4 w-4 text-gray-300" />
       </Link>
-)}
 
       <div className="card p-4 mb-5 space-y-2">
         <p className="font-bold text-gray-700 text-sm">Laporan Terakhir</p>
