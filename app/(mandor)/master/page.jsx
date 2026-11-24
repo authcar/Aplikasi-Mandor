@@ -89,7 +89,7 @@ export default async function DashboardMaster() {
         </div>
       </header>
 
-      <AbsensiPegawaiSlot supabase={supabase} profile={profile} />
+      {fiturAktif("absensiSaya") && <AbsensiPegawaiSlot supabase={supabase} profile={profile} />}
 
       {/* Notifikasi: proyek yang belum absen / belum lapor hari ini, digabung
           jadi satu kartu, satu baris per notifikasi — cuma label + jumlah,
