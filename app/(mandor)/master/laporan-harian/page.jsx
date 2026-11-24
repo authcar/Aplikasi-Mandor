@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 // Laporan harian dari SEMUA proyek (semua Supervisor) — Master tidak perlu
 // buka satu-satu halaman detail proyek untuk lihat laporan yang masuk.
-export default async function LaporanHarianMasterPage() {
+export default async function LaporanHarianMasterPage({ searchParams }) {
   const { supabase } = await getSessionProfile();
-  return <LaporanHarianSemuaProyek supabase={supabase} homePath="/master" tandaiDibaca peran="MASTER" />;
+  return <LaporanHarianSemuaProyek supabase={supabase} homePath="/master" tandaiDibaca peran="MASTER" basePath="/master/laporan-harian" bulanParam={searchParams?.bulan} />;
 }

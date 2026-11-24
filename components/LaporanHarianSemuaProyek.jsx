@@ -2,6 +2,7 @@ import BackButton from "@/components/BackButton";
 import { tambahUrlFoto } from "@/lib/laporanFoto";
 import RiwayatLaporanHarianCard from "@/app/(mandor)/supervisor/laporan-harian/RiwayatLaporanHarianCard";
 import StatusHariIniCard from "@/app/(mandor)/master/laporan-harian/StatusHariIniCard";
+import { bulanValid, rentangBulan } from "@/lib/absensiPegawaiAturan";
 
 const HALAMAN = 60;
 
@@ -10,8 +11,20 @@ const HALAMAN = 60;
 //   supabase       — client yang dipakai membaca (client user, tunduk RLS).
 //   tandaiDibaca   — menandai laporan sudah dilihat Master (badge di dashboard).
 //   peran          — "MASTER" mengaktifkan Edit/Hapus; null = hanya baca.
-export default async function LaporanHarianSemuaProyek({ supabase, homePath, tandaiDibaca = false, peran = null }) {
+//   basePath       — bila diisi, riwayat tampil sebagai kalender bulanan (?bulan=YYYY-MM)
+//                    dan hanya laporan bulan itu yang dimuat; kosong = daftar 60 terbaru.
+export default async function LaporanHarianSemuaProyek({ supabase, homePath, tandaiDibaca = false, peran = null, basePath = null, bulanParam = null }) {
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+
+  const kalender = !!basePath;
+  const bulan = bulanValid(bulanParam) ? bulanParam : todayStr.slice(0, 7);
+  const { awal, akhir } = rentangBulan(bulan);
+  let qRiwayat = supabase
+    .from("laporan_harian")
+    .select("id, proyek_id, tanggal, deskripsi, status, foto_url, foto_urls, created_at, dibaca_master, proyek:proyek_id(nama)")
+    .order("tanggal", { ascending: false })
+    .order("created_at", { ascending: false });
+  qRiwayat = kalender ? qRiwayat.gte("tanggal", awal).lt("tanggal", akhir).limit(1000) : qRiwayat.limit(HALAMAN);
 
   const [{ data: proyekAktif }, { data: rows }] = await Promise.all([
     supabase
@@ -19,12 +32,7 @@ export default async function LaporanHarianSemuaProyek({ supabase, homePath, tan
       .select("id, nama, supervisor:supervisor_id(name)")
       .eq("is_active", true)
       .order("nama"),
-    supabase
-      .from("laporan_harian")
-      .select("id, proyek_id, tanggal, deskripsi, status, foto_url, foto_urls, created_at, dibaca_master, proyek:proyek_id(nama)")
-      .order("tanggal", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(HALAMAN),
+    qRiwayat,
   ]);
 
   // Laporan hari ini per proyek aktif — dipakai buat "Status Hari Ini" di atas.
@@ -65,7 +73,9 @@ export default async function LaporanHarianSemuaProyek({ supabase, homePath, tan
 
       <StatusHariIniCard proyekList={statusHariIni} />
 
-      {riwayat.length === 0 ? (
+      {kalender ? (
+        <RiwayatLaporanHarianCard riwayat={riwayat} peran={peran} kalender bulan={bulan} basePath={basePath} hariIni={todayStr} />
+      ) : riwayat.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-400">
           Belum ada laporan harian dari Supervisor manapun.
         </div>

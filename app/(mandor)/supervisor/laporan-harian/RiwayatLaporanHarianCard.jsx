@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { bolehKoreksiLaporan } from "@/lib/laporanKoreksi";
 import KoreksiLaporan from "./KoreksiLaporan";
+import { NAMA_BULAN, rentangBulan } from "@/lib/absensiPegawaiAturan";
 
 const STATUS_BADGE = {
   ON_PROGRESS: { label: "Sedang Dikerjakan", cls: "bg-blue-100 text-blue-700" },
@@ -33,8 +35,8 @@ function kelompokkan(riwayat) {
     const lastHari = perHari[perHari.length - 1];
     const hari = lastHari && lastHari.tanggal === r.tanggal ? lastHari : (perHari.push({ tanggal: r.tanggal, proyekGrup: [] }), perHari[perHari.length - 1]);
     const nama = r.proyek?.nama || "—";
-    const lastProyek = hari.proyekGrup[hari.proyekGrup.length - 1];
-    if (lastProyek && lastProyek.nama === nama) lastProyek.items.push(r);
+    const grup = hari.proyekGrup.find((g) => g.nama === nama);
+    if (grup) grup.items.push(r);
     else hari.proyekGrup.push({ nama, proyekId: r.proyek_id, items: [r] });
   }
   return perHari;
@@ -134,12 +136,95 @@ function TombolHapusSemua({ proyekId, tanggal, nama, dapatDihapus, onTerhapus })
   );
 }
 
+const NAMA_HARI = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+
+function geserBulan(bulan, delta) {
+  const [y, m] = bulan.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+// Kalender satu bulan: tanggal yang punya laporan diberi angka jumlahnya dan
+// bisa diketuk (membuka pop-up daftar proyek hari itu). Pindah bulan lewat
+// ?bulan= supaya server hanya memuat laporan bulan itu.
+function KalenderBulan({ bulan, basePath, hariIni, perHari, onPilih }) {
+  const [y, m] = bulan.split("-").map(Number);
+  const { jumlahHari } = rentangBulan(bulan);
+  const kosongAwal = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7; // Senin = 0
+  const perTanggal = new Map(perHari.map((h) => [h.tanggal, h]));
+  const totalBulan = perHari.reduce((s, h) => s + h.proyekGrup.reduce((a, p) => a + p.items.length, 0), 0);
+  const bisaMaju = bulan < hariIni.slice(0, 7);
+
+  return (
+    <div className="card p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <Link href={`${basePath}?bulan=${geserBulan(bulan, -1)}`} className="px-3 py-1 text-lg font-semibold text-brand">
+          ‹
+        </Link>
+        <div className="text-center">
+          <p className="font-bold text-gray-700">{NAMA_BULAN[m - 1]} {y}</p>
+          <p className="text-[11px] text-gray-400">{totalBulan} laporan · ketuk tanggal untuk melihat</p>
+        </div>
+        {bisaMaju ? (
+          <Link href={`${basePath}?bulan=${geserBulan(bulan, 1)}`} className="px-3 py-1 text-lg font-semibold text-brand">
+            ›
+          </Link>
+        ) : (
+          <span className="px-3 py-1 text-lg text-gray-300">›</span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {NAMA_HARI.map((n) => (
+          <span key={n} className="pb-1 text-[10px] font-semibold uppercase text-gray-400">{n}</span>
+        ))}
+        {Array.from({ length: kosongAwal }, (_, i) => <span key={`k${i}`} />)}
+        {Array.from({ length: jumlahHari }, (_, i) => {
+          const d = i + 1;
+          const tgl = `${bulan}-${String(d).padStart(2, "0")}`;
+          const h = perTanggal.get(tgl);
+          const total = h ? h.proyekGrup.reduce((a, p) => a + p.items.length, 0) : 0;
+          const ring = tgl === hariIni ? "ring-2 ring-brand" : "";
+          if (!h) {
+            return (
+              <span key={tgl} className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm text-gray-400 ${ring}`}>
+                {d}
+              </span>
+            );
+          }
+          return (
+            <button
+              key={tgl}
+              type="button"
+              onClick={() => onPilih(tgl)}
+              className={`flex aspect-square flex-col items-center justify-center rounded-xl bg-brand/10 text-sm font-bold text-brand active:opacity-70 ${ring}`}
+            >
+              {d}
+              <span className="text-[10px] font-semibold leading-none">{total}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Riwayat Laporan Harian — dikelompokkan hari > dropdown proyek > baris
 // ringkas, ketuk baris untuk lihat detail (foto + deskripsi penuh).
 // `peran` + `userId` (opsional) mengaktifkan Edit/Hapus di detail untuk yang
 // berhak: Master semua laporan, Supervisor hanya miliknya (kapan saja)
 // (aturan: lib/laporanKoreksi.js; izin sebenarnya dicek di server).
-export default function RiwayatLaporanHarianCard({ riwayat: riwayatAsli = [], peran = null, userId = null }) {
+// `kalender` + `bulan` + `basePath` + `hariIni` menampilkan kalender bulanan
+// (ketuk tanggal -> pop-up proyek) sebagai pengganti daftar per hari.
+export default function RiwayatLaporanHarianCard({
+  riwayat: riwayatAsli = [],
+  peran = null,
+  userId = null,
+  kalender = false,
+  bulan = null,
+  basePath = null,
+  hariIni = null,
+}) {
   const router = useRouter();
   // Hasil koreksi dipakai langsung di sini (id -> perubahan, atau null = terhapus),
   // karena sebagian halaman menyimpan daftarnya sendiri dan tidak ikut refresh.
@@ -148,6 +233,7 @@ export default function RiwayatLaporanHarianCard({ riwayat: riwayatAsli = [], pe
   const perHari = kelompokkan(riwayat);
   const [openHari, setOpenHari] = useState(perHari[0]?.tanggal ?? null);
   const [openProyek, setOpenProyek] = useState(null); // `${tanggal}|${nama}`
+  const [hariDipilih, setHariDipilih] = useState(null); // tanggal yang dibuka di kalender
   const [detailId, setDetailId] = useState(null);
   const [mengedit, setMengedit] = useState(false);
   const [menghapus, setMenghapus] = useState(false);
@@ -178,32 +264,17 @@ export default function RiwayatLaporanHarianCard({ riwayat: riwayatAsli = [], pe
     }
   };
 
-  if (!riwayatAsli.length) return null;
+  if (!riwayatAsli.length && !kalender) return null;
 
-  return (
-    <section className="mt-6">
-      <h2 className="mb-3 font-bold text-gray-700">Riwayat Laporan Harian</h2>
-      <div className="space-y-2">
-        {perHari.map((h) => {
-          const totalHari = h.proyekGrup.reduce((s, p) => s + p.items.length, 0);
-          const hariTerbuka = openHari === h.tanggal;
-          return (
-            <div key={h.tanggal} className="card overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setOpenHari((cur) => (cur === h.tanggal ? null : h.tanggal))}
-                className="flex w-full items-center justify-between px-4 py-2.5"
-              >
-                <span className="text-sm font-semibold capitalize text-gray-700">{labelTanggal(h.tanggal)}</span>
-                <span className="flex items-center gap-2 text-gray-400">
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
-                    {totalHari} laporan
-                  </span>
-                  <Icon name="chevron-down" className={`h-3.5 w-3.5 transition-transform ${hariTerbuka ? "rotate-180" : ""}`} />
-                </span>
-              </button>
+  const pilihHari = (tgl) => {
+    const h = perHari.find((x) => x.tanggal === tgl);
+    setHariDipilih(tgl);
+    // Satu proyek saja di hari itu: langsung buka daftar kegiatannya.
+    setOpenProyek(h && h.proyekGrup.length === 1 ? `${tgl}|${h.proyekGrup[0].nama}` : null);
+  };
+  const hariData = kalender ? perHari.find((x) => x.tanggal === hariDipilih) || null : null;
 
-              {hariTerbuka && (
+  const daftarProyekHari = (h) => (
                 <div className="divide-y divide-gray-100 border-t border-gray-100">
                   {h.proyekGrup.map((p) => {
                     const key = `${h.tanggal}|${p.nama}`;
@@ -276,11 +347,59 @@ export default function RiwayatLaporanHarianCard({ riwayat: riwayatAsli = [], pe
                     );
                   })}
                 </div>
-              )}
+  );
+
+  return (
+    <section className="mt-6">
+      <h2 className="mb-3 font-bold text-gray-700">Riwayat Laporan Harian</h2>
+      {kalender && (
+        <KalenderBulan bulan={bulan} basePath={basePath} hariIni={hariIni} perHari={perHari} onPilih={pilihHari} />
+      )}
+      <div className={kalender ? "hidden" : "space-y-2"}>
+        {!kalender && perHari.map((h) => {
+          const totalHari = h.proyekGrup.reduce((s, p) => s + p.items.length, 0);
+          const hariTerbuka = openHari === h.tanggal;
+          return (
+            <div key={h.tanggal} className="card overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setOpenHari((cur) => (cur === h.tanggal ? null : h.tanggal))}
+                className="flex w-full items-center justify-between px-4 py-2.5"
+              >
+                <span className="text-sm font-semibold capitalize text-gray-700">{labelTanggal(h.tanggal)}</span>
+                <span className="flex items-center gap-2 text-gray-400">
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
+                    {totalHari} laporan
+                  </span>
+                  <Icon name="chevron-down" className={`h-3.5 w-3.5 transition-transform ${hariTerbuka ? "rotate-180" : ""}`} />
+                </span>
+              </button>
+
+              {hariTerbuka && daftarProyekHari(h)}
             </div>
           );
         })}
       </div>
+
+      {hariData && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4" onClick={() => setHariDipilih(null)}>
+          <div
+            className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-soft"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2 px-4 py-3">
+              <div>
+                <p className="font-semibold capitalize text-gray-800">{labelTanggal(hariData.tanggal)}</p>
+                <p className="text-xs text-gray-400">
+                  {hariData.proyekGrup.reduce((a, p) => a + p.items.length, 0)} laporan · {hariData.proyekGrup.length} proyek — pilih proyek
+                </p>
+              </div>
+              <button onClick={() => setHariDipilih(null)} className="shrink-0 px-1 text-2xl leading-none text-gray-400">×</button>
+            </div>
+            <div className="overflow-y-auto">{daftarProyekHari(hariData)}</div>
+          </div>
+        </div>
+      )}
 
       {detail && (
         <div
