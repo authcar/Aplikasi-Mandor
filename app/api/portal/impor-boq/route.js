@@ -4,7 +4,7 @@ import { db, hasil, UUID } from "@/lib/portal/db";
 import { ambilProyek } from "@/lib/portal/data";
 import { BUCKET_ITEM } from "@/lib/portal/fotoItem";
 import { tambahItemProyek, gantiItemProyek, gantiItemPilihan } from "@/lib/portal/itemProyek";
-import { anggotaDariToken, pastikanProyekTaraco, dorongProgres, dorongProgresKetat, lepasTautanTaraco } from "@/lib/portal/tautTaraco";
+import { anggotaDariToken, pastikanProyekTaraco, dorongProgres, dorongProgresKetat, lepasTautanTaraco, proyekKartu } from "@/lib/portal/tautTaraco";
 import { hapusSatuProyek } from "@/lib/portal/hapusProyek";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +88,7 @@ export async function POST(req) {
     // Item yang sudah ada di proyek tracker kartu ini; tidak membuat / menautkan apa pun.
     if (b.aksi === "daftar") {
       if (!UUID.test(b.taraco_id || "")) return gagal("proyek tidak valid.");
-      const p = await hasil(db().from("portal_proyek").select("id").eq("taraco_id", b.taraco_id).maybeSingle());
+      const p = await proyekKartu(b.taraco_id);
       if (!p) return balas({ items: [] });
       // select("*"): kolom hanya_jasa belum tentu sudah ada di database
       const rows = await hasil(db().from("portal_item").select("*").eq("proyek_id", p.id).order("urutan"));
