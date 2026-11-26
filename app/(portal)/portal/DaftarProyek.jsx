@@ -32,6 +32,7 @@ function Kartu({ k, pilih, dipilih, onToggle }) {
       <div>
         <h3>{k.nama}</h3>
         {k.lokasi && <div className="small lok">{k.lokasi}</div>}
+        {k.bayar && <span className={`badge ${k.bayar[1]}`} style={{ display: "inline-block", marginTop: 6 }}>{k.bayar[0]}</span>}
       </div>
       <div className="bar"><i style={{ width: `${k.persen}%` }} /></div>
       {k.aktif && k.n > 0 && k.persen < 99.995 && !k.adaProgres && <div className="small" style={{ marginTop: -2, color: "var(--bad)", fontWeight: 700 }}>Tidak ada progress minggu ini</div>}

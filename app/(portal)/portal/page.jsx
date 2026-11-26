@@ -1,11 +1,11 @@
 import Link from "next/link";
 import DaftarProyek from "./DaftarProyek";
 import { ambilStaf } from "@/lib/portal/server";
-import { ambilBobotTahap, ambilItem, ambilItemMentah, ambilPengubahTerakhir, ambilProyekStaf, susunItem, timSaya } from "@/lib/portal/data";
+import { ambilBobotTahap, ambilItem, ambilItemMentah, ambilPengubahTerakhir, ambilProyekStaf, ambilTerminSemua, susunItem, timSaya } from "@/lib/portal/data";
 import { hitungDefectBaru } from "@/lib/portal/defect";
 import { syncPortalDariTaraco } from "@/lib/portal/syncTaraco";
 import { persenProyek } from "@/lib/portal/progresBoq";
-import { hariIni, tambahHari, tglTh, pct, statusProyek, labelDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
+import { hariIni, tambahHari, tglTh, pct, statusProyek, statusBayar, labelDeadline, DEFECT_AKTIF } from "@/lib/portal/format";
 
 export default async function PortalBeranda() {
   const { staf } = await ambilStaf();
@@ -19,12 +19,15 @@ export default async function PortalBeranda() {
   // daftar proyeknya (satu bolak-balik ke database lebih sedikit). Tukang dan Head of Production
   // hanya sebagian proyek: item baru diambil sesudah daftarnya tahu.
   const berurutan = tukang || staf.peran === "HEAD_OF_PRODUCTION";
-  const [proyek, mentah, bobot, defectBaru, pengubahSemua] = await Promise.all([
+  const [proyek, mentah, bobot, defectBaru, pengubahSemua, termin] = await Promise.all([
     ambilProyekStaf(staf),
     berurutan ? null : ambilItemMentah(null),
     berurutan ? null : ambilBobotTahap(),
     tukang || admin || !DEFECT_AKTIF ? {} : hitungDefectBaru(),
     staf.peran === "MASTER" ? ambilPengubahTerakhir() : {},
+    // Pembayaran hanya untuk admin: role lain tidak menerima datanya sama sekali.
+    // Gagal baca -> kartu tampil tanpa label pembayaran.
+    admin ? ambilTerminSemua().catch(() => null) : null,
   ]);
   const pengubah = pengubahSemua;
   const semuaItem = mentah ? susunItem(proyek, mentah, bobot) : await ambilItem(proyek);
@@ -57,6 +60,7 @@ export default async function PortalBeranda() {
       id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
       n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null, kirim: p.tanggal_kirim ? tglTh(p.tanggal_kirim) : null,
       sisa: p.deadline && p.aktif ? labelDeadline(p.deadline) : null,
+      bayar: termin ? statusBayar(termin[p.id] || []) : null,
       status, kelas, persen: v, adaProgres: adaProgres || !lewatBatas, terakhir: terakhir ? tglTh(terakhir) : null, persenTeks: pct(v), oleh: pengubah[p.id]?.oleh || null, defect: defectBaru[p.id] || 0,
     };
   });
