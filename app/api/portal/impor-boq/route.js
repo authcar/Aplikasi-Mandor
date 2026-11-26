@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 //        -> { proyek_id, baru, nama, jumlah_item }   proyek tracker dibuat / ditautkan
 //   POST application/json  { aksi: "kandidat" }                  -> { proyek: [...] } yang belum tertaut
 //   POST application/json  { aksi: "tautkan", proyek_id, taraco_id } -> { ok, progres, peringatan? }
-//   POST application/json  { aksi: "hapus", taraco_id }           -> { ok, ada }  BoQ + proyek tracker dihapus
+//   POST application/json  { aksi: "hapus", taraco_id, proyek_ids? } -> { ok, ada }  BoQ + proyek tracker dihapus
 //   POST multipart         proyek_id, foto
 //        -> { path }                                 satu foto item (gambar kolom C)
 //   POST application/json  { aksi: "daftar", taraco_id }
@@ -100,10 +100,11 @@ export async function POST(req) {
     // Semua proyek tracker + kartu Taraco yang sudah menerima progresnya
     // -> { proyek: [{ id, nama, kode, taraco_id }], tambahan: [{ proyek_id, taraco_id }] }
     if (b.aksi === "kandidat") {
-      const { data, error } = await db().from("portal_proyek").select("id, nama, kode, taraco_id");
+      const { data, error } = await db().from("portal_proyek").select("id, nama, kode, taraco_id, portal_item(count)");
       if (error) return gagal("daftar proyek tracker tidak terbaca.", 500);
       const { data: tambahan } = await db().from("portal_taraco_tambahan").select("proyek_id, taraco_id");
-      return balas({ proyek: data || [], tambahan: tambahan || [] });
+      const proyek = (data || []).map(({ portal_item, ...p }) => ({ ...p, jumlah_item: portal_item?.[0]?.count || 0 }));
+      return balas({ proyek, tambahan: tambahan || [] });
     }
 
     // Tautkan proyek tracker ke kartu Taraco (dikonfirmasi manual di Taraco), lalu dorong progresnya.
@@ -136,13 +137,15 @@ export async function POST(req) {
 
     // Hapus BoQ dari kartu Taraco ini: proyek tracker-nya ikut terhapus (item, progres, foto),
     // termasuk kalau kartu ini hanya "tambahan" di proyek bersama. Progres di semua kartunya dikosongkan.
+    // `proyek_ids` = proyek bernama mirip yang dicentang di dialog hapus; ikut dihapus.
     // -> { ok, ada }
     if (b.aksi === "hapus") {
       if (!UUID.test(b.taraco_id || "")) return gagal("proyek tidak valid.");
       const utama = await hasil(db().from("portal_proyek").select("id").eq("taraco_id", b.taraco_id));
       // Tabel tambahan opsional: belum dibuat -> `data` kosong.
       const { data: tambahan } = await db().from("portal_taraco_tambahan").select("proyek_id").eq("taraco_id", b.taraco_id);
-      const ids = [...new Set([...utama.map((p) => p.id), ...(tambahan || []).map((r) => r.proyek_id)])];
+      const dicentang = Array.isArray(b.proyek_ids) ? b.proyek_ids.filter((id) => UUID.test(id)) : [];
+      const ids = [...new Set([...utama.map((p) => p.id), ...(tambahan || []).map((r) => r.proyek_id), ...dicentang])];
       for (const id of ids) await hapusSatuProyek(id);
       if (!ids.length) await lepasTautanTaraco(b.taraco_id);
       return balas({ ok: true, ada: ids.length > 0 });
