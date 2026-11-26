@@ -135,23 +135,17 @@ export async function POST(req) {
     }
 
     // Hapus BoQ dari kartu Taraco ini: proyek tracker-nya ikut terhapus (item, progres, foto),
-    // dan progres di kartu dikosongkan. Kartu yang hanya "tambahan" cukup dilepas dari proyek bersama.
+    // termasuk kalau kartu ini hanya "tambahan" di proyek bersama. Progres di semua kartunya dikosongkan.
     // -> { ok, ada }
     if (b.aksi === "hapus") {
       if (!UUID.test(b.taraco_id || "")) return gagal("proyek tidak valid.");
-      const utama = await db().from("portal_proyek").select("id").eq("taraco_id", b.taraco_id).maybeSingle();
-      if (utama.data) {
-        await hapusSatuProyek(utama.data.id);
-        return balas({ ok: true, ada: true });
-      }
-      const tambah = await db().from("portal_taraco_tambahan").select("proyek_id").eq("taraco_id", b.taraco_id);
-      if (tambah.data?.length) {
-        await db().from("portal_taraco_tambahan").delete().eq("taraco_id", b.taraco_id);
-        await lepasTautanTaraco(b.taraco_id);
-        return balas({ ok: true, ada: true });
-      }
-      await lepasTautanTaraco(b.taraco_id);
-      return balas({ ok: true, ada: false });
+      const utama = await hasil(db().from("portal_proyek").select("id").eq("taraco_id", b.taraco_id));
+      // Tabel tambahan opsional: belum dibuat -> `data` kosong.
+      const { data: tambahan } = await db().from("portal_taraco_tambahan").select("proyek_id").eq("taraco_id", b.taraco_id);
+      const ids = [...new Set([...utama.map((p) => p.id), ...(tambahan || []).map((r) => r.proyek_id)])];
+      for (const id of ids) await hapusSatuProyek(id);
+      if (!ids.length) await lepasTautanTaraco(b.taraco_id);
+      return balas({ ok: true, ada: ids.length > 0 });
     }
 
     if (b.aksi === "simpan") {
