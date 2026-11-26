@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
-import { db, UUID } from "@/lib/portal/db";
+import { db, hasil, UUID } from "@/lib/portal/db";
 import { ambilProyek } from "@/lib/portal/data";
 import { BUCKET_ITEM } from "@/lib/portal/fotoItem";
-import { tambahItemProyek, gantiItemProyek } from "@/lib/portal/itemProyek";
+import { tambahItemProyek, gantiItemProyek, gantiItemPilihan } from "@/lib/portal/itemProyek";
 import { anggotaDariToken, pastikanProyekTaraco, dorongProgres, dorongProgresKetat, lepasTautanTaraco } from "@/lib/portal/tautTaraco";
 import { hapusSatuProyek } from "@/lib/portal/hapusProyek";
 
@@ -20,7 +20,9 @@ export const dynamic = "force-dynamic";
 //   POST application/json  { aksi: "hapus", taraco_id }           -> { ok, ada }  BoQ + proyek tracker dihapus
 //   POST multipart         proyek_id, foto
 //        -> { path }                                 satu foto item (gambar kolom C)
-//   POST application/json  { aksi: "simpan", proyek_id, items, mode: "tambah" | "ganti" }
+//   POST application/json  { aksi: "daftar", taraco_id }
+//        -> { items }                                item yang sudah ada (untuk checklist ganti)
+//   POST application/json  { aksi: "simpan", proyek_id, items, mode: "tambah" | "ganti" | "ganti_pilih", ganti_ids? }
 //        -> { ok, jumlah }                           item disimpan, progres didorong ke Taraco
 //
 // Bearer token (bukan cookie) -> CORS "*" tidak membuka celah CSRF.
@@ -81,6 +83,18 @@ export async function POST(req) {
       if (!UUID.test(b.taraco_id || "")) return gagal("proyek tidak valid.");
       const p = await pastikanProyekTaraco(b.taraco_id);
       return balas({ proyek_id: p.id, baru: p.baru, nama: p.nama, jumlah_item: p.jumlahItem });
+    }
+
+    // Item yang sudah ada di proyek tracker kartu ini; tidak membuat / menautkan apa pun.
+    if (b.aksi === "daftar") {
+      if (!UUID.test(b.taraco_id || "")) return gagal("proyek tidak valid.");
+      const p = await hasil(db().from("portal_proyek").select("id").eq("taraco_id", b.taraco_id).maybeSingle());
+      if (!p) return balas({ items: [] });
+      // select("*"): kolom hanya_jasa belum tentu sudah ada di database
+      const rows = await hasil(db().from("portal_item").select("*").eq("proyek_id", p.id).order("urutan"));
+      return balas({
+        items: rows.map(({ id, area, kode, nama, qty, satuan, dimensi, urutan, hanya_jasa }) => ({ id, area, kode, nama, qty, satuan, dimensi, urutan, hanya_jasa })),
+      });
     }
 
     // Semua proyek tracker + kartu Taraco yang sudah menerima progresnya
@@ -146,6 +160,8 @@ export async function POST(req) {
       if (b.items.length > MAKS_ITEM) return gagal(`terlalu banyak item (maksimal ${MAKS_ITEM}).`);
       const items = b.items.filter((i) => i && typeof i === "object");
       if (b.mode === "ganti") await gantiItemProyek(b.proyek_id, items);
+      else if (b.mode === "ganti_pilih")
+        await gantiItemPilihan(b.proyek_id, Array.isArray(b.ganti_ids) ? b.ganti_ids.filter((id) => UUID.test(id)) : [], items);
       else await tambahItemProyek(b.proyek_id, items);
       await dorongProgres(b.proyek_id);
       return balas({ ok: true, jumlah: items.length });
