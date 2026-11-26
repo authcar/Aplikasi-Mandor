@@ -1,5 +1,5 @@
 -- Project Tracker (portal) otomatis menarik proyek dari Taraco Project Management:
--- begitu sebuah proyek masuk stage "DP / SPK" (pipeline MASTER) ia dibuatkan
+-- begitu sebuah proyek masuk kolom "Production" (pipeline PRODUCTION) ia dibuatkan
 -- baris di portal_proyek (lib/portal/syncTaraco.js).
 -- Jalankan sekali di Supabase Studio > SQL Editor project Aplikasi Mandor
 -- (BUKAN project Taraco). Aman dijalankan ulang.

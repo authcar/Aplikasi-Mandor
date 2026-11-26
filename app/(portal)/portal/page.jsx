@@ -11,7 +11,7 @@ export default async function PortalBeranda() {
   const { staf } = await ambilStaf();
   const admin = staf.role === "ADMIN";
   const tukang = staf.role === "TUKANG";
-  // Proyek Taraco yang sudah masuk DP / SPK otomatis dibuatkan di Project Tracker.
+  // Proyek Taraco yang masuk kolom Production (pipeline Production) otomatis dibuatkan di Project Tracker.
   // Tidak ditunggu: sinkron ke Taraco (jaringan ke database lain) dulu memperlambat
   // tiap load per menit. Proyek baru muncul di load berikutnya; galat ditelan di dalamnya.
   if (!tukang) syncPortalDariTaraco().catch(() => {});
