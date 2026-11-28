@@ -60,7 +60,7 @@ export default async function PortalBeranda() {
       id: p.id, kode: p.kode, klien: p.klien_nama, nama: p.nama, lokasi: p.lokasi, aktif: p.aktif,
       n: its.length, deadline: p.deadline ? tglTh(p.deadline) : null, kirim: p.tanggal_kirim ? tglTh(p.tanggal_kirim) : null,
       sisa: p.deadline && p.aktif ? labelDeadline(p.deadline) : null,
-      bayar: termin ? statusBayar(termin[p.id] || []) : null,
+      bayar: termin ? statusBayar(termin[p.id] || [], v, status) : null,
       status, kelas, persen: v, adaProgres: adaProgres || !lewatBatas, terakhir: terakhir ? tglTh(terakhir) : null, persenTeks: pct(v), oleh: pengubah[p.id]?.oleh || null, defect: defectBaru[p.id] || 0,
     };
   });
