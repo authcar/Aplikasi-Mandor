@@ -281,6 +281,7 @@ export async function tambahTermin(proyekId, rows) {
       if (tambahan) await cekTotalTermin(proyekId, jenis, tambahan);
     }
     await hasil(db().from("portal_termin").insert(baru));
+    await dorongProgres(proyekId);
   });
 }
 
@@ -301,6 +302,7 @@ export async function buatTerminStandar(proyekId, jenis) {
       )
     );
     if (lama.length) await hasil(db().from("portal_termin").delete().in("id", lama.map((t) => t.id)));
+    await dorongProgres(proyekId);
   });
 }
 
@@ -319,6 +321,7 @@ export async function ubahTermin(id, patch) {
     await ubah("portal_termin", id, p);
     // Bukti yang diganti atau dicabut dihapus dari storage.
     if ("bukti" in p && t.bukti && t.bukti !== p.bukti) await hapusFotoItem([t.bukti]);
+    await dorongProgres(t.proyek_id); // label pembayaran di Taraco
   });
 }
 
@@ -328,6 +331,7 @@ export async function hapusTermin(id) {
     const t = await hasil(db().from("portal_termin").select("*").eq("id", id).maybeSingle());
     await hapus("portal_termin", id);
     await hapusFotoItem([t?.bukti]);
+    if (t) await dorongProgres(t.proyek_id);
   });
 }
 
